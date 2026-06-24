@@ -24,7 +24,11 @@ con-ai/
 │   ├── templates/template_screen.html  골든 2단 템플릿
 │   ├── 표준/입력필드_정책.md          공용 입력 표준
 │   └── 와일리-OS/                    ★ 멀티입력→프로토타입 환경 (00~04 + screenspec.schema.json)
-├── .claude/skills/screen-spec/      화면 생산 커스텀 스킬 (공용)
+├── .claude/skills/                  ★ 커스텀 스킬 (공용)
+│   ├── screen-spec/                  화면 생산(2단 도식화)
+│   ├── ia-from-url/                  URL→As-Is IA 구조도
+│   ├── screen-inventory/             화면 본수 집계·카탈로그
+│   └── benchmark-painpoint/          벤치마킹→페인포인트·개선
 ├── .claude/hooks/html-lint.py       회귀 13패턴 훅
 ├── scripts/                         전 프로젝트 일괄 검증
 └── projects/                        ◆ 프로젝트 인스턴스들
@@ -95,6 +99,8 @@ con-ai/
 - **SSOT = 2단 HTML 화면설계서.** Figma(`use_figma`)·Adobe Express(`export_html_to_express`)·Canva는 *렌더 타깃*.
 - **연결된 MCP 지도**: `방법론/와일리-OS/02_mcp-capability-map.md` (Figma·Adobe·Canva·Google Drive·Hugging Face·ListeningMind·Higgsfield·github).
 - **신뢰성 7원칙·실패모드 대응**: `방법론/와일리-OS/04_knowhow.md` (그라운딩 없으면 폐기 / 더미 창작 금지 / 마커는 코드 생성 / strict 스키마).
+- **벤치마크·도식화 노하우**: `05_s2b2-benchmark.md`(s2b2 능가 9+5요소) · `06_diagramming.md`(3자 공통언어 도식 — Wireflow·상태도·시퀀스·필드 매트릭스, Mermaid).
+- **인테이크·리서치 스킬 3종**: `ia-from-url`(URL→IA 구조도) · `screen-inventory`(화면 본수 카탈로그) · `benchmark-painpoint`(벤치마킹→페인포인트·개선).
 
 ---
 
@@ -103,5 +109,5 @@ con-ai/
 | 프로젝트 | 상태 |
 |---------|------|
 | `lotte-dutyfree` | 부트스트랩 — 방법론 골격 완료, 도메인 콘텐츠(L1/L2/L3)는 롯데 PPTX 도착 후 채움 |
-| `shinsegae-simon-bo` | PPTX(67p)→BO006·BO316 2단 HTML 실증 완료. ScreenSpec 예시 `방법론/와일리-OS/examples/BO006.screenspec.json` |
-| 와일리 OS | 환경 구축 — 라우터·MCP지도·ScreenSpec 스키마·노하우 문서화 완료. 다음: 인테이크 스킬화, Figma/Express 렌더 1건 실증 |
+| `shinsegae-simon-bo` | PPTX(67p)→BO006·BO007·BO316 2단 HTML(도식화) 실증. s2b2 벤치마크로 품질 상향. ScreenSpec 예시 `examples/BO006.screenspec.json` |
+| 와일리 OS | 환경+노하우(00~06)·도식화·인테이크/리서치 스킬 3종 완료. 다음: Figma/Express 렌더 실증, 스킬 실데이터 적용 |
