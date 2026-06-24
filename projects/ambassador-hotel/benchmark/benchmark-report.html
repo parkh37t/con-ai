@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>앰배서더 호텔 — 벤치마킹·페인포인트·개선 (benchmark-painpoint)</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
+*{box-sizing:border-box} body{margin:0;font-family:'Noto Sans KR',sans-serif;color:#1f2937;background:#f9fafb}
+.wrap{max-width:1120px;margin:0 auto;padding:24px}
+header{background:#0f172a;color:#fff;border-radius:10px;padding:22px 26px;margin-bottom:18px}
+header h1{margin:0 0 4px;font-size:22px} header p{margin:0;color:#cbd5e1;font-size:13px}
+.tag{display:inline-block;background:#1e293b;color:#fca5a5;font-size:11px;padding:2px 8px;border-radius:4px;margin-right:5px}
+.card{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:18px;margin-bottom:18px}
+.card h2{font-size:15px;margin:0 0 12px;border-bottom:2px solid #0f172a;padding-bottom:6px}
+.warn{background:#fef3c7;border:1px solid #fde68a;color:#92400e;border-radius:8px;padding:10px 12px;font-size:12px;margin-bottom:14px}
+table{border-collapse:collapse;width:100%;font-size:12px} th,td{border:1px solid #e5e7eb;padding:7px 8px;text-align:left;vertical-align:top}
+th{background:#f1f5f9}
+.sev{font-weight:700;font-size:11px;padding:1px 7px;border-radius:9999px;white-space:nowrap}
+.s-h{background:#fee2e2;color:#991b1b}.s-m{background:#fef3c7;color:#92400e}.s-l{background:#dcfce7;color:#166534}
+.pri{font-weight:700;font-size:11px;padding:1px 7px;border-radius:4px;white-space:nowrap}
+.p-q{background:#dcfce7;color:#166534}.p-major{background:#dbeafe;color:#1e40af}.p-fill{background:#f1f5f9;color:#475569}
+.diagram{background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;padding:10px;overflow-x:auto}
+.mermaid svg{max-width:100%;height:auto}
+.note{font-size:11px;color:#64748b;line-height:1.7;margin-top:8px}
+.ok{color:#16a34a;font-weight:700}.no{color:#dc2626;font-weight:700}
+code{background:#f1f5f9;padding:1px 4px;border-radius:3px;font-size:11px}
+ul{margin:4px 0;padding-left:18px;font-size:12px;line-height:1.7}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>앰배서더 호텔 그룹 — 벤치마킹 · 페인포인트 · 개선</h1>
+    <p><span class="tag">benchmark-painpoint</span> 대상 ambatel.com · 벤치 신라·롯데·조선 · 와일리 OS 리서치 실증</p>
+  </header>
+
+  <div class="warn">
+    ⚠ <b>방법·한계</b>: 대상 사이트 직접 fetch가 WAF로 차단(403)되어 <b>구조·URL 패턴·검색엔진 색인·공식 정보 기반 추론</b>으로 진단했습니다.
+    실제 클릭 플로우/렌더 휴리스틱 워크스루는 미수행이며, 페인포인트는 <b>구조적 가설(근거 명시)</b>입니다. 로그인 후·예약엔진 내부는 미확인.
+  </div>
+
+  <!-- 1. 벤치마킹 비교 -->
+  <div class="card">
+    <h2>1. 경쟁 벤치마킹 (호텔 그룹 사이트 전략)</h2>
+    <table>
+      <thead><tr><th>그룹</th><th>사이트 구조</th><th>통합 예약/멤버십</th><th>PC/모바일</th><th>URL</th><th>시사점</th></tr></thead>
+      <tbody>
+        <tr><td><b>조선호텔앤리조트</b><br><code>josunhotel.com</code></td><td><span class="ok">단일 통합 도메인</span>에 전 브랜드(웨스틴·그래비티·조선팰리스·포포인츠)</td><td>통합 예약 <code>/resve/</code>·패키지 <code>/package/</code></td><td>반응형(단일)</td><td>.do(일부)</td><td>한 사이트에서 전 호텔 탐색·예약</td></tr>
+        <tr><td><b>신라호텔</b><br><code>shillahotels.com</code></td><td>통합 사이트 + 서울/제주/신라스테이</td><td><span class="ok">신라리워즈 통합멤버십</span> · 통합 앱(객실·다이닝)</td><td>앱+웹</td><td>.do</td><td>멤버십·예약 통합, 다국어(한·영·일·중)</td></tr>
+        <tr><td><b>롯데호텔</b><br><code>lottehotel.com</code></td><td>글로벌 통합 <code>/global/ko/</code></td><td><span class="ok">통합 멤버십</span></td><td><span class="ok">JS 반응형</span></td><td>모던</td><td>반응형·글로벌 일관 구조</td></tr>
+        <tr style="background:#fff7ed"><td><b>앰배서더(대상)</b><br><code>ambatel.com</code></td><td><span class="no">지점별 마이크로사이트 분산</span> <code>/brand/site/ko/</code> (~21개)</td><td>클럽 앰버(통합멤버십) ○ · <span class="no">통합 예약 허브 약함(추정)</span></td><td><span class="no">PC/모바일 분리</span> <code>m.ambatel.com</code></td><td><span class="no">레거시 <code>.do·_seq</code></span></td><td>네트워크는 최다, 디지털 통합은 후순위</td></tr>
+      </tbody>
+    </table>
+    <p class="note">공통점: 4사 모두 통합멤버십 보유. <b>차이</b>: 경쟁 3사는 <b>단일 도메인 통합 + (롯데)반응형</b>, 앰배서더만 <b>지점 분산 + PC/모바일 분리 + 레거시 URL</b>.</p>
+  </div>
+
+  <!-- 2. 페인포인트 -->
+  <div class="card">
+    <h2>2. 페인포인트 (NN/G 휴리스틱 · 구조 근거)</h2>
+    <table>
+      <thead><tr><th style="width:24px">#</th><th>영역</th><th>페인포인트</th><th>휴리스틱 위반</th><th>증거(구조)</th><th>심각도</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>탐색</td><td>21개 지점이 각자 마이크로사이트 → 그룹 차원 통합 탐색·호텔 간 비교 곤란</td><td>일관성·표준(#4), 인식 우선(#6)</td><td><code>/{brand}/{site}/ko/</code> 분산, 그룹 통합 검색 부재 추정</td><td><span class="sev s-h">High</span></td></tr>
+        <tr><td>2</td><td>반응형</td><td>PC/모바일 별도 도메인 → 기기별 경험·콘텐츠 불일치, 유지보수 2배</td><td>유연성·효율(#7), 일관성(#4)</td><td><code>m.ambatel.com</code> 분리 운영</td><td><span class="sev s-h">High</span></td></tr>
+        <tr><td>3</td><td>예약 전환</td><td>지역·날짜로 전 지점 검색→비교→예약하는 통합 동선 약함(지점 진입 후 개별 예약)</td><td>유연성·효율(#7)</td><td>경쟁 조선 <code>/resve/</code> 통합예약 대비 부재 추정</td><td><span class="sev s-h">High</span></td></tr>
+        <tr><td>4</td><td>기술·SEO</td><td>레거시 URL(<code>.do·?_contents_seq</code>) + 봇 차단(403) → 검색 노출·공유·딥링크·접근성 불리</td><td>유연성(#7)</td><td>WAF 403, 비의미 URL</td><td><span class="sev s-m">Med</span></td></tr>
+        <tr><td>5</td><td>브랜드 일관성</td><td>지점별 사이트 디자인·정보구조 편차 → 그룹 브랜드 경험 분절</td><td>일관성·표준(#4), 심미·미니멀(#8)</td><td>브랜드별 독립 템플릿</td><td><span class="sev s-m">Med</span></td></tr>
+        <tr><td>6</td><td>멤버십 전환</td><td>클럽 앰버(유료) 가치·전환 동선이 예약 플로우와 분리</td><td>인식 우선(#6)</td><td>멤버십이 <code>/ko/utility/</code> 별도 영역</td><td><span class="sev s-l">Low</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 3. 개선 + 우선순위 -->
+  <div class="card">
+    <h2>3. 개선사항 (벤치마크 근거 · 우선순위)</h2>
+    <table>
+      <thead><tr><th style="width:24px">#</th><th>개선안</th><th>대응 페인포인트</th><th>벤치마크 근거</th><th>기대효과</th><th>우선순위</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td><b>그룹 통합 예약·탐색 허브</b> (지역·날짜·브랜드·가격으로 전 지점 검색→비교→예약)</td><td>1,3</td><td>조선 <code>/resve/</code> 통합예약, 신라 통합 앱</td><td>전환율↑, 교차판매↑</td><td><span class="pri p-major">Major</span></td></tr>
+        <tr><td>2</td><td><b>반응형 통합</b> (m. 도메인 폐지, 단일 반응형)</td><td>2</td><td>롯데 JS 반응형 단일 도메인</td><td>일관성↑, 유지비↓, 모바일 SEO↑</td><td><span class="pri p-major">Major</span></td></tr>
+        <tr><td>3</td><td><b>통합 디자인시스템</b> (브랜드 토큰화, 지점 템플릿 표준)</td><td>5</td><td>글로벌 체인 디자인시스템</td><td>브랜드 일관성, 신규 지점 온보딩↓</td><td><span class="pri p-major">Major</span></td></tr>
+        <tr><td>4</td><td><b>클럽 앰버 전환 동선 강화</b> (예약·객실 화면 내 멤버 혜택·가입 CTA)</td><td>6</td><td>신라리워즈 예약 연동</td><td>멤버십 가입·재방문↑</td><td><span class="pri p-q">Quick-win</span></td></tr>
+        <tr><td>5</td><td><b>URL 현대화·SEO</b> (의미형 slug, 봇 허용, 메타·구조화데이터)</td><td>4</td><td>롯데 모던 구조</td><td>검색 유입↑, 공유·딥링크</td><td><span class="pri p-fill">Fill-in</span></td></tr>
+        <tr><td>6</td><td><b>접근성(WCAG) 보강</b> (키보드·대비·대체텍스트)</td><td>2,5</td><td>업계 표준</td><td>접근성·법적 리스크↓</td><td><span class="pri p-fill">Fill-in</span></td></tr>
+      </tbody>
+    </table>
+
+    <h2 style="margin-top:20px">우선순위 매트릭스 (임팩트 × 노력)</h2>
+    <div class="diagram"><pre class="mermaid">
+quadrantChart
+  title 개선 우선순위
+  x-axis 낮은 노력 --> 높은 노력
+  y-axis 낮은 임팩트 --> 높은 임팩트
+  quadrant-1 Major (전략과제)
+  quadrant-2 Quick-win
+  quadrant-3 Fill-in
+  quadrant-4 재검토
+  "통합 예약 허브": [0.62, 0.92]
+  "반응형 통합": [0.82, 0.85]
+  "디자인시스템": [0.85, 0.7]
+  "클럽앰버 동선": [0.25, 0.62]
+  "URL·SEO": [0.7, 0.45]
+  "접근성": [0.4, 0.5]
+</pre></div>
+    <p class="note">우상(Major)=임팩트·노력 모두 큼 → 로드맵 핵심. 좌상(Quick-win)=클럽앰버 동선부터 즉시.</p>
+  </div>
+
+  <div class="card">
+    <h2>출처</h2>
+    <ul>
+      <li>앰배서더: ambatel.com/ko/about/info.do · /ko/utility/memberShipInfo.do · /ko/offer/offerPkg.do · m.ambatel.com/{brand}/{site}/ko/</li>
+      <li>신라: shillahotels.com · m.shilla.net · 신라리워즈 통합멤버십</li>
+      <li>롯데: lottehotel.com/global/ko/membership · /seoul-hotel/ko.html (JS 반응형)</li>
+      <li>조선: josunhotel.com · /resve/dining · /package · /hotel/westinSeoul.do</li>
+      <li>휴리스틱: Nielsen Norman Group 10 Usability Heuristics</li>
+    </ul>
+  </div>
+</div>
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11.6.0/dist/mermaid.esm.min.mjs';
+  mermaid.initialize({ startOnLoad:true, securityLevel:'loose', theme:'base',
+    themeVariables:{ fontSize:'12px', fontFamily:"'Noto Sans KR',sans-serif" } });
+</script>
+</body>
+</html>

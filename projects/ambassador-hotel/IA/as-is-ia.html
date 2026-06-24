@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>앰배서더 호텔 그룹 — As-Is IA 구조도 (ia-from-url)</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
+*{box-sizing:border-box} body{margin:0;font-family:'Noto Sans KR',sans-serif;color:#1f2937;background:#f9fafb}
+.wrap{max-width:1180px;margin:0 auto;padding:24px}
+header{background:#0f172a;color:#fff;border-radius:10px;padding:22px 26px;margin-bottom:18px}
+header h1{margin:0 0 4px;font-size:22px} header p{margin:0;color:#cbd5e1;font-size:13px}
+.tag{display:inline-block;background:#1e293b;color:#93c5fd;font-size:11px;padding:2px 8px;border-radius:4px;margin-right:5px}
+.grid{display:grid;grid-template-columns:1fr 320px;gap:18px}
+.card{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:18px;margin-bottom:18px}
+.card h2{font-size:15px;margin:0 0 12px;border-bottom:2px solid #0f172a;padding-bottom:6px}
+.card h3{font-size:13px;margin:16px 0 6px;color:#334155}
+.diagram{background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;padding:10px;overflow-x:auto}
+.mermaid{font-size:12px}
+.mermaid svg{max-width:100%;height:auto}
+.meta th,.meta td{border:1px solid #e5e7eb;padding:6px 8px;font-size:12px;text-align:left;vertical-align:top}
+.meta th{background:#f1f5f9;width:90px;white-space:nowrap}
+.meta{border-collapse:collapse;width:100%;margin-bottom:12px}
+.note{font-size:11px;color:#64748b;line-height:1.6}
+.warn{background:#fef3c7;border:1px solid #fde68a;color:#92400e;border-radius:8px;padding:10px 12px;font-size:12px;margin-bottom:14px}
+ul.tight{margin:4px 0;padding-left:18px;font-size:12px;line-height:1.7}
+.legend span{display:inline-block;font-size:10px;color:#64748b;margin-right:10px}
+.src{display:inline-block;background:#eef2ff;color:#3730a3;font-size:9px;padding:1px 5px;border-radius:3px;font-family:ui-monospace,monospace}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>앰배서더 호텔 그룹 — As-Is IA 구조도</h1>
+    <p><span class="tag">ia-from-url</span> www.ambatel.com · 수집 2026-06 · 와일리 OS 인테이크 실증</p>
+  </header>
+
+  <div class="warn">
+    ⚠ <b>수집 방식·한계</b>: 대상 사이트가 직접 fetch(crawl·sitemap)를 <b>WAF로 차단(HTTP 403)</b>하여,
+    <b>검색엔진 색인(site: 쿼리) 기반</b>으로 IA를 복원했습니다. 따라서 <b>전수가 아닌 대표 구조</b>이며,
+    JS 렌더 메뉴·로그인 후 영역·일부 지점은 미수집일 수 있습니다(추정·창작 노드는 넣지 않음).
+  </div>
+
+  <div class="grid">
+    <div>
+      <!-- 전체 IA -->
+      <div class="card">
+        <h2>1. 전체 정보구조 (2-tier)</h2>
+        <div class="diagram"><pre class="mermaid">
+flowchart LR
+  ROOT["앰배서더 호텔 그룹<br/>ambatel.com"]:::root
+  ROOT --> G["그룹 공통<br/>/ko/*"]:::grp
+  ROOT --> H["호텔 (브랜드/지점)<br/>/&lt;brand&gt;/&lt;site&gt;/ko/*"]:::grp
+  G --> G1["그룹소개 About"]
+  G --> G2["멤버십 Utility"]
+  G --> G3["스페셜오퍼 Offer"]
+  G --> G4["회원 Members"]
+  H --> L["럭셔리"]
+  H --> M["업스케일·미드"]
+  H --> E["이코노미"]
+  classDef root fill:#0f172a,stroke:#0f172a,color:#fff;
+  classDef grp fill:#1d4ed8,stroke:#1d4ed8,color:#fff;
+</pre></div>
+        <p class="note">2계층 구조: 그룹 통합 사이트(예약·멤버십·소개) + 브랜드/지점별 마이크로사이트.</p>
+      </div>
+
+      <!-- 그룹 공통 -->
+      <div class="card">
+        <h2>2. 그룹 공통 영역 <span class="src">/ko/*.do</span></h2>
+        <div class="diagram"><pre class="mermaid">
+flowchart TD
+  G["그룹 공통"]
+  G --> A["그룹소개<br/>About"]
+  A --> A1["소개 info"]
+  A --> A2["CEO ceo"]
+  A --> A3["연혁 history"]
+  A --> A4["호텔뉴스 newsView"]
+  G --> U["멤버십<br/>Utility"]
+  U --> U1["멤버십 안내 memberShipInfo"]
+  U --> U2["클럽 앰버 memberShipAmberInfo"]
+  G --> O["스페셜오퍼<br/>Offer"]
+  O --> O1["패키지 offerPkg"]
+  O --> O2["멤버 프로모션 offerMemberPromotion"]
+  G --> ME["회원<br/>Members"]
+  ME --> ME1["로그인 login"]
+  ME --> ME2["회원가입·마이"]
+</pre></div>
+      </div>
+
+      <!-- 호텔 브랜드/지점 -->
+      <div class="card">
+        <h2>3. 호텔 브랜드 · 지점 <span class="src">/&lt;brand&gt;/&lt;site&gt;/ko/</span></h2>
+        <div class="diagram"><pre class="mermaid">
+flowchart TD
+  H["호텔"]
+  H --> LUX["럭셔리"]
+  LUX --> f["페어몬트 서울<br/>fairmont/seoul"]
+  LUX --> s["소피텔 서울<br/>sofitel/seoul"]
+  LUX --> mg["엠갤러리 호텔나루 서울<br/>mgallery/seoul"]
+  H --> UP["업스케일·미드"]
+  UP --> gm["그랜드머큐어 용산·창원<br/>grandmercure"]
+  UP --> nv["노보텔 강남·용산·동대문·수원<br/>novotel"]
+  UP --> ns["노보텔스위트 용산<br/>novotelsuites"]
+  UP --> mc["머큐어 홍대·울산·제주<br/>mercure"]
+  H --> ECO["이코노미"]
+  ECO --> ib["이비스 명동·인사동·수원·부산<br/>ibis"]
+  ECO --> is["이비스스타일 강남·명동·용산·인천공항<br/>ibisstyles"]
+  classDef x fill:#f1f5f9;
+</pre></div>
+      </div>
+
+      <!-- 호텔 공통 메뉴 템플릿 -->
+      <div class="card">
+        <h2>4. 호텔 마이크로사이트 공통 메뉴 (템플릿)</h2>
+        <div class="diagram"><pre class="mermaid">
+flowchart LR
+  HM["호텔 메인<br/>main/index"]
+  HM --> R["객실<br/>roomList → roomView"]
+  HM --> D["다이닝<br/>diningList → diningView"]
+  HM --> F["시설<br/>facilitiesView"]
+  HM --> W["웨딩·연회<br/>weddingView"]
+  HM --> B["예약<br/>booking"]
+  HM --> L["오시는길·위치"]
+</pre></div>
+        <p class="note">모든 지점이 동일 메뉴 템플릿을 공유 → 화면 본수는 <b>지점 × 메뉴</b>로 증식(상세는 seq별 인스턴스). 본수 집계는 <code>inventory/index.html</code> 참조.</p>
+      </div>
+    </div>
+
+    <!-- 우측 메타 -->
+    <aside>
+      <div class="card">
+        <h2>수집 메타</h2>
+        <table class="meta">
+          <tr><th>대상</th><td>www.ambatel.com (PC) · m.ambatel.com (모바일)</td></tr>
+          <tr><th>언어</th><td>/ko · /jp · /en (다국어 분기)</td></tr>
+          <tr><th>수집원</th><td>검색엔진 색인(site:ambatel.com) · 공식 안내</td></tr>
+          <tr><th>차단</th><td>직접 crawl·robots·sitemap → HTTP 403(WAF)</td></tr>
+          <tr><th>커버리지</th><td>대표 구조(브랜드·지점·메뉴 템플릿). 전수 아님</td></tr>
+        </table>
+        <h3>URL 패턴</h3>
+        <ul class="tight">
+          <li>그룹: <code>/ko/{about|utility|offer|members}/*.do</code></li>
+          <li>호텔: <code>/{brand}/{site}/ko/{room|dining|facilities|wedding}*.do</code></li>
+          <li>상세: <code>?*_contents_seq=NN</code> (인스턴스)</li>
+        </ul>
+        <h3>확인된 브랜드(9)</h3>
+        <ul class="tight">
+          <li>페어몬트 / 소피텔 / 엠갤러리</li>
+          <li>그랜드머큐어 / 노보텔 / 노보텔스위트 / 머큐어</li>
+          <li>이비스 / 이비스스타일</li>
+        </ul>
+        <h3>미수집(한계)</h3>
+        <ul class="tight">
+          <li>JS 렌더 메가메뉴 정확 항목</li>
+          <li>로그인 후(마이페이지·예약내역)</li>
+          <li>일부 지점·외국어 전체 트리</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h2>출처</h2>
+        <ul class="tight">
+          <li>ambatel.com/ko/about/info.do</li>
+          <li>ambatel.com/ko/utility/memberShipInfo.do</li>
+          <li>ambatel.com/ko/offer/offerPkg.do</li>
+          <li>m.ambatel.com/{novotel,ibis,mercure,...}/{site}/ko/</li>
+        </ul>
+      </div>
+    </aside>
+  </div>
+</div>
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11.6.0/dist/mermaid.esm.min.mjs';
+  mermaid.initialize({ startOnLoad:true, securityLevel:'loose', theme:'base',
+    themeVariables:{ fontSize:'12px', fontFamily:"'Noto Sans KR',sans-serif", primaryColor:'#eff6ff', primaryBorderColor:'#3b82f6', lineColor:'#94a3b8' },
+    flowchart:{ htmlLabels:true, curve:'basis', nodeSpacing:26, rankSpacing:34 } });
+</script>
+</body>
+</html>
