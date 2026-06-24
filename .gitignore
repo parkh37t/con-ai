@@ -1,0 +1,14 @@
+# 생성물 / 검증 결과
+scripts/verify_all.json
+scripts/*.out.json
+
+# python
+__pycache__/
+*.pyc
+
+# OS / editor
+.DS_Store
+*.swp
+
+# 로컬 설정(개인)
+.claude/settings.local.json

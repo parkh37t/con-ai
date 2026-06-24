@@ -1,0 +1,85 @@
+# CLAUDE.md — con-ai 화면설계 워크벤치
+
+> 이 저장소는 **S2B AI 생산 방법론(7계층 OS)**을 코어로 두고, **여러 프로젝트의 화면설계 방법론을 테스트·프로토타이핑하고 S2B처럼 GitHub Pages로 배포**하는 **워크벤치**다.
+> 방법론 원리: `방법론/s2b-methodology-study.md`.
+
+---
+
+## 0. 저장소 구조 (워크벤치)
+
+```
+con-ai/
+├── index.html · .nojekyll          GitHub Pages 랜딩 (프로젝트 카탈로그)
+├── .github/workflows/pages.yml      Pages 자동 배포
+├── 방법론/                          ★ 공용 방법론 코어 (프로젝트 무관)
+│   ├── s2b-methodology-study.md      7계층 OS 학습 보고서
+│   ├── templates/template_screen.html  골든 2단 템플릿
+│   └── 표준/입력필드_정책.md          공용 입력 표준
+├── .claude/skills/screen-spec/      화면 생산 커스텀 스킬 (공용)
+├── .claude/hooks/html-lint.py       회귀 13패턴 훅
+├── scripts/                         전 프로젝트 일괄 검증
+└── projects/                        ◆ 프로젝트 인스턴스들
+    └── lotte-dutyfree/              롯데면세점 (프론트·관리자)
+        ├── index.html               프로젝트 프로토타입 랜딩
+        ├── docs/ (00_INDEX·01_규칙·02_SSOT·03_요구사항·04_공통표준)
+        └── 화면설계/ (프론트·관리자·_공통)
+```
+
+- **공용(재사용)** = `방법론/` · `.claude/` · `scripts/`. **프로젝트별** = `projects/<name>/`.
+
+---
+
+## 1. 새 프로젝트 추가 절차
+
+1. `projects/<slug>/` 생성. 아래 골격 복제:
+   - `docs/00_INDEX.md` · `docs/01_규칙/명명규칙.md` · `docs/02_SSOT/*_작업가이드.md` · `docs/03_요구사항/요구사항_추적표.md` · `docs/04_공통표준/{더미데이터_사전,용어집}.md`
+   - `화면설계/<포털>/` · `index.html`(프로토타입 랜딩) · `README.md`
+   - 참고 골격: `projects/lotte-dutyfree/`
+2. `docs/02_SSOT/*`(권한·흐름·상태·정책·용어)를 **가장 먼저** 채운다 = 가장 중요한 입력 컨텍스트.
+3. 화면 생산은 `screen-spec` 스킬 + `방법론/templates/template_screen.html` 골든 복제→개조.
+4. 루트 `index.html` 프로젝트 카탈로그에 항목 추가.
+
+---
+
+## 2. 화면 생산 원칙 (요약 — 상세는 `.claude/skills/screen-spec/SKILL.md`)
+
+- **신규 화면 = 골든 복제 → 개조.** 백지 생성 금지.
+- **2단 구조 불변식**: GNB·LNB·브레드크럼은 `screen-wrap` 안, `#right-panel`은 그 형제.
+- **마커 1:1 미러링**: 좌 `num-badge`/`num-badge-sm` == 우 `spec-field`(개수·라벨·순서 일치).
+- **우측 디스크립션 8단 고정 순서**: 화면ID→info-table 3행→CASE→proc→policy→데이터매핑→spec→msg-tbl(맨 아래).
+- **더미데이터 창작 금지** — 해당 프로젝트 `더미데이터_사전.md` 고정 캐스트만.
+- **디자인시스템 클래스만** 사용.
+
+---
+
+## 3. 프롬프트 가드레일 (L7) — 절대 규칙
+
+> **"위에서 언급한 수정 사항 외의 기존 코드는 절대 삭제·이동하지 말고, 수정 완료 후 저장한다."**
+
+- 언급되지 않은 코드는 보존(삭제·이동·재정렬 금지).
+- 변경은 요소 단위로 (추가)/(삭제)/(유지) 명시. 대상은 화면ID/파일경로로 고정.
+- **컨펌 3대 키 일치**: `화면ID = HTML 파일명 = 개발목록 ID`.
+
+---
+
+## 4. 검증 (L5)
+
+- 저장 즉시: `python3 .claude/hooks/html-lint.py <file>` (회귀 13패턴)
+- 단일 화면: `python -m http.server 18877` → `http://localhost:18877/...`, 강력 새로고침. **`file://` 금지**.
+- 전체: `python scripts/verify_all_pages.py` · `python scripts/audit_mirror_lr.py` (전 프로젝트 스캔)
+
+---
+
+## 5. GitHub Pages 배포 (S2B 방식)
+
+- 랜딩 `index.html` + `.nojekyll` + `.github/workflows/pages.yml`(Actions 배포).
+- 저장소 Settings → Pages → Source를 **GitHub Actions**로 설정하면 push 시 자동 배포.
+- 배포 URL(예): `https://parkh37t.github.io/con-ai/`
+
+---
+
+## 현재 상태
+
+| 프로젝트 | 상태 |
+|---------|------|
+| `lotte-dutyfree` | 부트스트랩 — 방법론 골격 완료, 도메인 콘텐츠(L1/L2/L3)는 롯데 PPTX 도착 후 채움 |
