@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BO316 컬러 변경이력 조회 — 신세계사이먼 BO 화면설계서</title>
+<link rel="stylesheet" href="../_공통/bo-screen.css">
+<style>/* SECTION-CARD : 화면별 보강 (마커 유지) */</style>
+</head>
+<body data-portal="admin" data-section="base" data-page="BO316"
+      data-page-title="컬러 변경이력 조회" data-page-hint="기준정보 > 컬러 변경이력 조회 — 컬러 기준정보의 변경 이력을 조회한다.">
+<div class="root-shell">
+
+  <div class="screen-wrap" style="flex:11.5;">
+    <div class="gnb"><span class="brand">PREMIUM OUTLETS</span><span>SHINSEGAE SIMON · BO</span><span class="sys">사이먼 운영자 (admin02)</span></div>
+    <div class="page-body">
+      <div class="lnb">
+        <div class="grp">기준정보</div>
+        <a class="on" href="bo316-color-history.html">컬러 변경이력 조회</a>
+        <a>테넌트 조견표 관리</a>
+        <a>상품상세 템플릿 관리</a>
+        <div class="grp">상품관리</div>
+        <a href="bo006-product-list.html">상품목록</a>
+        <a>상품등록</a>
+      </div>
+      <div class="main-col">
+        <div class="breadcrumb">기준정보 <span>&gt;</span> 컬러 변경이력 조회</div>
+        <div class="main-row">
+          <div id="left-panel" class="left-panel" style="flex:11.5;">
+            <div class="scroll-area">
+              <h1 class="page-h1">컬러 변경이력 조회</h1>
+              <p class="page-sub">BO316 · 기준정보 &gt; 컬러 변경이력 조회</p>
+
+              <!-- 섹션 1: 검색조건 -->
+              <div class="section-box">
+                <div class="ui-marker"><span class="num-badge">1</span></div>
+                <table class="srch-tbl">
+                  <colgroup><col style="width:110px"><col><col style="width:110px"><col></colgroup>
+                  <tr>
+                    <th><span class="num-badge-sm">a</span>컬러</th>
+                    <td><select style="width:160px"><option>선택</option><option>블랙</option><option>블루</option><option>기타</option></select></td>
+                    <th><span class="num-badge-sm">b</span>변경일자</th>
+                    <td>
+                      <input type="date" value="2023-05-10" style="width:130px"> ~ <input type="date" value="2023-05-10" style="width:130px">
+                      <button class="btn">오늘</button><button class="btn">일주일</button><button class="btn">한달</button><button class="btn">1년</button>
+                    </td>
+                  </tr>
+                </table>
+                <div class="srch-actions"><button class="btn btn-primary">조회</button></div>
+              </div>
+
+              <!-- 섹션 2: 컬러 변경 이력 목록 -->
+              <div class="section-box">
+                <div class="ui-marker"><span class="num-badge">2</span></div>
+                <div class="toolbar">
+                  <strong>▒ 컬러 변경 이력</strong> <span style="color:#6b7280">총 4건 · 최근 우선</span>
+                  <span class="right"><button class="btn"><span class="num-badge-sm">a</span>엑셀</button><button class="btn">새로고침</button></span>
+                </div>
+                <table class="data-table">
+                  <thead><tr>
+                    <th>NO</th><th>컬러코드</th><th>컬러명</th><th>HEX코드</th><th>정렬순서</th><th>사용여부</th>
+                    <th>셀픽컬러코드</th><th>셀픽컬러명</th><th>셀픽사용여부</th><th>비고</th>
+                    <th>등록자</th><th>등록일시</th><th>변경자</th><th>변경일시</th>
+                  </tr></thead>
+                  <tbody>
+                    <tr><td>1</td><td>CL0001</td><td>블랙</td><td>#000000</td><td>1</td><td><span class="badge badge-green">Y</span></td><td>SC0001</td><td>블랙</td><td>Y</td><td class="l">셀픽 컬러 신규 맵핑</td><td>batch</td><td>2023-05-10 01:30:21</td><td>boadmin</td><td>2023-05-10 12:30:21</td></tr>
+                    <tr><td>2</td><td>CL0002</td><td>블루</td><td>#0000FF</td><td>2</td><td><span class="badge badge-green">Y</span></td><td>변동없음</td><td>블루</td><td>Y</td><td class="l">컬러 정보 변경</td><td>batch</td><td>2023-04-15 01:30:33</td><td>boadmin</td><td>2023-04-15 10:30:33</td></tr>
+                    <tr><td>3</td><td>CL0003</td><td>기타</td><td>MULTI</td><td>3</td><td><span class="badge badge-green">Y</span></td><td>SC0003</td><td>멀티</td><td>Y</td><td class="l">셀픽 컬러 신규 맵핑</td><td>batch</td><td>2023-03-25 01:35:47</td><td>boadmin</td><td>2023-03-25 11:35:47</td></tr>
+                    <tr><td>4</td><td>CL0003</td><td>기타</td><td>MULTI</td><td>4</td><td><span class="badge badge-green">Y</span></td><td>SC0003</td><td>투명</td><td>Y</td><td class="l">셀픽 컬러 신규 맵핑</td><td>batch</td><td>2023-02-13 01:30:23</td><td>boadmin</td><td>2023-02-13 09:30:23</td></tr>
+                  </tbody>
+                </table>
+                <div class="pager"><a>◀</a><a class="on">1</a><a>2</a><a>3</a><a>▶</a></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 우: 디스크립션 ===== -->
+  <div id="right-panel" class="right-panel" style="flex:4.5;">
+    <h2>BO316</h2>
+    <table class="info-table">
+      <tr><th>화면명</th><td>컬러 변경이력 조회</td></tr>
+      <tr><th>화면목적</th><td>컬러 기준정보의 변경 이력을 조건 검색하고 최근순으로 조회·엑셀 다운로드한다</td></tr>
+      <tr><th>메뉴경로</th><td>기준정보 &gt; 컬러 변경이력 조회</td></tr>
+    </table>
+
+    <div class="case-wrap">
+      <h3 style="font-size:12px;font-weight:700;margin:0 0 8px">⚙ CASE 전환</h3>
+      <div class="case-group">
+        <div class="case-group-title">변경일자 빠른선택</div>
+        <div><a class="case-chip active" onclick="syncChip(this)">오늘</a><a class="case-chip" onclick="syncChip(this)">일주일</a><a class="case-chip" onclick="syncChip(this)">한달</a><a class="case-chip" onclick="syncChip(this)">1년</a></div>
+      </div>
+    </div>
+
+    <table class="proc-table">
+      <thead><tr><th style="width:34px">단계</th><th>흐름</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>컬러·변경일자(기본 당일~당일) 입력 → [조회]</td></tr>
+        <tr><td>2</td><td>변경 이력 목록 최근순 조회 → [엑셀] 다운로드 / 페이징</td></tr>
+      </tbody>
+    </table>
+
+    <div class="policy-box">
+      · 조회 필수조건: 없음 (조건 미입력 시 전체 조회).<br>
+      · 정렬순서: 최근 데이터 우선.<br>
+      · 변경일자 기본값: 당일 ~ 당일. 빠른선택(오늘/일주일/한달/1년)은 오늘 기준 자동 설정.
+    </div>
+
+    <!-- 섹션 1 -->
+    <h3 class="spec-header-2"><span class="num-badge">1</span>검색 조건</h3>
+    <p class="spec-field"><span class="num-badge-sm">a</span>컬러</p>
+    <ul class="spec-bullets"><li>default: 선택(미지정). 선택 시 해당 컬러 이력만 조회</li></ul>
+    <p class="spec-field"><span class="num-badge-sm">b</span>변경일자</p>
+    <ul class="spec-bullets"><li>default: 당일~당일. 빠른선택 버튼(오늘/일주일/한달/1년) 제공</li></ul>
+
+    <!-- 섹션 2 -->
+    <h3 class="spec-header-2"><span class="num-badge">2</span>컬러 변경 이력</h3>
+    <p class="spec-field"><span class="num-badge-sm">a</span>엑셀 다운로드</p>
+    <ul class="spec-bullets"><li>조회된 변경 이력 목록을 엑셀로 다운로드</li></ul>
+
+    <h3 style="font-size:12px;font-weight:700;margin:18px 0 6px">🔔 메시지 · 알림 정의</h3>
+    <table class="msg-tbl">
+      <thead><tr><th style="width:50px">유형</th><th>메시지</th><th style="width:120px">발생 조건</th></tr></thead>
+      <tbody>
+        <tr><td class="t-type">안내</td><td>조회된 데이터가 없습니다.</td><td>조회 결과 0건</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="panel-toggle-wrap"><button class="panel-toggle-btn" onclick="togglePanel()"><span id="toggle-icon">›</span></button></div>
+</div>
+
+<script>
+function togglePanel(){var rp=document.getElementById('right-panel'),sw=document.querySelector('.screen-wrap'),ic=document.getElementById('toggle-icon');rp.classList.toggle('collapsed');sw.classList.toggle('expanded');ic.textContent=rp.classList.contains('collapsed')?'‹':'›';}
+function syncChip(el){el.parentElement.querySelectorAll('.case-chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');}
+</script>
+</body>
+</html>

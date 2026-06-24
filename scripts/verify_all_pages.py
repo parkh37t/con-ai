@@ -22,8 +22,12 @@ def verify(path):
         issues.append("SECTION-CARD 주석 마커 누락")
     if re.search(r"<th>\s*화면ID\s*</th>", html):
         issues.append("info-table 화면ID 행(금지)")
-    left = len(re.findall(r'class="num-badge"', html))
-    right = len(re.findall(r"spec-header-2", html))
+    # 좌(화면)/우(디스크립션) 분리 후 비교 — right-panel 직전까지가 LEFT
+    rp = html.find('id="right-panel"')
+    left_seg = html[:rp] if rp != -1 else html
+    right_seg = html[rp:] if rp != -1 else ""
+    left = len(re.findall(r'class="num-badge"', left_seg))
+    right = len(re.findall(r"spec-header-2", right_seg))
     if left != right:
         issues.append(f"섹션 마커 좌({left}) ↔ 우 spec-header-2({right}) 불일치")
     # msg-tbl 이 right-panel 내부인지 (간이): right-panel 시작 이후 등장
