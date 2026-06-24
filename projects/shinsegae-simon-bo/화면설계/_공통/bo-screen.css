@@ -144,6 +144,23 @@ body{margin:0;font-family:var(--ff);font-size:var(--fs-base);color:var(--c-text)
 .m-warn{color:var(--c-danger)}.m-confirm{color:var(--c-link)}.m-done{color:var(--c-success)}.m-info{color:var(--c-muted)}
 .src{font-size:9px;color:var(--c-disabled);font-family:ui-monospace,monospace}
 
+/* ── 도식(Mermaid) ── */
+.diagram{background:var(--c-bg-soft);border:1px solid var(--c-line-soft);border-radius:6px;padding:10px 8px 4px;margin-bottom:6px;overflow-x:auto}
+.diagram .mermaid{font-size:11px;text-align:center}
+.diagram .mermaid svg{max-width:100%;height:auto}
+.diagram-cap{font-size:10px;color:var(--c-muted);margin:0 0 12px;padding-left:2px}
+.diagram-legend{font-size:9px;color:var(--c-disabled);margin:-2px 0 12px}
+
+/* ── 필드 사양 매트릭스 ── */
+.fs-grp{font-weight:700;font-size:11px;margin:12px 0 4px;display:flex;align-items:center;gap:5px;color:var(--c-ink)}
+.fs-matrix{width:100%;border-collapse:collapse;font-size:9.5px;margin-bottom:6px;table-layout:fixed}
+.fs-matrix th{background:var(--c-bg-hover);border:1px solid var(--c-line-soft);padding:4px 4px;font-weight:600;color:var(--c-text-2);text-align:center}
+.fs-matrix td{border:1px solid var(--c-line-soft);padding:4px 4px;vertical-align:top;line-height:1.45;word-break:break-word}
+.fs-matrix td.c{text-align:center;white-space:nowrap}
+.fs-matrix .num-badge-sm{margin-right:0;width:15px;height:15px;font-size:9px}
+.fs-req{color:var(--c-danger);font-weight:700}.fs-opt{color:var(--c-disabled)}
+.tag{display:inline-block;padding:0 5px;border-radius:3px;font-size:9px;background:var(--c-neutral-bg);color:var(--c-neutral-text);font-family:ui-monospace,monospace}
+
 /* 패널 토글 */
 .panel-toggle-wrap{display:flex;align-items:center}
 .panel-toggle-btn{width:22px;height:52px;background:var(--c-ink);color:#fff;border:0;cursor:pointer;border-radius:5px 0 0 5px}

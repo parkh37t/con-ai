@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- SECTION-CARD: .section-box 표준 (린트 마커) · 와일리 DS v2 -->
+<!-- SECTION-CARD: .section-box 표준 (린트 마커) · 와일리 DS v2 · 도식화 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -119,8 +119,8 @@
     </div>
   </div>
 
-  <!-- ════════ 우: 디스크립션 ════════ -->
-  <div id="right-panel" class="right-panel" style="flex:4.6;">
+  <!-- ════════ 우: 디스크립션 (도식 중심) ════════ -->
+  <div id="right-panel" class="right-panel" style="flex:4.8;">
     <h2 class="rp-h2">BO316</h2>
     <table class="info-table">
       <tr><th>화면명</th><td>컬러 변경이력 조회</td></tr>
@@ -131,70 +131,137 @@
             <div class="req-desc">❍ 컬러 변경(신규 맵핑/정보 변경)을 일시·변경자와 함께 이력화하여 최근순 조회·엑셀 다운로드 제공.</div></div></td></tr>
     </table>
 
-    <!-- CASE 전환 -->
-    <h3 class="rp-h3">Case 전환</h3>
+    <!-- ① 화면 전이도 -->
+    <h3 class="rp-h3">🗺️ 화면 전이도</h3>
+    <div class="diagram"><pre class="mermaid">
+flowchart TD
+  M["컬러 관리<br/>BO315"] --> C["컬러 변경이력<br/>BO316"]:::cur
+  C -->|"엑셀"| X(["파일 다운로드"])
+  classDef cur fill:#be123c,stroke:#be123c,color:#fff;
+</pre></div>
+    <p class="diagram-cap">컬러 관리에서 진입하는 조회 전용 화면. 데이터 변경 없음(읽기).</p>
+
+    <!-- ② 처리 흐름 -->
+    <h3 class="rp-h3">🔀 처리 흐름</h3>
+    <div class="diagram"><pre class="mermaid">
+flowchart TD
+  A["컬러·변경일자 입력"] --> B["조회"]
+  B --> C{"결과 있음?"}
+  C -->|"아니오"| Z["조회된 데이터 없음"]
+  C -->|"예"| D["이력 목록<br/>최근순"]:::ok
+  D --> E["엑셀 다운로드"]
+  classDef ok fill:#dcfce7,stroke:#16a34a,color:#166534;
+</pre></div>
+    <p class="diagram-cap">필수 조건 없음. 미입력 시 전체 조회, 변경일시 내림차순 정렬.</p>
+
+    <!-- ③ 변경 유형 분류 -->
+    <h3 class="rp-h3">🔄 변경 유형(비고 분류)</h3>
+    <div class="diagram"><pre class="mermaid">
+flowchart TD
+  V["컬러 변경 발생"] --> T{"변경 유형"}
+  T -->|"셀픽 신규 연결"| A["셀픽 컬러 신규 맵핑"]
+  T -->|"속성 변경"| B["컬러 정보 변경"]
+  T -->|"맵핑 유지"| N["변동없음"]
+</pre></div>
+    <p class="diagram-cap">이력 '비고'에 표기되는 변경 사유 분류. 셀픽컬러 칸의 '변동없음'은 맵핑 유지 의미.</p>
+
+    <!-- ④ 상호작용 시퀀스 -->
+    <h3 class="rp-h3">🔗 상호작용 시퀀스</h3>
+    <div class="diagram"><pre class="mermaid">
+sequenceDiagram
+  autonumber
+  participant U as 운영자
+  participant S as 화면
+  participant A as 서버
+  U->>S: 컬러·변경일자 + [조회]
+  S->>A: GET /color/history
+  A-->>S: 이력 목록(최근순)
+  S-->>U: 그리드 렌더 · 엑셀 활성
+</pre></div>
+    <p class="diagram-cap">조회 전용 상호작용. 결과 0건 시 빈 상태 안내, 엑셀 비활성.</p>
+
+    <!-- ⑤ CASE 전환 -->
+    <h3 class="rp-h3">⚙ Case 전환 <span style="font-size:9px;font-weight:400;color:#9ca3af">(칩 클릭 → 좌측 화면 전환)</span></h3>
     <div class="case-grp"><div class="case-grp-title">date — 변경일자 빠른선택</div>
       <span class="case-chip active" onclick="setCase('date','today',this)">오늘</span><span class="case-chip" onclick="setCase('date','week',this)">일주일</span><span class="case-chip" onclick="setCase('date','month',this)">한달</span><span class="case-chip" onclick="setCase('date','year',this)">1년</span></div>
     <div class="case-grp"><div class="case-grp-title">auth — 로그인 상태</div>
       <span class="case-chip active" onclick="setCase('auth','login',this)">로그인</span><span class="case-chip" onclick="setCase('auth','logout',this)">로그아웃</span></div>
 
-    <!-- 디스크립션 (6속성) -->
-    <h3 class="rp-h3">디스크립션</h3>
+    <!-- ⑥ 필드 사양 매트릭스 -->
+    <h3 class="rp-h3">📋 필드 사양 매트릭스</h3>
+    <p class="diagram-legend">좌측 화면 마커(배지 ↔ 행 No)와 1:1. <span class="fs-req">●</span> 필수 · <span class="fs-opt">○</span> 선택</p>
 
-    <div style="font-weight:700;font-size:11px;margin:8px 0 4px;display:flex;align-items:center;gap:5px"><span class="num-badge">1</span>검색조건</div>
-    <div class="desc-block"><p class="desc-title"><span class="num-badge-sm">a</span>컬러</p>
-      <ul class="desc-list"><li><span class="k">입력방식</span> select</li><li><span class="k">입력값</span> 선택/블랙/블루/기타</li><li><span class="k">Default</span> 선택(미지정)</li><li><span class="k">요소 액션</span> 선택 시 해당 컬러 이력만</li><li><span class="k">상태 변화</span> —</li><li><span class="k">예외 처리</span> 미선택 시 전체</li></ul></div>
-    <div class="desc-block"><p class="desc-title"><span class="num-badge-sm">b</span>변경일자</p>
-      <ul class="desc-list"><li><span class="k">입력방식</span> date range + 빠른선택</li><li><span class="k">입력값</span> YYYY-MM-DD ~</li><li><span class="k">Default</span> 당일 ~ 당일</li><li><span class="k">요소 액션</span> 오늘/일주일/한달/1년 클릭 시 오늘 기준 자동 설정</li><li><span class="k">상태 변화</span> —</li><li><span class="k">예외 처리</span> 시작 &gt; 종료 시 경고</li></ul></div>
+    <div class="fs-grp"><span class="num-badge">1</span>검색조건</div>
+    <table class="fs-matrix">
+      <colgroup><col style="width:20px"><col style="width:62px"><col style="width:58px"><col><col></colgroup>
+      <thead><tr><th>No</th><th>필드</th><th>타입·필수</th><th>기본·검증</th><th>동작·예외</th></tr></thead>
+      <tbody>
+        <tr><td class="c"><span class="num-badge-sm">a</span></td><td>컬러</td><td class="c">select <span class="fs-opt">○</span></td><td>선택(미지정)</td><td>선택 시 해당 컬러 이력만. 미선택 전체</td></tr>
+        <tr><td class="c"><span class="num-badge-sm">b</span></td><td>변경일자</td><td class="c">range <span class="fs-opt">○</span></td><td>당일~당일</td><td>오늘/일주일/한달/1년 자동 설정. 시작≤종료</td></tr>
+      </tbody>
+    </table>
 
-    <div style="font-weight:700;font-size:11px;margin:8px 0 4px;display:flex;align-items:center;gap:5px"><span class="num-badge">2</span>조회</div>
-    <div class="desc-block"><p class="desc-title"><span class="num-badge-sm">c</span>[조회]</p>
-      <ul class="desc-list"><li><span class="k">입력방식</span> 버튼</li><li><span class="k">요소 액션</span> API 호출 → 영역4 최근순 갱신</li><li><span class="k">예외 처리</span> 결과 0건 시 "조회된 데이터가 없습니다."</li></ul></div>
+    <div class="fs-grp"><span class="num-badge">2</span>조회</div>
+    <table class="fs-matrix">
+      <colgroup><col style="width:20px"><col style="width:62px"><col style="width:58px"><col><col></colgroup>
+      <tbody>
+        <tr><td class="c"><span class="num-badge-sm">c</span></td><td>[조회]</td><td class="c">button</td><td>—</td><td>API 호출→목록 최근순 갱신. 0건 시 안내</td></tr>
+      </tbody>
+    </table>
 
-    <div style="font-weight:700;font-size:11px;margin:8px 0 4px;display:flex;align-items:center;gap:5px"><span class="num-badge">3</span>건수·엑셀</div>
-    <div class="desc-block"><p class="desc-title"><span class="num-badge-sm">d</span>엑셀 다운로드</p>
-      <ul class="desc-list"><li><span class="k">입력방식</span> 버튼</li><li><span class="k">요소 액션</span> 조회 이력 전체 엑셀 다운로드</li><li><span class="k">예외 처리</span> 0건 시 비활성</li></ul></div>
+    <div class="fs-grp"><span class="num-badge">3</span>건수·엑셀</div>
+    <table class="fs-matrix">
+      <colgroup><col style="width:20px"><col style="width:62px"><col style="width:58px"><col><col></colgroup>
+      <tbody>
+        <tr><td class="c"><span class="num-badge-sm">d</span></td><td>엑셀</td><td class="c">button</td><td>—</td><td>조회 이력 전체 다운로드. 0건 시 비활성</td></tr>
+      </tbody>
+    </table>
 
-    <div style="font-weight:700;font-size:11px;margin:8px 0 4px;display:flex;align-items:center;gap:5px"><span class="num-badge">4</span>변경 이력 목록</div>
-    <div class="desc-block"><p class="desc-title"><span class="num-badge-sm">e</span>컬러코드/명·HEX</p>
-      <ul class="desc-list"><li><span class="k">입력방식</span> readonly</li><li><span class="k">입력값</span> CL+번호 / 색상명 / #HEX·MULTI</li><li><span class="k">Default</span> 기준정보 값</li><li><span class="k">상태 변화</span> —</li><li><span class="k">예외 처리</span> —</li></ul></div>
-    <div class="desc-block"><p class="desc-title"><span class="num-badge-sm">f</span>셀픽 맵핑(코드/명/사용)</p>
-      <ul class="desc-list"><li><span class="k">입력방식</span> readonly</li><li><span class="k">입력값</span> SC+번호 / 멀티·투명 / Y·N / '변동없음'</li><li><span class="k">Default</span> 맵핑 결과값</li><li><span class="k">상태 변화</span> 신규 맵핑/변경 시 비고에 사유 표기</li><li><span class="k">예외 처리</span> —</li></ul></div>
+    <div class="fs-grp"><span class="num-badge">4</span>변경 이력 목록</div>
+    <table class="fs-matrix">
+      <colgroup><col style="width:20px"><col style="width:62px"><col style="width:58px"><col><col></colgroup>
+      <tbody>
+        <tr><td class="c"><span class="num-badge-sm">e</span></td><td>컬러코드/명·HEX</td><td class="c">readonly</td><td>기준정보값</td><td>CL+번호 / 색상명 / #HEX·MULTI</td></tr>
+        <tr><td class="c"><span class="num-badge-sm">f</span></td><td>셀픽 맵핑</td><td class="c">readonly</td><td>맵핑결과</td><td>SC+번호 / 멀티·투명 / Y·N / 변동없음. 사유는 비고 표기</td></tr>
+      </tbody>
+    </table>
 
-    <div style="font-weight:700;font-size:11px;margin:8px 0 4px;display:flex;align-items:center;gap:5px"><span class="num-badge">5</span>페이지네이션</div>
-    <div class="desc-block"><p class="desc-title"><span class="num-badge-sm">g</span>페이징</p>
-      <ul class="desc-list"><li><span class="k">입력방식</span> 버튼</li><li><span class="k">Default</span> 1페이지</li><li><span class="k">요소 액션</span> 처음/이전/다음/마지막</li><li><span class="k">예외 처리</span> 최대 5개 노출</li></ul></div>
+    <div class="fs-grp"><span class="num-badge">5</span>페이지네이션</div>
+    <table class="fs-matrix">
+      <colgroup><col style="width:20px"><col style="width:62px"><col style="width:58px"><col><col></colgroup>
+      <tbody>
+        <tr><td class="c"><span class="num-badge-sm">g</span></td><td>페이징</td><td class="c">button</td><td>1p</td><td>처음/이전/다음/마지막. 최대 5개 노출</td></tr>
+      </tbody>
+    </table>
 
-    <!-- 데이터 / 입력값 (API) -->
-    <h3 class="rp-h3">데이터 / 입력값 (API)</h3>
+    <!-- 데이터 / API -->
+    <h3 class="rp-h3">🗂 데이터 / 입력값 (API)</h3>
     <table class="info-table">
-      <tr><th>colorCode</th><td>컬러코드 (선택, 미지정 시 전체)</td></tr>
-      <tr><th>changeFrom/To</th><td>YYYY-MM-DD 범위 (기본 당일~당일)</td></tr>
-      <tr><th>정렬</th><td>변경일시 DESC (최근 우선)</td></tr>
+      <tr><th>요청</th><td>colorCode(선택) · changeFrom/To(기본 당일~당일) · 정렬: 변경일시 DESC</td></tr>
       <tr><th>응답</th><td>colorCode · colorName · hex · sortOrder · useYn · spColorCode · spColorName · spUseYn · note · regBy/regAt · modBy/modAt</td></tr>
     </table>
 
-    <!-- 예외 / 상태별 처리 -->
-    <h3 class="rp-h3">예외 / 상태별 처리</h3>
+    <!-- 예외 / 상태 -->
+    <h3 class="rp-h3">⚠ 예외 / 상태별 처리</h3>
     <table class="info-table">
-      <tr><th>로그아웃</th><td>로그아웃 배너 + 헤더 흐림. 행동 시 로그인 유도.</td></tr>
-      <tr><th>결과 없음</th><td>"조회된 데이터가 없습니다." 빈 상태 노출.</td></tr>
-      <tr><th>변경 유형</th><td>비고에 '셀픽 컬러 신규 맵핑' / '컬러 정보 변경' 등 사유 표기.</td></tr>
+      <tr><th>로그아웃</th><td>배너 + 헤더 흐림, 로그인 유도</td></tr>
+      <tr><th>결과 없음</th><td>"조회된 데이터가 없습니다." 빈 상태</td></tr>
+      <tr><th>변경 유형</th><td>비고에 '셀픽 컬러 신규 맵핑'/'컬러 정보 변경' 등 표기</td></tr>
     </table>
 
-    <!-- 정책 / 비즈니스 룰 -->
-    <h3 class="rp-h3">정책 / 비즈니스 룰</h3>
+    <!-- 정책 -->
+    <h3 class="rp-h3">📜 정책 / 비즈니스 룰</h3>
     <div class="policy-box"><ul class="policy-list">
-      <li><b>조회 필수조건</b>: 없음(미입력 시 전체 조회).</li>
-      <li><b>정렬</b>: 최근 데이터 우선(변경일시 내림차순).</li>
-      <li><b>변경일자 기본값</b>: 당일 ~ 당일. 빠른선택은 오늘 기준 자동 설정.</li>
-      <li><b>이력 생성</b>: 컬러 기준정보 변경·셀픽 맵핑 시 batch/운영자 단위로 이력 적재.</li>
+      <li><b>조회 필수조건</b>: 없음(미입력 시 전체)</li>
+      <li><b>정렬</b>: 최근 데이터 우선(변경일시 내림차순)</li>
+      <li><b>변경일자 기본값</b>: 당일~당일, 빠른선택은 오늘 기준</li>
+      <li><b>이력 생성</b>: 컬러 변경·셀픽 맵핑 시 batch/운영자 단위 적재</li>
     </ul></div>
 
-    <!-- ★ 메시지·알림 정의 (와일리 우위 — 맨 아래) -->
+    <!-- ★ 메시지·알림 정의 -->
     <h3 class="rp-h3">🔔 메시지 · 알림 정의</h3>
     <table class="msg-tbl">
-      <thead><tr><th style="width:46px">유형</th><th>메시지</th><th style="width:96px">발생 조건</th></tr></thead>
+      <thead><tr><th style="width:46px">유형</th><th>메시지</th><th style="width:92px">발생 조건</th></tr></thead>
       <tbody>
         <tr><td class="mtype m-info">안내</td><td>조회된 데이터가 없습니다.</td><td>조회 결과 0건 <span class="src">slide12</span></td></tr>
         <tr><td class="mtype m-warn">경고</td><td>시작일은 종료일 이전이어야 합니다.</td><td>변경일자 시작&gt;종료</td></tr>
@@ -206,6 +273,14 @@
   <div class="panel-toggle-wrap"><button class="panel-toggle-btn" onclick="togglePanel()"><i class="fa-solid fa-chevron-right" id="toggle-icon"></i></button></div>
 </div>
 
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11.6.0/dist/mermaid.esm.min.mjs';
+  mermaid.initialize({
+    startOnLoad: true, securityLevel: 'loose', theme: 'base',
+    themeVariables: { fontSize: '11px', fontFamily: "'Noto Sans KR', sans-serif", primaryColor: '#f3f4f6', primaryBorderColor: '#9ca3af', lineColor: '#6b7280' },
+    flowchart: { htmlLabels: true, curve: 'basis', nodeSpacing: 24, rankSpacing: 28 }
+  });
+</script>
 <script>
 function togglePanel(){var r=document.getElementById('right-panel'),s=document.querySelector('.screen-wrap'),i=document.getElementById('toggle-icon');r.classList.toggle('collapsed');s.classList.toggle('expanded');i.classList.toggle('fa-chevron-right');i.classList.toggle('fa-chevron-left');}
 function setCase(group,value,el){
