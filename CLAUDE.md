@@ -1,7 +1,15 @@
 # CLAUDE.md — con-ai 화면설계 워크벤치
 
 > 이 저장소는 **S2B AI 생산 방법론(7계층 OS)**을 코어로 두고, **여러 프로젝트의 화면설계 방법론을 테스트·프로토타이핑하고 S2B처럼 GitHub Pages로 배포**하는 **워크벤치**다.
-> 방법론 원리: `방법론/s2b-methodology-study.md`.
+> 방법론 원리: `방법론/s2b-methodology-study.md`. 멀티입력→프로토타입 환경: `방법론/와일리-OS/00_OVERVIEW.md`.
+
+---
+
+## ★ 호칭·언어 규칙 (절대 — 위반 시 신뢰 손상)
+
+- **사용자 = 박재하 본부장.** 호칭은 항상 **"박재하 본부장님"** 또는 **"본부장님"**. `당신·너·유저·사용자분` 등 절대 금지.
+- **모든 응답·문서는 한국어.** 영어 문장·표현 사용 금지(코드·식별자·고유명사·기술 약어 — MCP·HTML·PPTX·Figma 등 — 은 불가피하므로 예외). 영어로 응대하려면 **사전 허락 필수.**
+- 빌더 에이전트 페르소나 = **와일리(Wiley).** 산출물 주체를 칭할 때 사용.
 
 ---
 
@@ -14,15 +22,17 @@ con-ai/
 ├── 방법론/                          ★ 공용 방법론 코어 (프로젝트 무관)
 │   ├── s2b-methodology-study.md      7계층 OS 학습 보고서
 │   ├── templates/template_screen.html  골든 2단 템플릿
-│   └── 표준/입력필드_정책.md          공용 입력 표준
+│   ├── 표준/입력필드_정책.md          공용 입력 표준
+│   └── 와일리-OS/                    ★ 멀티입력→프로토타입 환경 (00~04 + screenspec.schema.json)
 ├── .claude/skills/screen-spec/      화면 생산 커스텀 스킬 (공용)
 ├── .claude/hooks/html-lint.py       회귀 13패턴 훅
 ├── scripts/                         전 프로젝트 일괄 검증
 └── projects/                        ◆ 프로젝트 인스턴스들
-    └── lotte-dutyfree/              롯데면세점 (프론트·관리자)
-        ├── index.html               프로젝트 프로토타입 랜딩
-        ├── docs/ (00_INDEX·01_규칙·02_SSOT·03_요구사항·04_공통표준)
-        └── 화면설계/ (프론트·관리자·_공통)
+    ├── lotte-dutyfree/              롯데면세점 (프론트·관리자)
+    │   ├── index.html               프로젝트 프로토타입 랜딩
+    │   ├── docs/ (00_INDEX·01_규칙·02_SSOT·03_요구사항·04_공통표준)
+    │   └── 화면설계/ (프론트·관리자·_공통)
+    └── shinsegae-simon-bo/          신세계사이먼 BO (PPTX→2단 HTML 실증)
 ```
 
 - **공용(재사용)** = `방법론/` · `.claude/` · `scripts/`. **프로젝트별** = `projects/<name>/`.
@@ -78,8 +88,20 @@ con-ai/
 
 ---
 
+## 6. 와일리 OS — 멀티입력 → 프로토타입 (상세: `방법론/와일리-OS/`)
+
+- **미션**: 입력이 PPTX·PDF·HTML·Figma·이미지·Claude Design·Canva 무엇이든 → S2B 방법론으로 → 어떤 프로토타입이든 산출.
+- **파이프라인 6단계**: 입력 → 추출(구조 우선+비전 보강) → **ScreenSpec JSON**(정규 스펙) → 골든 복제→개조 → lint·미러 검증 → 배포/렌더.
+- **SSOT = 2단 HTML 화면설계서.** Figma(`use_figma`)·Adobe Express(`export_html_to_express`)·Canva는 *렌더 타깃*.
+- **연결된 MCP 지도**: `방법론/와일리-OS/02_mcp-capability-map.md` (Figma·Adobe·Canva·Google Drive·Hugging Face·ListeningMind·Higgsfield·github).
+- **신뢰성 7원칙·실패모드 대응**: `방법론/와일리-OS/04_knowhow.md` (그라운딩 없으면 폐기 / 더미 창작 금지 / 마커는 코드 생성 / strict 스키마).
+
+---
+
 ## 현재 상태
 
 | 프로젝트 | 상태 |
 |---------|------|
 | `lotte-dutyfree` | 부트스트랩 — 방법론 골격 완료, 도메인 콘텐츠(L1/L2/L3)는 롯데 PPTX 도착 후 채움 |
+| `shinsegae-simon-bo` | PPTX(67p)→BO006·BO316 2단 HTML 실증 완료. ScreenSpec 예시 `방법론/와일리-OS/examples/BO006.screenspec.json` |
+| 와일리 OS | 환경 구축 — 라우터·MCP지도·ScreenSpec 스키마·노하우 문서화 완료. 다음: 인테이크 스킬화, Figma/Express 렌더 1건 실증 |
