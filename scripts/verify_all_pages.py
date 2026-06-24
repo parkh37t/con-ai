@@ -27,9 +27,10 @@ def verify(path):
     left_seg = html[:rp] if rp != -1 else html
     right_seg = html[rp:] if rp != -1 else ""
     left = len(re.findall(r'class="num-badge"', left_seg))
-    right = len(re.findall(r"spec-header-2", right_seg))
+    # 우측도 영역 마커(num-badge)를 그룹 제목에 둔다(s2b2식). 하위호환: spec-header-2도 인정
+    right = len(re.findall(r'class="num-badge"', right_seg)) or len(re.findall(r"spec-header-2", right_seg))
     if left != right:
-        issues.append(f"섹션 마커 좌({left}) ↔ 우 spec-header-2({right}) 불일치")
+        issues.append(f"섹션 마커 좌({left}) ↔ 우({right}) 불일치")
     # msg-tbl 이 right-panel 내부인지 (간이): right-panel 시작 이후 등장
     rp = html.find('id="right-panel"')
     mt = html.find("msg-tbl")
