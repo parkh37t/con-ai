@@ -4,68 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>앰배서더 호텔 — 벤치마킹·페인포인트·개선 (benchmark-painpoint)</title>
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
-*{box-sizing:border-box} body{margin:0;font-family:'Noto Sans KR',sans-serif;color:#1f2937;background:#f9fafb;line-height:1.6}
-.wrap{max-width:1120px;margin:0 auto;padding:24px}
-header{background:#0f172a;color:#fff;border-radius:10px;padding:22px 26px;margin-bottom:18px}
-header h1{margin:0 0 4px;font-size:22px} header p{margin:0;color:#cbd5e1;font-size:13px}
-.tag{display:inline-block;background:#1e293b;color:#fca5a5;font-size:11px;padding:2px 8px;border-radius:4px;margin-right:5px}
-.card{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:18px;margin-bottom:18px}
-.card h2{font-size:16px;margin:0 0 4px;border-bottom:2px solid #0f172a;padding-bottom:6px}
-.card .sub{font-size:11px;color:#64748b;margin:0 0 12px}
-.warn{background:#fef3c7;border:1px solid #fde68a;color:#92400e;border-radius:8px;padding:10px 12px;font-size:12px;margin-bottom:14px}
-table{border-collapse:collapse;width:100%;font-size:12px} th,td{border:1px solid #e5e7eb;padding:7px 8px;text-align:left;vertical-align:top}
-th{background:#f1f5f9}
-.ok{color:#16a34a;font-weight:700}.no{color:#dc2626;font-weight:700}
-code{background:#f1f5f9;padding:1px 4px;border-radius:3px;font-size:11px}
-ul{margin:4px 0;padding-left:18px;font-size:12px}
-/* 페인포인트 카드 */
-.pp{border:1px solid #e5e7eb;border-radius:8px;padding:14px;margin-bottom:12px;position:relative}
-.pp.h{border-left:5px solid #dc2626}.pp.m{border-left:5px solid #d97706}.pp.l{border-left:5px solid #16a34a}
-.pp .top{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}
-.pp .pid{font-weight:700;font-size:13px}
-.sev{font-weight:700;font-size:10px;padding:2px 8px;border-radius:9999px;white-space:nowrap}
-.s-h{background:#fee2e2;color:#991b1b}.s-m{background:#fef3c7;color:#92400e}.s-l{background:#dcfce7;color:#166534}
-.heu{font-size:10px;background:#eef2ff;color:#3730a3;padding:1px 7px;border-radius:9999px}
-.pp dl{display:grid;grid-template-columns:84px 1fr;gap:4px 10px;margin:0;font-size:12px}
-.pp dt{font-weight:600;color:#475569}.pp dd{margin:0}
-/* 매트릭스 */
-.matrix-wrap{display:flex;gap:18px;flex-wrap:wrap}
-.matrix{position:relative;width:480px;height:380px;border-left:2px solid #94a3b8;border-bottom:2px solid #94a3b8;margin:18px 0 8px 60px;background:
-  linear-gradient(to right, #f8fafc 50%, #fff 50%), linear-gradient(to top, #f8fafc 50%, #fff 50%);background-blend-mode:multiply}
-.matrix .qlabel{position:absolute;font-size:10px;font-weight:700;color:#94a3b8;padding:4px 6px}
-.matrix .q1{top:6px;right:8px;color:#1e40af}     /* 우상 Major */
-.matrix .q2{top:6px;left:8px;color:#16a34a}       /* 좌상 Quick-win */
-.matrix .q3{bottom:6px;left:8px;color:#64748b}    /* 좌하 Fill-in */
-.matrix .q4{bottom:6px;right:8px;color:#b91c1c}   /* 우하 재검토 */
-.axis-y{position:absolute;left:-54px;top:50%;transform:rotate(-90deg);transform-origin:center;font-size:11px;color:#475569;white-space:nowrap}
-.axis-x{position:absolute;bottom:-26px;left:50%;transform:translateX(-50%);font-size:11px;color:#475569;white-space:nowrap}
-.pt{position:absolute;width:24px;height:24px;border-radius:9999px;color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;transform:translate(-50%,-50%);box-shadow:0 1px 3px rgba(0,0,0,.3);cursor:default}
-.pt.major{background:#2563eb}.pt.quick{background:#16a34a}.pt.fill{background:#64748b}
-.legend{font-size:12px;min-width:240px}
-.legend div{margin:3px 0;display:flex;align-items:center;gap:6px}
-.dot{width:16px;height:16px;border-radius:9999px;color:#fff;font-size:9px;font-weight:700;display:inline-flex;align-items:center;justify-content:center}
-.pri{font-weight:700;font-size:10px;padding:1px 7px;border-radius:4px;white-space:nowrap}
-.p-q{background:#dcfce7;color:#166534}.p-major{background:#dbeafe;color:#1e40af}.p-fill{background:#f1f5f9;color:#475569}
-/* 로드맵 */
-.road{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
-.phase{border:1px solid #e5e7eb;border-radius:8px;padding:14px;background:#fff}
-.phase h4{margin:0 0 8px;font-size:13px;padding-bottom:6px;border-bottom:1px solid #e5e7eb}
-.phase.p1 h4{color:#16a34a}.phase.p2 h4{color:#2563eb}.phase.p3 h4{color:#64748b}
-.phase ul{padding-left:16px;font-size:11.5px;line-height:1.7}
-/* To-Be 와이어 */
-.wire{border:2px dashed #94a3b8;border-radius:10px;padding:14px;background:#fafafa}
-.wbar{background:#0f172a;color:#fff;font-size:11px;padding:6px 10px;border-radius:5px;margin-bottom:8px}
-.wsearch{display:flex;gap:6px;flex-wrap:wrap;background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:10px;margin-bottom:8px}
-.wsearch .f{border:1px solid #cbd5e1;border-radius:5px;padding:6px 10px;font-size:11px;color:#475569;background:#f8fafc;flex:1;min-width:90px}
-.wsearch .go{background:#be123c;color:#fff;border-radius:5px;padding:6px 14px;font-size:11px;font-weight:700}
-.wcards{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-.wcard{border:1px solid #e5e7eb;border-radius:8px;background:#fff;padding:8px;font-size:10px}
-.wcard .img{height:42px;background:#e2e8f0;border-radius:5px;margin-bottom:5px;display:flex;align-items:center;justify-content:center;color:#94a3b8}
-.wnote{font-size:10px;color:#64748b;margin-top:8px}
-.kpi{display:inline-block;background:#ecfeff;color:#0e7490;font-size:10px;padding:1px 7px;border-radius:4px;font-weight:600}
-</style>
+<link rel="stylesheet" href="../_assets/research.css">
 </head>
 <body>
 <div class="wrap">

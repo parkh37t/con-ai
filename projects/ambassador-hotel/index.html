@@ -4,37 +4,51 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>앰배서더 호텔 — 인테이크·리서치 산출물</title>
-<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="_assets/research.css">
+<style>
+.hub{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.hub a{display:block;text-decoration:none;color:inherit;background:#fff;border:1px solid var(--line);
+  border-radius:var(--r);padding:20px;box-shadow:var(--shadow);transition:transform .12s,box-shadow .12s;position:relative;overflow:hidden}
+.hub a:hover{transform:translateY(-3px);box-shadow:var(--shadow-2)}
+.hub a::before{content:"";position:absolute;left:0;top:0;right:0;height:3px;background:linear-gradient(90deg,var(--gold),var(--gold-2))}
+.hub h3{margin:12px 0 6px;font-size:15px;color:var(--ink);font-weight:800}
+.hub p{margin:0;font-size:12px;color:var(--muted);line-height:1.6}
+.skill{display:inline-block;font-size:10px;font-weight:700;padding:3px 9px;border-radius:6px}
+.sk-ia{background:var(--blue-bg);color:var(--blue-tx)} .sk-inv{background:var(--green-bg);color:var(--green-tx)} .sk-bm{background:var(--red-bg);color:var(--red-tx)}
+.back{color:var(--gold-line);font-size:12px;text-decoration:none}
+@media(max-width:760px){.hub{grid-template-columns:1fr}}
+</style>
 </head>
-<body class="bg-gray-50 text-gray-800">
-<header class="bg-gray-900 text-white">
-  <div class="max-w-4xl mx-auto px-6 py-8">
-    <a href="../../index.html" class="text-xs text-gray-400 hover:underline">← 워크벤치</a>
-    <h1 class="text-2xl font-bold mt-2">앰배서더 호텔 그룹 — 인테이크·리서치</h1>
-    <p class="text-gray-300 text-sm">ambatel.com · 와일리 OS 스킬 3종 실증(URL만으로 IA·본수·벤치마킹)</p>
+<body>
+<div class="wrap">
+  <header>
+    <a href="../../index.html" class="back">← 워크벤치</a>
+    <h1 style="margin-top:8px">앰배서더 호텔 그룹 — 인테이크 · 리서치</h1>
+    <p>ambatel.com · 와일리 OS 스킬 3종 실증 (URL만으로 IA · 화면본수 · 벤치마킹)</p>
+  </header>
+
+  <div class="warn">
+    ⚠ 대상 사이트가 직접 crawl을 WAF로 차단(HTTP 403)하여 <b>검색엔진 색인·URL 패턴 기반</b>으로 수집했습니다.
+    전수가 아닌 <b>대표 구조·구조적 진단</b>이며 각 산출물에 한계를 명시했습니다.
   </div>
-</header>
-<main class="max-w-4xl mx-auto px-6 py-10">
-  <div class="mb-6 p-4 rounded-lg bg-amber-50 border border-amber-200 text-sm text-amber-800">
-    대상 사이트가 직접 crawl을 WAF로 차단(403)하여 <b>검색엔진 색인·URL 패턴 기반</b>으로 수집했습니다. 전수가 아닌 <b>대표 구조·구조적 진단</b>이며 각 산출물에 한계를 명시했습니다.
-  </div>
-  <div class="grid sm:grid-cols-3 gap-4">
-    <a href="IA/as-is-ia.html" class="block border border-gray-200 rounded-lg p-5 bg-white hover:shadow-md transition">
-      <span class="text-xs px-2 py-0.5 rounded bg-blue-100 text-blue-700">ia-from-url</span>
-      <h3 class="font-bold mt-2">As-Is IA 구조도</h3>
-      <p class="text-sm text-gray-500">2계층 IA · 그룹공통 + 브랜드/지점 + 공통 메뉴 템플릿 (Mermaid)</p>
+
+  <div class="hub">
+    <a href="IA/as-is-ia.html">
+      <span class="skill sk-ia">ia-from-url</span>
+      <h3>As-Is IA 구조도</h3>
+      <p>2계층 IA · 그룹공통 + 브랜드/지점 + 공통 메뉴 템플릿 (Mermaid 4종)</p>
     </a>
-    <a href="inventory/index.html" class="block border border-gray-200 rounded-lg p-5 bg-white hover:shadow-md transition">
-      <span class="text-xs px-2 py-0.5 rounded bg-green-100 text-green-700">screen-inventory</span>
-      <h3 class="font-bold mt-2">화면 본수 카탈로그</h3>
-      <p class="text-sm text-gray-500">9브랜드·21지점·~138 템플릿 · 지점×메뉴 매트릭스 + 집계</p>
+    <a href="inventory/index.html">
+      <span class="skill sk-inv">screen-inventory</span>
+      <h3>화면 본수 카탈로그</h3>
+      <p>9브랜드 · 21지점 · ~138 고유 템플릿 · 지점×메뉴 매트릭스 + 집계</p>
     </a>
-    <a href="benchmark/benchmark-report.html" class="block border border-gray-200 rounded-lg p-5 bg-white hover:shadow-md transition">
-      <span class="text-xs px-2 py-0.5 rounded bg-red-100 text-red-700">benchmark-painpoint</span>
-      <h3 class="font-bold mt-2">벤치마킹·페인포인트·개선</h3>
-      <p class="text-sm text-gray-500">신라·롯데·조선 비교 · 페인포인트 6 · 개선 우선순위 매트릭스</p>
+    <a href="benchmark/benchmark-report.html">
+      <span class="skill sk-bm">benchmark-painpoint</span>
+      <h3>벤치마킹 · 페인포인트 · 개선</h3>
+      <p>신라·롯데·조선 비교 · 페인포인트 6 · 우선순위 매트릭스 · 로드맵 · To-Be 와이어</p>
     </a>
   </div>
-</main>
+</div>
 </body>
 </html>
