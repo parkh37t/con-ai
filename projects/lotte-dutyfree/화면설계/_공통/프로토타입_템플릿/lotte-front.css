@@ -129,6 +129,13 @@
 .info-table th{background:var(--c-soft);width:92px;white-space:nowrap;font-weight:600;color:var(--c-text-2)}
 .req-badge{display:inline-block;background:#e0e7ff;color:#3730a3;font-size:9px;font-weight:700;padding:1px 6px;border-radius:3px}
 .req-title{font-size:var(--fs-sm);font-weight:600;color:#1e3a5f;margin:4px 0 2px}.req-desc{font-size:var(--fs-xs);color:var(--c-text-2);line-height:1.5}
+/* ── 롯데 SB 표준 양식 요소 (표지 메타·개정이력·End) ── */
+.info-table th.cover{background:var(--lotte-bg);color:var(--lotte-dk);font-weight:700}   /* 표지 메타 강조행 */
+.rev-tbl{width:100%;border-collapse:collapse;font-size:var(--fs-xs);margin-bottom:14px}
+.rev-tbl th,.rev-tbl td{border:1px solid var(--c-line);padding:4px 6px;text-align:left;vertical-align:top}
+.rev-tbl th{background:var(--c-soft);font-weight:600;color:var(--c-text-2);white-space:nowrap}
+.rev-tbl td.ver{font-weight:700;color:var(--lotte);text-align:center;white-space:nowrap}
+.doc-end{margin-top:18px;padding-top:8px;border-top:1px dashed var(--c-line);text-align:center;font-size:9px;font-weight:800;letter-spacing:3px;color:var(--c-disabled)}
 .acc-th{cursor:pointer;user-select:none;white-space:nowrap}
 .case-grp{margin-bottom:9px} .case-grp-title{font-size:var(--fs-xs);color:var(--c-disabled);margin-bottom:3px}
 .case-chip{display:inline-block;padding:3px 10px;border:1px solid var(--c-line);border-radius:9999px;font-size:var(--fs-sm);cursor:pointer;margin:2px 2px 0 0;background:#fff}
