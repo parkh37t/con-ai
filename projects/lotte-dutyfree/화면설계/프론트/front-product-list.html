@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<!-- SECTION-CARD: .section-box 표준 (린트 마커) · 와일리 DS · 롯데 프론트 -->
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>front-product-list 상품목록 — 롯데면세점 화면설계서</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="../_공통/프로토타입_템플릿/lotte-front.css">
+</head>
+<body data-portal="front" data-section="product" data-page="front-product-list"
+      data-page-title="상품목록" data-page-hint="홈 > 화장품·향수 — 면세 상품을 탐색·검색하고 장바구니에 담는다.">
+<div class="root-shell">
+
+  <!-- ════════ 좌: 실제 화면 ════════ -->
+  <div class="screen-wrap" style="flex:11.5;">
+    <div class="gnb-shop">
+      <span class="logo">LOTTE DUTY FREE<small>면세</small></span>
+      <span class="catmenu">
+        <a class="on">화장품·향수</a><a>패션잡화</a><a>주류</a><a>시계·주얼리</a><a>식품</a><a>기획전</a>
+      </span>
+      <span class="searchbar"><input placeholder="브랜드·상품 검색"><i class="fa-solid fa-magnifying-glass"></i></span>
+      <span class="util">
+        <span id="auth-state"><i class="fa-solid fa-user"></i> 로그인</span>
+        <span class="cart"><i class="fa-solid fa-bag-shopping"></i><span class="n">2</span></span>
+      </span>
+    </div>
+    <div class="page-body">
+      <div class="cat-lnb">
+        <div class="h">카테고리</div>
+        <a class="on">화장품·향수 <span class="c">1,240</span></a>
+        <a>패션잡화 <span class="c">860</span></a>
+        <a>주류 <span class="c">320</span></a>
+        <a>시계·주얼리 <span class="c">410</span></a>
+        <a>식품 <span class="c">280</span></a>
+        <a>담배 <span class="c">90</span></a>
+      </div>
+      <div class="main-col">
+        <div class="crumb">홈 <i class="fa-solid fa-chevron-right" style="font-size:8px"></i> <span class="here">화장품·향수</span></div>
+        <div class="main-row">
+          <div id="left-panel" class="left-panel" style="flex:11.5;">
+            <div class="body-area">
+              <h1 class="page-h1">화장품·향수</h1>
+              <p class="page-sub">총 <b style="color:var(--lotte)">1,240</b>개 상품 · 출국일 기준 면세가</p>
+              <div class="login-banner" id="login-banner"><i class="fa-solid fa-circle-info"></i> 로그인하시면 회원 추가할인과 적립 혜택을 받으실 수 있습니다.</div>
+
+              <!-- 영역 1 : 검색·필터 (2-A) -->
+              <div class="section-box">
+                <div class="ui-marker"><span class="num-badge">1</span></div>
+                <div class="srch-tbl-wrap">
+                <table class="srch-tbl">
+                  <colgroup><col style="width:84px"><col><col style="width:84px"><col></colgroup>
+                  <tr>
+                    <th><span class="field-label"><span class="num-badge-sm">a</span>카테고리</span></th>
+                    <td><select class="select-field"><option>화장품·향수</option><option>패션잡화</option><option>주류</option></select></td>
+                    <th><span class="field-label"><span class="num-badge-sm">b</span>브랜드</span></th>
+                    <td><input class="input-field" style="width:90%" placeholder="브랜드명"></td>
+                  </tr>
+                  <tr>
+                    <th><span class="field-label"><span class="num-badge-sm">c</span>가격대</span></th>
+                    <td><input class="input-field" style="width:80px">원 ~ <input class="input-field" style="width:80px">원</td>
+                    <th><span class="field-label"><span class="num-badge-sm">d</span>키워드</span></th>
+                    <td><input class="input-field" style="width:90%" placeholder="상품명·키워드"></td>
+                  </tr>
+                </table>
+                </div>
+                <div class="srch-actions"><button class="btn btn-primary"><span class="num-badge-sm">e</span><i class="fa-solid fa-magnifying-glass"></i>조회</button></div>
+              </div>
+
+              <!-- 영역 2 : 상품 목록 -->
+              <div class="section-box">
+                <div class="ui-marker"><span class="num-badge">2</span></div>
+                <h2 class="section-title-2">상품 목록</h2>
+                <div class="list-tools">
+                  <span>전체 <b style="color:var(--lotte)">1,240</b>건</span>
+                  <span class="sort"><span class="num-badge-sm">f</span><a class="on">인기순</a><a>최신순</a><a>낮은가격</a><a>높은가격</a></span>
+                </div>
+                <div class="product-grid">
+                  <div class="product-card">
+                    <div class="thumb">💄<span class="badge b-green badge-pos">노출중</span><span class="wish"><span class="num-badge-sm">h</span><i class="fa-regular fa-heart"></i></span></div>
+                    <div class="info">
+                      <div class="brand"><span class="num-badge-sm">g</span>뷰티드림</div>
+                      <div class="name">모이스처 글로우 세트</div>
+                      <div><span class="price-orig">120,000원</span><span class="price-duty">96,000원</span><span class="price-usd">USD 74</span></div>
+                      <button class="btn btn-primary btn-sm addcart"><i class="fa-solid fa-bag-shopping"></i>담기</button>
+                    </div>
+                  </div>
+                  <div class="product-card">
+                    <div class="thumb">🕶️<span class="badge b-green badge-pos">노출중</span><span class="wish"><i class="fa-regular fa-heart"></i></span></div>
+                    <div class="info"><div class="brand">어반엣지</div><div class="name">클래식 스퀘어 선글라스</div>
+                      <div><span class="price-orig">350,000원</span><span class="price-duty">280,000원</span><span class="price-usd">USD 215</span></div>
+                      <button class="btn btn-primary btn-sm addcart"><i class="fa-solid fa-bag-shopping"></i>담기</button></div>
+                  </div>
+                  <div class="product-card">
+                    <div class="thumb">🥃<span class="badge b-gold badge-pos">BEST</span><span class="wish"><i class="fa-regular fa-heart"></i></span></div>
+                    <div class="info"><div class="brand">하이랜드</div><div class="name">18년 싱글몰트 위스키 700ml</div>
+                      <div><span class="price-orig">90,000원</span><span class="price-duty">72,000원</span><span class="price-usd">USD 55</span></div>
+                      <button class="btn btn-primary btn-sm addcart"><i class="fa-solid fa-bag-shopping"></i>담기</button></div>
+                  </div>
+                  <div class="product-card">
+                    <div class="thumb">🌸<span class="badge b-green badge-pos">노출중</span><span class="wish"><i class="fa-regular fa-heart"></i></span></div>
+                    <div class="info"><div class="brand">메종루즈</div><div class="name">오 드 퍼퓸 50ml</div>
+                      <div><span class="price-orig">180,000원</span><span class="price-duty">144,000원</span><span class="price-usd">USD 111</span></div>
+                      <button class="btn btn-primary btn-sm addcart"><i class="fa-solid fa-bag-shopping"></i>담기</button></div>
+                  </div>
+                  <div class="product-card">
+                    <div class="thumb">⌚<span class="badge b-gray badge-pos">품절</span><span class="wish"><i class="fa-regular fa-heart"></i></span></div>
+                    <div class="info"><div class="brand">제뉴인</div><div class="name">오토매틱 워치 실버</div>
+                      <div><span class="price-orig">1,200,000원</span><span class="price-duty">980,000원</span><span class="price-usd">USD 753</span></div>
+                      <button class="btn btn-sm addcart" disabled style="background:#f3f4f6;color:#9ca3af">품절</button></div>
+                  </div>
+                  <div class="product-card">
+                    <div class="thumb">🍫<span class="badge b-green badge-pos">노출중</span><span class="wish"><i class="fa-regular fa-heart"></i></span></div>
+                    <div class="info"><div class="brand">스위트박스</div><div class="name">프리미엄 초콜릿 기프트</div>
+                      <div><span class="price-orig">45,000원</span><span class="price-duty">38,000원</span><span class="price-usd">USD 29</span></div>
+                      <button class="btn btn-primary btn-sm addcart"><i class="fa-solid fa-bag-shopping"></i>담기</button></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 영역 3 : 페이지네이션 -->
+              <div class="section-box">
+                <div class="ui-marker"><span class="num-badge">3</span></div>
+                <div class="pager">
+                  <button disabled><i class="fa-solid fa-angles-left"></i></button><button disabled><i class="fa-solid fa-chevron-left"></i></button>
+                  <button class="on">1</button><button>2</button><button>3</button><button>4</button>
+                  <button><i class="fa-solid fa-chevron-right"></i></button><button><i class="fa-solid fa-angles-right"></i></button>
+                  <span style="margin-left:8px"><span class="num-badge-sm">i</span></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════ 우: 디스크립션 (8단 + 도식) ════════ -->
+  <div id="right-panel" class="right-panel" style="flex:4.8;">
+    <h2 class="rp-h2">front-product-list</h2>
+    <table class="info-table">
+      <tr><th>화면명</th><td>상품목록</td></tr>
+      <tr><th>화면목적</th><td>고객이 카테고리/브랜드/가격/키워드로 면세 상품을 탐색·정렬하고, 관심등록·장바구니 담기로 구매 동선에 진입하는 목록 화면.</td></tr>
+      <tr><th class="acc-th" onclick="toggleReq()">요구사항 <span id="req-ch" style="font-size:10px;color:#6b7280">▼</span></th>
+          <td><div id="req-ac"><span class="req-badge">REQ-FR-PRD-001</span>
+            <div class="req-title">면세 상품 탐색·구매 진입</div>
+            <div class="req-desc">❍ 카테고리/필터 탐색, 정상가→면세가·USD 병기, 관심·담기. 비로그인 구매 시 로그인 유도.</div></div></td></tr>
+    </table>
+
+    <!-- CASE 전환 -->
+    <h3 class="rp-h3">⚙ Case 전환 <span style="font-size:9px;font-weight:400;color:#9ca3af">(칩 클릭 → 좌측 화면 전환)</span></h3>
+    <div class="case-grp"><div class="case-grp-title">auth — 로그인 상태</div>
+      <span class="case-chip active" onclick="setCase('auth','login',this)">로그인</span><span class="case-chip" onclick="setCase('auth','guest',this)">비로그인</span></div>
+    <div class="case-grp"><div class="case-grp-title">sort — 정렬</div>
+      <span class="case-chip active" onclick="setCase('sort','pop',this)">인기순</span><span class="case-chip" onclick="setCase('sort','new',this)">최신순</span><span class="case-chip" onclick="setCase('sort','low',this)">낮은가격</span></div>
+
+    <!-- 화면 전이도 -->
+    <h3 class="rp-h3">🗺️ 화면 전이도</h3>
+    <div class="diagram"><pre class="mermaid">
+flowchart TD
+  L["상품목록<br/>front-product-list"]:::cur
+  L -->|"상품 클릭"| D["상품상세<br/>front-product-detail"]
+  L -->|"담기"| C["장바구니<br/>front-cart-list"]
+  L -->|"관심"| W["관심상품<br/>front-mypage-wish"]
+  L -->|"비로그인 구매"| G["로그인<br/>front-member-login"]
+  classDef cur fill:#d4002a,stroke:#d4002a,color:#fff;
+</pre></div>
+    <p class="diagram-cap">목록에서 상세·장바구니·관심으로 진입. 비로그인 구매 시도는 로그인으로 분기.</p>
+
+    <!-- 처리 흐름 -->
+    <h3 class="rp-h3">🔀 처리 흐름 · 구매 진입</h3>
+    <div class="diagram"><pre class="mermaid">
+flowchart TD
+  A["카테고리·검색 진입"] --> B["필터·정렬"]
+  B --> C["상품 목록 표시"]
+  C --> E{"담기/구매"}
+  E -->|"비로그인"| G["로그인 유도"]:::warn
+  E -->|"로그인"| K["장바구니 담기"]:::ok
+  G --> K
+  classDef warn fill:#fee2e2,stroke:#dc2626,color:#991b1b;
+  classDef ok fill:#dcfce7,stroke:#16a34a,color:#166534;
+</pre></div>
+    <p class="diagram-cap">담기/구매 시 로그인 여부로 분기. 비로그인은 로그인 후 동선 복귀.</p>
+
+    <!-- 시퀀스 -->
+    <h3 class="rp-h3">🔗 상호작용 시퀀스</h3>
+    <div class="diagram"><pre class="mermaid">
+sequenceDiagram
+  autonumber
+  participant U as 고객
+  participant S as 화면
+  participant A as 서버
+  U->>S: 카테고리·필터 선택
+  S->>A: GET /product/search
+  A-->>S: 상품 목록(면세가·재고)
+  S-->>U: 카드 그리드 렌더
+  U->>S: [담기]
+  S->>A: POST /cart/create
+</pre></div>
+    <p class="diagram-cap">조회는 출국일 기준 면세가·재고 반영. 담기는 로그인 세션 필요.</p>
+
+    <!-- 필드 사양 매트릭스 -->
+    <h3 class="rp-h3">📋 필드 사양 매트릭스</h3>
+    <p class="diagram-legend">좌측 화면 마커(배지 ↔ 행 No)와 1:1. <span class="fs-req">●</span> 필수 · <span class="fs-opt">○</span> 선택</p>
+
+    <div class="fs-grp"><span class="num-badge">1</span>검색·필터</div>
+    <table class="fs-matrix">
+      <colgroup><col style="width:20px"><col style="width:58px"><col style="width:56px"><col><col></colgroup>
+      <thead><tr><th>No</th><th>필드</th><th>타입·필수</th><th>기본·검증</th><th>동작·예외</th></tr></thead>
+      <tbody>
+        <tr><td class="c"><span class="num-badge-sm">a</span></td><td>카테고리</td><td class="c">select <span class="fs-opt">○</span></td><td>현재 카테고리</td><td>변경 시 해당 카테고리 목록 재조회</td></tr>
+        <tr><td class="c"><span class="num-badge-sm">b</span></td><td>브랜드</td><td class="c">text <span class="fs-opt">○</span></td><td>—</td><td>부분일치 LIKE 검색</td></tr>
+        <tr><td class="c"><span class="num-badge-sm">c</span></td><td>가격대</td><td class="c">range <span class="fs-opt">○</span></td><td>—</td><td>면세가 기준 from≤to</td></tr>
+        <tr><td class="c"><span class="num-badge-sm">d</span></td><td>키워드</td><td class="c">text <span class="fs-opt">○</span></td><td>—</td><td>상품명·키워드 부분일치</td></tr>
+        <tr><td class="c"><span class="num-badge-sm">e</span></td><td>[조회]</td><td class="c">button</td><td>—</td><td>API 호출→목록 갱신. 0건 시 "검색 결과가 없습니다."</td></tr>
+      </tbody>
+    </table>
+
+    <div class="fs-grp"><span class="num-badge">2</span>상품 목록</div>
+    <table class="fs-matrix">
+      <colgroup><col style="width:20px"><col style="width:58px"><col style="width:56px"><col><col></colgroup>
+      <tbody>
+        <tr><td class="c"><span class="num-badge-sm">f</span></td><td>정렬</td><td class="c">tab</td><td>인기순</td><td>인기/최신/낮은가격/높은가격</td></tr>
+        <tr><td class="c"><span class="num-badge-sm">g</span></td><td>상품카드(브랜드·상품명·가격)</td><td class="c">link</td><td>면세가값</td><td>정상가 취소선→면세가·USD 병기. 클릭 시 상품상세 이동. 품절은 비활성</td></tr>
+        <tr><td class="c"><span class="num-badge-sm">h</span></td><td>관심·담기</td><td class="c">button</td><td>—</td><td>관심=하트 토글. 담기=장바구니. 비로그인 시 로그인 유도</td></tr>
+      </tbody>
+    </table>
+
+    <div class="fs-grp"><span class="num-badge">3</span>페이지네이션</div>
+    <table class="fs-matrix">
+      <colgroup><col style="width:20px"><col style="width:58px"><col style="width:56px"><col><col></colgroup>
+      <tbody>
+        <tr><td class="c"><span class="num-badge-sm">i</span></td><td>페이징</td><td class="c">button</td><td>1p</td><td>처음/이전/다음/마지막. 무한스크롤 대신 페이지</td></tr>
+      </tbody>
+    </table>
+
+    <!-- 데이터 / API -->
+    <h3 class="rp-h3">🗂 데이터 / 입력값 (API)</h3>
+    <table class="info-table">
+      <tr><th>요청</th><td>categoryCode · brand · priceFrom/To · keyword · sort · page (action: search)</td></tr>
+      <tr><th>응답</th><td>goodsNo · brand · goodsName · listPrice · dutyPrice · usdPrice · badge · stockYn · wishYn</td></tr>
+    </table>
+
+    <!-- 예외 / 상태 -->
+    <h3 class="rp-h3">⚠ 예외 / 상태별 처리</h3>
+    <table class="info-table">
+      <tr><th>비로그인 담기</th><td>로그인 페이지 유도 후 동선 복귀(담기 유지)</td></tr>
+      <tr><th>품절</th><td>[담기] 비활성, '품절' 뱃지. 관심등록은 허용</td></tr>
+      <tr><th>결과 없음</th><td>"검색 결과가 없습니다." 빈 상태 + 카테고리 추천</td></tr>
+    </table>
+
+    <!-- 정책 -->
+    <h3 class="rp-h3">📜 정책 / 비즈니스 룰</h3>
+    <div class="policy-box"><ul class="policy-list">
+      <li><b>면세가</b>: 출국일 기준 환율·면세 한도 반영(정상가 취소선 병기, USD 가안 1,300원/USD)</li>
+      <li><b>회원 혜택</b>: 로그인 시 등급별 추가할인·적립 노출</li>
+      <li><b>재고</b>: 품절 상품은 담기 불가, 관심등록만</li>
+      <li><b>금액 표기</b>: 천단위 콤마 + 원 (더미데이터_사전 §4)</li>
+    </ul></div>
+
+    <!-- ★ 메시지·알림 정의 -->
+    <h3 class="rp-h3">🔔 메시지 · 알림 정의</h3>
+    <table class="msg-tbl">
+      <thead><tr><th style="width:46px">유형</th><th>메시지</th><th style="width:92px">발생 조건</th></tr></thead>
+      <tbody>
+        <tr><td class="mtype m-confirm">안내</td><td>로그인하시면 회원 추가할인과 적립 혜택을 받으실 수 있습니다.</td><td>비로그인 진입</td></tr>
+        <tr><td class="mtype m-warn">경고</td><td>로그인이 만료되었습니다. 다시 로그인해주세요.</td><td>세션 만료 후 담기</td></tr>
+        <tr><td class="mtype m-info">안내</td><td>검색 결과가 없습니다.</td><td>조회 0건</td></tr>
+        <tr><td class="mtype m-done">완료</td><td>장바구니에 담았습니다.</td><td>담기 성공</td></tr>
+      </tbody>
+    </table>
+    <p style="font-size:9px;color:#9ca3af;margin-top:6px">더미: 더미데이터_사전.md 고정 캐스트 · 🟡 실제 브랜드·면세규정 PPTX 확정 후 교체</p>
+  </div>
+
+  <div class="panel-toggle-wrap"><button class="panel-toggle-btn" onclick="togglePanel()"><i class="fa-solid fa-chevron-right" id="toggle-icon"></i></button></div>
+</div>
+
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11.6.0/dist/mermaid.esm.min.mjs';
+  mermaid.initialize({ startOnLoad:true, securityLevel:'loose', theme:'base',
+    themeVariables:{ fontSize:'11px', fontFamily:"'Noto Sans KR',sans-serif", primaryColor:'#fff0f2', primaryBorderColor:'#d4002a', lineColor:'#9ca3af' },
+    flowchart:{ htmlLabels:true, curve:'basis', nodeSpacing:24, rankSpacing:28 } });
+</script>
+<script>
+function togglePanel(){var r=document.getElementById('right-panel'),s=document.querySelector('.screen-wrap'),i=document.getElementById('toggle-icon');r.classList.toggle('collapsed');s.classList.toggle('expanded');i.classList.toggle('fa-chevron-right');i.classList.toggle('fa-chevron-left');}
+function setCase(group,value,el){
+  if(el&&el.classList.contains('case-chip')){el.parentElement.querySelectorAll('.case-chip').forEach(function(c){c.classList.remove('active');});el.classList.add('active');}
+  if(group==='auth'){document.getElementById('login-banner').style.display=(value==='guest')?'flex':'none';document.getElementById('auth-state').innerHTML=(value==='guest')?'<i class="fa-solid fa-user"></i> 로그인':'<i class="fa-solid fa-user-check"></i> 김면세님';return;}
+}
+function toggleReq(){var c=document.getElementById('req-ac'),h=document.getElementById('req-ch');var open=c.style.display!=='none';c.style.display=open?'none':'';h.textContent=open?'▶':'▼';}
+</script>
+</body>
+</html>

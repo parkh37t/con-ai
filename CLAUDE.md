@@ -111,6 +111,6 @@ con-ai/
 
 | 프로젝트 | 상태 |
 |---------|------|
-| `lotte-dutyfree` | 부트스트랩 — 방법론 골격 완료, 도메인 콘텐츠(L1/L2/L3)는 롯데 PPTX 도착 후 채움 |
+| `lotte-dutyfree` | 부트스트랩 + 내재화 screen-spec 실증 — `front-product-list`(면세 상품목록·도식화) 생산. 도메인 콘텐츠는 PPTX 도착 후 |
 | `shinsegae-simon-bo` | PPTX(67p)→BO006·BO007·BO316 2단 HTML(도식화) 실증. s2b2 벤치마크로 품질 상향. ScreenSpec 예시 `examples/BO006.screenspec.json` |
 | 와일리 OS | 환경+노하우(00~07)·도식화·인테이크/리서치 스킬 3종·**S2B 생산 메커니즘 내재화(07+원전)**. 앰배서더 호텔로 스킬 3종 실증 완료. 다음: Figma/Express 렌더 실증 |
