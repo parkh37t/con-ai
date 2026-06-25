@@ -183,3 +183,24 @@
 .toggle-pill.on{background:var(--c-success-bg);color:var(--c-success-tx);border-color:#b9e3c8}
 
 @media(max-width:1100px){.product-grid{grid-template-columns:repeat(2,1fr)}}
+
+/* ════════ 모바일 GNB 개선 목업 (PD-4247) ════════ */
+.mobile-frame{width:380px;max-width:100%;margin:6px auto 0;border:1px solid var(--c-line);border-radius:18px;overflow:hidden;box-shadow:0 6px 22px rgba(0,0,0,.10);background:#fff}
+.m-statusbar{height:24px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;font-size:10px;color:#555;background:#fafafa}
+.m-header{height:48px;display:flex;align-items:center;gap:10px;padding:0 14px;border-bottom:1px solid var(--c-line-2)}
+.m-header .logo{font-weight:800;color:var(--lotte);font-size:15px;letter-spacing:-.4px}
+.m-header .ico{margin-left:auto;display:flex;gap:15px;color:#333;font-size:15px}
+.gnb-bar{display:flex;gap:10px;padding:9px 14px;overflow-x:auto;border-bottom:2px solid var(--lotte);white-space:nowrap;transition:gap .25s}
+.gnb-bar::-webkit-scrollbar{display:none}
+.gnb-bar .m{font-size:15px;color:#888;font-weight:500;flex-shrink:0;padding-bottom:3px;transition:font-size .25s,color .25s}
+.gnb-bar .m.active{color:#000;font-weight:700;border-bottom:2px solid var(--lotte)}
+.gnb-bar.tobe{gap:5px}                                  /* TO-BE: 여백 10→5 */
+.gnb-bar.tobe .m{font-size:14px;color:#000}             /* TO-BE: 폰트 15→14, 비활성 #888→#000 */
+.gnb-bar.tobe .m.active{color:#000;font-weight:700}
+.m-body{padding:14px;min-height:300px;background:var(--c-soft)}
+.m-banner{height:140px;background:linear-gradient(135deg,var(--lotte),var(--burgundy));border-radius:12px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;margin-bottom:14px;letter-spacing:.5px}
+.m-cats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.m-cat{text-align:center;font-size:11px;color:#555}
+.m-cat .ci{height:48px;background:#fff;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:21px;margin-bottom:5px;border:1px solid var(--c-line-2)}
+.spec-pill{display:inline-block;font-size:10px;font-weight:700;padding:2px 9px;border-radius:9999px;margin:0 3px}
+.pill-as{background:var(--c-neutral-bg);color:var(--c-neutral-tx)} .pill-to{background:var(--lotte-bg);color:var(--lotte)}
