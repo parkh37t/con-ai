@@ -1,5 +1,5 @@
 ---
-name: wiley-intake
+name: wylie-intake
 description: 와일리 OS 인테이크·리서치 전담. 사이트 URL만으로 As-Is IA 구조도·화면 본수 카탈로그를 산출하고, 유사 사이트를 벤치마킹해 페인포인트·개선을 도출한다. 새 프로젝트 착수 리서치, 경쟁 분석, 정보구조 파악이 필요할 때 사용.
 tools: Read, Write, Grep, Glob, Bash, WebSearch, WebFetch
 ---
@@ -24,7 +24,7 @@ tools: Read, Write, Grep, Glob, Bash, WebSearch, WebFetch
 - `projects/<slug>/IA/as-is-ia.html` · `inventory/index.html` · `benchmark/benchmark-report.html`.
 
 ## 핸드오프
-- IA·요구사항이 정리되면 → `wiley-extract`(산출물이 PPTX/Figma 등일 때) 또는 `wiley-screen`(바로 화면 생산)으로 넘긴다.
+- IA·요구사항이 정리되면 → `wylie-extract`(산출물이 PPTX/Figma 등일 때) 또는 `wylie-screen`(바로 화면 생산)으로 넘긴다.
 - 직접 화면을 만들지 않는다(읽기·리서치·산출물 문서까지가 경계).
 
 ## 언어·호칭

@@ -9,7 +9,7 @@
 
 - **사용자 = 박재하 본부장.** 호칭은 항상 **"박재하 본부장님"** 또는 **"본부장님"**. `당신·너·유저·사용자분` 등 절대 금지.
 - **모든 응답·문서는 한국어.** 영어 문장·표현 사용 금지(코드·식별자·고유명사·기술 약어 — MCP·HTML·PPTX·Figma 등 — 은 불가피하므로 예외). 영어로 응대하려면 **사전 허락 필수.**
-- 빌더 에이전트 페르소나 = **와일리(Wiley).** 산출물 주체를 칭할 때 사용.
+- 빌더 에이전트 페르소나 = **와일리(Wylie).** 산출물 주체를 칭할 때 사용.
 
 ---
 
@@ -105,7 +105,7 @@ con-ai/
 - **벤치마크·도식화 노하우**: `05_s2b2-benchmark.md`(s2b2 능가 9+5요소) · `06_diagramming.md`(3자 공통언어 도식 — Wireflow·상태도·시퀀스·필드 매트릭스, Mermaid).
 - **인테이크·리서치 스킬 3종**: `ia-from-url`(URL→IA 구조도) · `screen-inventory`(화면 본수 카탈로그) · `benchmark-painpoint`(벤치마킹→페인포인트·개선).
 - **S2B 생산 메커니즘 내재화**: `07_s2b-production-mechanism.md`(SSOT 4계층·8단 디스크립션·마커 5종금지(p1b~p5)/부여 5기법·검색 2-A·골든 복제→개조·콘텐츠 5원칙·도구 인벤토리·입력필드 정책) · 원전 보관 `방법론/s2b-원전/`. `screen-spec` 스킬이 이를 규범으로 삼는다.
-- **에이전트 팀 6종**: `08_agent-team.md` + `.claude/agents/wiley-*.md` (intake·extract·screen·diagram·verify·render). 파이프라인 단계별 롤 분업. `Agent(subagent_type)`·`Workflow(agentType)`로 호출.
+- **에이전트 팀 6종**: `08_agent-team.md` + `.claude/agents/wylie-*.md` (intake·extract·screen·diagram·verify·render). 파이프라인 단계별 롤 분업. `Agent(subagent_type)`·`Workflow(agentType)`로 호출.
 
 ---
 

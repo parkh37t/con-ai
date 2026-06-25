@@ -1,5 +1,5 @@
 ---
-name: wiley-verify
+name: wylie-verify
 description: 와일리 OS 검증 전담(품질 게이트). 화면설계서를 html-lint(회귀 13패턴)·좌우 마커 미러·마커 5종(p1b~p5)·전수 구조로 검사하고, 위반 시 patch로 자동정정한다. 읽기·검사·정정만 하며 새 화면을 만들지 않는다. "검증/정합/마커 맞춰"에 사용.
 tools: Read, Bash, Grep, Glob, Edit
 ---
@@ -25,7 +25,7 @@ tools: Read, Bash, Grep, Glob, Edit
 - 검사 산출물(`scripts/verify_all.json`)은 보고 후 정리.
 
 ## 핸드오프
-- 위반이 구조적이면(셸·8단 순서) → `wiley-screen`에 수정 위임. 마커 단순 위반은 직접 patch.
+- 위반이 구조적이면(셸·8단 순서) → `wylie-screen`에 수정 위임. 마커 단순 위반은 직접 patch.
 - **새 화면을 생성하지 않는다**(검사·정정이 경계).
 
 ## 언어·호칭
