@@ -43,6 +43,10 @@ def check(path):
     # right-panel 있으면 msg-tbl 존재 권고
     if 'id="right-panel"' in html and "msg-tbl" not in html:
         warns.append("권고: right-panel 에 msg-tbl(메시지·알림 정의) 누락")
+    # 14. msg-tbl 이 right-panel 외부 (8단 골격 위반 — 디스크립션 맨 아래여야)
+    rp = html.find('id="right-panel"'); mt = html.find("msg-tbl")
+    if mt != -1 and rp != -1 and mt < rp:
+        warns.append("14. msg-tbl 이 right-panel 외부에 위치(디스크립션 맨 아래여야)")
     return warns
 
 def target_path():

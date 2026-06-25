@@ -7,6 +7,8 @@ description: Use when creating or reworking a 화면설계서 (HTML storyboard) 
 
 S2B 방법론을 이식한 **프로젝트 무관** 화면 생산 메커니즘. 어떤 프로젝트(`projects/<name>/`)든 동일 규격으로 2단 화면설계서를 생산/정합한다.
 
+> **규범 전문**: `방법론/와일리-OS/07_s2b-production-mechanism.md` (SSOT 4계층·8단 디스크립션·마커 5종금지(p1b~p5)/부여 5기법·검색 2-A·골든 복제→개조·콘텐츠 5원칙·도구 인벤토리·입력필드 정책). **원전**: `방법론/s2b-원전/`. 본 스킬은 그 실행 요약이다.
+
 ## 0. 활성 프로젝트 컨텍스트 먼저 로드
 작업 전 **해당 프로젝트의 SSOT**를 읽는다 (가장 중요한 입력):
 - `projects/<name>/docs/02_SSOT/*` — 권한·흐름·상태·정책·용어
@@ -34,13 +36,15 @@ root-shell
 ## 3. 마커 (화면 ↔ 디스크립션 1:1)
 - 섹션 `num-badge` 1·2·3 (좌·우 노출) / 필드 `num-badge-sm` a·b·c (**섹션별 리셋**).
 - 화면 배지 == 디스크립션 `spec-field` 배지(개수·라벨·순서 일치). 데이터테이블 컬럼 `<th>`(No 제외)도 배지+spec-field.
-- 금지: num-badge 안 알파벳 / num-badge-sm 안 숫자 / 인접 중복 / `num-badge-xs` / 인라인 `bg-black rounded-full`(X-close 예외).
+- 금지 5종: **p1b**(인접 중복 sm) / **p2**(num-badge-sm 안 숫자) / **p3**(num-badge 안 알파벳) / **p4**(`num-badge-xs`) / **p5**(인라인 `bg-black rounded-full`, X-close 예외).
+- 마커 누락 보강 5기법: ①헤더 wrap(`section-box has-marker` 투명) ②정적 button/select 인라인 ③JS동적→데모샘플 ④빈 컨테이너 `has-marker` ⑤screen-wrap 외부 요소 제목에 직접 부여. (상세 07§C)
 
 ## 4. 우측 디스크립션 골격 (순서 고정)
 1. `<h2>` = 화면ID → 2. `info-table` 3행(화면명/화면목적/요구사항 ID, 화면ID 행 금지) → 3. CASE 전환(`case-chip`) → 4. `proc-table` → 5. `policy-box` → 6. 데이터 매핑 → 7. `spec-header-2`/`spec-field`/`spec-bullets`(좌 num-badge와 1:1) → 8. **`msg-tbl`**(alert/confirm 전수, right-panel 내부 마지막 element).
 
-## 5. 콘텐츠 검증 규칙
-화면에 실제 있는 것만 디스크립션에. 더미는 고정 캐스트만. spec bullet은 비즈니스 룰만(파일경로·함수명 금지). 상단 안내문은 `data-page-hint`(호버)로.
+## 5. 콘텐츠 검증 5원칙
+①**화면 실재만**(JS alert/confirm/validation 전수 대조) ②**데이터모델 근거**(테이블정의서 없는 개념 금지) ③**비즈니스 룰만**(파일경로·함수명 금지, 물리컬럼은 데이터매핑 표에만) ④**프로토타입 문구 환원**(`[프로토타입]`·`{번호}`·`N건`→실제 메시지) ⑤**범위 밖 carry-forward 금지**. 더미는 고정 캐스트만. 상단 안내문은 `data-page-hint`(호버)로.
+**입력필드 표준**: byte 제한(일반200·숫자12·통화12·날짜8·textarea500·에디터5000)·자동포맷(전화 하이픈·금액 콤마·날짜 구분자)·유효성 2단계(포커스아웃+저장) → `방법론/표준/입력필드_정책.md`(07§J).
 
 ## 6. 검증
 - 저장 즉시: `python3 .claude/hooks/html-lint.py <file>` (회귀 13패턴)

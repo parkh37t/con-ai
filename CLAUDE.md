@@ -23,7 +23,8 @@ con-ai/
 │   ├── s2b-methodology-study.md      7계층 OS 학습 보고서
 │   ├── templates/template_screen.html  골든 2단 템플릿
 │   ├── 표준/입력필드_정책.md          공용 입력 표준
-│   └── 와일리-OS/                    ★ 멀티입력→프로토타입 환경 (00~04 + screenspec.schema.json)
+│   ├── 와일리-OS/                    ★ 멀티입력→프로토타입 환경 (00~07 + screenspec.schema.json)
+│   └── s2b-원전/                     S2B 생산 메커니즘 원전(SKILL·규칙·작업가이드·IA·glossary·더미·입력필드)
 ├── .claude/skills/                  ★ 커스텀 스킬 (공용)
 │   ├── screen-spec/                  화면 생산(2단 도식화)
 │   ├── ia-from-url/                  URL→As-Is IA 구조도
@@ -101,6 +102,7 @@ con-ai/
 - **신뢰성 7원칙·실패모드 대응**: `방법론/와일리-OS/04_knowhow.md` (그라운딩 없으면 폐기 / 더미 창작 금지 / 마커는 코드 생성 / strict 스키마).
 - **벤치마크·도식화 노하우**: `05_s2b2-benchmark.md`(s2b2 능가 9+5요소) · `06_diagramming.md`(3자 공통언어 도식 — Wireflow·상태도·시퀀스·필드 매트릭스, Mermaid).
 - **인테이크·리서치 스킬 3종**: `ia-from-url`(URL→IA 구조도) · `screen-inventory`(화면 본수 카탈로그) · `benchmark-painpoint`(벤치마킹→페인포인트·개선).
+- **S2B 생산 메커니즘 내재화**: `07_s2b-production-mechanism.md`(SSOT 4계층·8단 디스크립션·마커 5종금지(p1b~p5)/부여 5기법·검색 2-A·골든 복제→개조·콘텐츠 5원칙·도구 인벤토리·입력필드 정책) · 원전 보관 `방법론/s2b-원전/`. `screen-spec` 스킬이 이를 규범으로 삼는다.
 
 ---
 
@@ -110,4 +112,4 @@ con-ai/
 |---------|------|
 | `lotte-dutyfree` | 부트스트랩 — 방법론 골격 완료, 도메인 콘텐츠(L1/L2/L3)는 롯데 PPTX 도착 후 채움 |
 | `shinsegae-simon-bo` | PPTX(67p)→BO006·BO007·BO316 2단 HTML(도식화) 실증. s2b2 벤치마크로 품질 상향. ScreenSpec 예시 `examples/BO006.screenspec.json` |
-| 와일리 OS | 환경+노하우(00~06)·도식화·인테이크/리서치 스킬 3종 완료. 다음: Figma/Express 렌더 실증, 스킬 실데이터 적용 |
+| 와일리 OS | 환경+노하우(00~07)·도식화·인테이크/리서치 스킬 3종·**S2B 생산 메커니즘 내재화(07+원전)**. 앰배서더 호텔로 스킬 3종 실증 완료. 다음: Figma/Express 렌더 실증 |
