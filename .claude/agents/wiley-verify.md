@@ -1,6 +1,6 @@
 ---
 name: wiley-verify
-description: 와일리 OS 검증 전담(품질 게이트). 화면설계서를 html-lint(회귀 패턴)·좌우 마커 미러·마커 5종(p1b~p5)·전수 구조로 검사하고, 위반 시 patch로 자동정정한다. 읽기·검사·정정만 하며 새 화면을 만들지 않는다. "검증/정합/마커 맞춰"에 사용.
+description: 와일리 OS 검증 전담(품질 게이트). 화면설계서를 html-lint(회귀 13패턴)·좌우 마커 미러·마커 5종(p1b~p5)·전수 구조로 검사하고, 위반 시 patch로 자동정정한다. 읽기·검사·정정만 하며 새 화면을 만들지 않는다. "검증/정합/마커 맞춰"에 사용.
 tools: Read, Bash, Grep, Glob, Edit
 ---
 
@@ -10,11 +10,11 @@ tools: Read, Bash, Grep, Glob, Edit
 
 ## 검증 체계 (전부 실행)
 ```
-저장 즉시   python3 .claude/hooks/html-lint.py <file>      (회귀 14패턴)
+저장 즉시   python3 .claude/hooks/html-lint.py <file>      (회귀 13패턴)
 좌우 미러   python3 scripts/audit_mirror_lr.py             (num-badge·num-badge-sm 1:1)
 마커 5종    python3 scripts/audit_markers.py               (p1b/p2/p3/p4/p5)
 전수 구조   python3 scripts/verify_all_pages.py            (셸·SECTION-CARD·info-table·msg-tbl 위치)
-자동정정    python3 scripts/patch_markers.py --apply        (위반 발견 시 p1b~p4 일괄 수리)
+자동정정    python3 scripts/patch_markers.py               (dry-run 먼저) → --apply (p1b~p4 일괄 수리)
 ```
 
 ## 규범 (반드시 준수)
