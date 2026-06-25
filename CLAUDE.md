@@ -81,7 +81,8 @@ con-ai/
 
 - 저장 즉시: `python3 .claude/hooks/html-lint.py <file>` (회귀 13패턴)
 - 단일 화면: `python -m http.server 18877` → `http://localhost:18877/...`, 강력 새로고침. **`file://` 금지**.
-- 전체: `python scripts/verify_all_pages.py` · `python scripts/audit_mirror_lr.py` (전 프로젝트 스캔)
+- 전체: `python scripts/verify_all_pages.py` · `python scripts/audit_mirror_lr.py` · `python scripts/audit_markers.py`(마커 5종 p1b~p5) (전 프로젝트 스캔)
+- 자동정정: `python scripts/patch_markers.py`(dry-run) → `--apply`(p1b~p4 일괄 수리)
 
 ---
 

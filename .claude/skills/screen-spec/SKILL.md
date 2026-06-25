@@ -49,7 +49,7 @@ root-shell
 ## 6. 검증
 - 저장 즉시: `python3 .claude/hooks/html-lint.py <file>` (회귀 13패턴)
 - 단일 화면: `python -m http.server 18877` → `http://localhost:18877/...` + 강력 새로고침. **`file://` 금지**.
-- 전체: `python scripts/verify_all_pages.py` · `python scripts/audit_mirror_lr.py` (전 프로젝트 스캔)
+- 전체: `python scripts/verify_all_pages.py` · `python scripts/audit_mirror_lr.py` · `python scripts/audit_markers.py`(마커 5종) — 위반 시 `python scripts/patch_markers.py --apply`로 일괄 정정
 
 ## 신규 페이지 (골든 복제 → 개조)
 1. `방법론/templates/template_screen.html` 복제 → `projects/<name>/화면설계/<포털>/{prefix}-{section}-{screenId}.html`.

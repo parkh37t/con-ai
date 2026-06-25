@@ -111,10 +111,10 @@ AI가 일관된 화면을 내려면 "무엇을, 어떤 규칙으로"가 계층�
 | 저장 훅 | `html-lint.ps1`(13패턴) | `.claude/hooks/html-lint.py` | ✅ |
 | 전수 검증 | `verify_all_pages.py` | `scripts/verify_all_pages.py` | ✅ |
 | 좌우 미러 | `audit_mirror_lr.py` | `scripts/audit_mirror_lr.py` | ✅ |
-| 마커 위반 | `audit_markers_admin_v2.py`(p1b~p5) | (확장 예정) | ⬜ |
+| 마커 위반 | `audit_markers_admin_v2.py`(p1b~p5) | `scripts/audit_markers.py` | ✅ |
+| 자동 정정 | `patch_phase1~5.py` | `scripts/patch_markers.py`(p1b~p4 · `--apply`) | ✅ |
 | 콘텐츠 매칭 | `audit_content_match.py` | (확장 예정) | ⬜ |
 | CASE 매칭 | `audit_cases.py` | (확장 예정) | ⬜ |
-| 자동 정정 | `patch_*.py`(phase1~5·left/right·placeholder) | (확장 예정) | ⬜ |
 | 단일 렌더 | Playwright SHELL_CHECK JS | (Playwright MCP 사용) | ◐ |
 
 > 확장 로드맵: `audit_markers`(p1b~p5)·`audit_cases`·`patch_*` 를 con-ai `scripts/`로 이식해 대량 정정 자동화.
