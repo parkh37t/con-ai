@@ -30,6 +30,7 @@ con-ai/
 │   ├── ia-from-url/                  URL→As-Is IA 구조도
 │   ├── screen-inventory/             화면 본수 집계·카탈로그
 │   └── benchmark-painpoint/          벤치마킹→페인포인트·개선
+├── .claude/agents/                  ★ 와일리 에이전트 팀 6종 (intake·extract·screen·diagram·verify·render)
 ├── .claude/hooks/html-lint.py       회귀 13패턴 훅
 ├── scripts/                         전 프로젝트 일괄 검증
 └── projects/                        ◆ 프로젝트 인스턴스들
@@ -104,6 +105,7 @@ con-ai/
 - **벤치마크·도식화 노하우**: `05_s2b2-benchmark.md`(s2b2 능가 9+5요소) · `06_diagramming.md`(3자 공통언어 도식 — Wireflow·상태도·시퀀스·필드 매트릭스, Mermaid).
 - **인테이크·리서치 스킬 3종**: `ia-from-url`(URL→IA 구조도) · `screen-inventory`(화면 본수 카탈로그) · `benchmark-painpoint`(벤치마킹→페인포인트·개선).
 - **S2B 생산 메커니즘 내재화**: `07_s2b-production-mechanism.md`(SSOT 4계층·8단 디스크립션·마커 5종금지(p1b~p5)/부여 5기법·검색 2-A·골든 복제→개조·콘텐츠 5원칙·도구 인벤토리·입력필드 정책) · 원전 보관 `방법론/s2b-원전/`. `screen-spec` 스킬이 이를 규범으로 삼는다.
+- **에이전트 팀 6종**: `08_agent-team.md` + `.claude/agents/wiley-*.md` (intake·extract·screen·diagram·verify·render). 파이프라인 단계별 롤 분업. `Agent(subagent_type)`·`Workflow(agentType)`로 호출.
 
 ---
 
