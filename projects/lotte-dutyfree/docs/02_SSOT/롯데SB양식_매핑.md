@@ -80,5 +80,5 @@
 
 ## 5. 실증
 
-- `화면설계/프론트/front-home-main.html` (PD-4247) — 이 양식의 선행 실증(표지 메타·번역표 일부 적용). 골든 등록 후 잔여 요소(개정이력·End) 정합은 차기 리빌드 시 일괄 반영.
+- `화면설계/프론트/front-home-main.html` (PD-4247) — **골든 기준 리빌드 완료**: 표지 메타(JIRA·작성자·버전 cover행)·개정이력·번역표·End 전부 정합, 8단 순서(정책→데이터매핑→spec) 적용. html-lint 0·audit 0·verify 0·미러 0 통과.
 - 대조: `docs/pd4247-comparison.html` — Claude SB(정적) vs 본 양식(인터랙티브·검증).
