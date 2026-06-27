@@ -115,4 +115,5 @@ con-ai/
 |---------|------|
 | `lotte-dutyfree` | 화면 3종(front-home-main GNB개선·front-product-list·admin-product-list) + AI 활용 테스트 갭 분석 리포트(6과제) + **PD-4247 대조 화면**(Claude SB vs 와일리 OS) + **롯데 SB 골든 템플릿 등록**(`lotte-sb-golden.html` + `롯데SB양식_매핑.md` — GAP-1 영구 해소). 도메인 콘텐츠는 PPTX 확정 후 |
 | `shinsegae-simon-bo` | PPTX(67p)→BO006·BO007·BO316 2단 HTML(도식화) 실증. s2b2 벤치마크로 품질 상향. ScreenSpec 예시 `examples/BO006.screenspec.json` |
+| `ambassador-hotel` | 인테이크 리서치 3종(IA·화면본수·벤치마킹) + **정식 프로젝트 승격**(docs 7계층 골격 + `00_입력원본` RFP 투입소). RFP·요구사항서 투입 대기 → 화면 양산 |
 | 와일리 OS | 환경+노하우(00~07)·도식화·인테이크/리서치 스킬 3종·**S2B 생산 메커니즘 내재화(07+원전)**. 앰배서더 호텔로 스킬 3종 실증 완료. 다음: Figma/Express 렌더 실증 |
