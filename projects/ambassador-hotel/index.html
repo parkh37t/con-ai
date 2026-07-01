@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>앰배서더 호텔 — 인테이크·리서치 산출물</title>
+<link rel="stylesheet" href="_assets/research.css">
+<style>
+.hub{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.hub a{display:block;text-decoration:none;color:inherit;background:#fff;border:1px solid var(--line);
+  border-radius:var(--r);padding:20px;box-shadow:var(--shadow);transition:transform .12s,box-shadow .12s;position:relative;overflow:hidden}
+.hub a:hover{transform:translateY(-3px);box-shadow:var(--shadow-2)}
+.hub a::before{content:"";position:absolute;left:0;top:0;right:0;height:3px;background:linear-gradient(90deg,var(--gold),var(--gold-2))}
+.hub h3{margin:12px 0 6px;font-size:15px;color:var(--ink);font-weight:800}
+.hub p{margin:0;font-size:12px;color:var(--muted);line-height:1.6}
+.skill{display:inline-block;font-size:10px;font-weight:700;padding:3px 9px;border-radius:6px}
+.sk-ia{background:var(--blue-bg);color:var(--blue-tx)} .sk-inv{background:var(--green-bg);color:var(--green-tx)} .sk-bm{background:var(--red-bg);color:var(--red-tx)}
+.back{color:var(--gold-line);font-size:12px;text-decoration:none}
+@media(max-width:760px){.hub{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <a href="../../index.html" class="back">← 워크벤치</a>
+    <h1 style="margin-top:8px">앰배서더 호텔 — 화면설계 프로젝트</h1>
+    <p><span class="tag">프로젝트 착수</span> 인테이크 리서치 완료 · RFP·요구사항서 투입 대기 → 화면 양산</p>
+  </header>
+
+  <div class="card" style="border-left:4px solid var(--gold-line)">
+    <h2>📥 RFP · 요구사항서 투입소</h2>
+    <p class="sub">앰배서더 호텔 RFP / 요구사항 제안서 / 요건정의서를 <code>docs/00_입력원본/</code>에 넣으면,
+      와일리가 요건 추출 → SSOT 채움 → 골든 복제→개조로 화면을 양산합니다.</p>
+    <p style="margin:0;font-size:12px">형식: PDF·PPTX·XLSX·이미지 (HWP는 PDF 변환 권장) ·
+      투입 방법 → <a href="docs/00_입력원본/README.md" style="color:var(--gold);font-weight:700">00_입력원본/README</a></p>
+  </div>
+
+  <div class="warn">
+    ⚠ 대상 사이트가 직접 crawl을 WAF로 차단(HTTP 403)하여 <b>검색엔진 색인·URL 패턴 기반</b>으로 수집했습니다.
+    전수가 아닌 <b>대표 구조·구조적 진단</b>이며 각 산출물에 한계를 명시했습니다.
+  </div>
+
+  <div class="hub">
+    <a href="IA/as-is-ia.html">
+      <span class="skill sk-ia">ia-from-url</span>
+      <h3>As-Is IA 구조도</h3>
+      <p>2계층 IA · 그룹공통 + 브랜드/지점 + 공통 메뉴 템플릿 (Mermaid 4종)</p>
+    </a>
+    <a href="inventory/index.html">
+      <span class="skill sk-inv">screen-inventory</span>
+      <h3>화면 본수 카탈로그</h3>
+      <p>9브랜드 · 21지점 · ~138 고유 템플릿 · 지점×메뉴 매트릭스 + 집계</p>
+    </a>
+    <a href="benchmark/benchmark-report.html">
+      <span class="skill sk-bm">benchmark-painpoint</span>
+      <h3>벤치마킹 · 페인포인트 · 개선</h3>
+      <p>신라·롯데·조선 비교 · 페인포인트 6 · 우선순위 매트릭스 · 로드맵 · To-Be 와이어</p>
+    </a>
+  </div>
+
+  <div class="card" style="margin-top:20px">
+    <h2>📁 프로젝트 문서 (SSOT)</h2>
+    <p class="sub">7계층 OS 골격. 🟡 = RFP 확정 후 채움 / 🟢 = 인테이크 확보 / ✅ = 완료.</p>
+    <ul class="tight">
+      <li>🟡 <a href="docs/00_입력원본/README.md">00_입력원본</a> — RFP·요구사항서 투입소</li>
+      <li>🟢 <a href="docs/00_INDEX.md">00_INDEX</a> — SSOT 지도</li>
+      <li>🟡 <a href="docs/02_SSOT/프론트_작업가이드.md">프론트 작업가이드</a> · <a href="docs/02_SSOT/관리자_작업가이드.md">관리자 작업가이드</a> — 가장 중요</li>
+      <li>🟡 <a href="docs/03_요구사항/요구사항_추적표.md">요구사항 추적표</a> · <a href="docs/01_규칙/명명규칙.md">명명규칙</a></li>
+      <li>🟡 <a href="docs/04_공통표준/더미데이터_사전.md">더미데이터 사전</a> · <a href="docs/04_공통표준/용어집.md">용어집</a></li>
+    </ul>
+  </div>
+</div>
+</body>
+</html>

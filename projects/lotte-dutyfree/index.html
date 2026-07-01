@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>롯데면세점 화면설계 — 프로토타입 인덱스</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body class="bg-gray-50 text-gray-800">
+<header class="bg-rose-900 text-white">
+  <div class="max-w-5xl mx-auto px-6 py-8">
+    <a href="../../index.html" class="text-xs text-rose-200 hover:underline"><i class="fa-solid fa-arrow-left mr-1"></i>워크벤치</a>
+    <h1 class="text-2xl font-bold mt-2">롯데면세점 화면설계</h1>
+    <p class="text-rose-200 text-sm">프론트(고객) · 관리자(운영) — HTML 화면설계서 통합 인덱스</p>
+  </div>
+</header>
+
+<main class="max-w-5xl mx-auto px-6 py-10">
+  <div class="mb-6 p-4 rounded-lg bg-yellow-50 border border-yellow-200 text-sm text-yellow-800">
+    <i class="fa-solid fa-triangle-exclamation mr-1"></i>부트스트랩 단계 — 도메인 콘텐츠(브랜드·면세규정)는 PPTX 확정 후 교체. 아래 화면은 <b>내재화된 screen-spec 규격</b>(8단 디스크립션·마커 1:1·도식화)으로 생산한 실증입니다.
+  </div>
+
+  <div class="grid sm:grid-cols-2 gap-6">
+    <section>
+      <h2 class="font-bold mb-3"><i class="fa-solid fa-store text-rose-600 mr-2"></i>프론트 (고객)</h2>
+      <a href="화면설계/프론트/front-home-main.html" class="block border border-gray-200 rounded-lg p-4 bg-white hover:shadow-md transition mb-3">
+        <div class="flex items-center justify-between mb-1"><h3 class="font-bold">모바일 GNB 개선</h3><span class="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-600">front-home-main · PD-4247</span></div>
+        <p class="text-sm text-gray-500">MC GNB 폰트·컬러·여백 — AS-IS↔TO-BE 전환 · 번역표 · 도식화</p>
+      </a>
+      <a href="화면설계/프론트/front-product-list.html" class="block border border-gray-200 rounded-lg p-4 bg-white hover:shadow-md transition">
+        <div class="flex items-center justify-between mb-1"><h3 class="font-bold">상품목록</h3><span class="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-600">front-product-list</span></div>
+        <p class="text-sm text-gray-500">홈 &gt; 화장품·향수 — 면세 카드 그리드(정상가→면세가·USD) · 도식화</p>
+      </a>
+    </section>
+    <section>
+      <h2 class="font-bold mb-3"><i class="fa-solid fa-gear text-rose-600 mr-2"></i>관리자 (운영)</h2>
+      <a href="화면설계/관리자/admin-product-list.html" class="block border border-gray-200 rounded-lg p-4 bg-white hover:shadow-md transition">
+        <div class="flex items-center justify-between mb-1"><h3 class="font-bold">상품관리</h3><span class="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-600">admin-product-list</span></div>
+        <p class="text-sm text-gray-500">상품관리 &gt; 상품목록 — 승인·노출관리(고객 노출 연동) · 도식화</p>
+      </a>
+    </section>
+  </div>
+
+  <section class="mt-10">
+    <h2 class="font-bold mb-3"><i class="fa-solid fa-folder text-gray-500 mr-2"></i>분석 · 프로젝트 문서</h2>
+    <ul class="text-sm space-y-1">
+      <li><a class="text-rose-700 font-bold hover:underline" href="docs/pd4247-comparison.html">⚖️ PD-4247 대조 — Claude SB vs 와일리 OS (정적 슬라이드 vs 인터랙티브)</a></li>
+      <li><a class="text-rose-700 font-bold hover:underline" href="docs/ai-gap-report.html">📊 AI 활용 테스트 — SB·TC 생성 갭 분석 (6과제)</a></li>
+      <li><a class="text-blue-600 hover:underline" href="docs/00_INDEX.md">SSOT 지도 (00_INDEX)</a></li>
+      <li><a class="text-blue-600 hover:underline" href="docs/02_SSOT/프론트_작업가이드.md">프론트 작업가이드</a> · <a class="text-blue-600 hover:underline" href="docs/02_SSOT/관리자_작업가이드.md">관리자 작업가이드</a></li>
+      <li><a class="text-rose-700 font-bold hover:underline" href="화면설계/_공통/프로토타입_템플릿/lotte-sb-golden.html">⭐ 롯데 SB 골든 템플릿 (복제→개조)</a> · <a class="text-blue-600 hover:underline" href="docs/02_SSOT/롯데SB양식_매핑.md">SB 양식 매핑 규범</a></li>
+      <li><a class="text-blue-600 hover:underline" href="../../방법론/templates/template_screen.html">공용 골든 템플릿</a></li>
+    </ul>
+  </section>
+</main>
+</body>
+</html>
