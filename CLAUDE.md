@@ -23,7 +23,7 @@ con-ai/
 │   ├── s2b-methodology-study.md      7계층 OS 학습 보고서
 │   ├── templates/template_screen.html  골든 2단 템플릿
 │   ├── 표준/입력필드_정책.md          공용 입력 표준
-│   ├── 와일리-OS/                    ★ 멀티입력→프로토타입 환경 (00~07 + screenspec.schema.json)
+│   ├── 와일리-OS/                    ★ 멀티입력→프로토타입 환경 (00~09 + screenspec.schema.json)
 │   └── s2b-원전/                     S2B 생산 메커니즘 원전(SKILL·규칙·작업가이드·IA·glossary·더미·입력필드)
 ├── .claude/skills/                  ★ 커스텀 스킬 (공용)
 │   ├── screen-spec/                  화면 생산(2단 도식화)
@@ -106,6 +106,7 @@ con-ai/
 - **인테이크·리서치 스킬 3종**: `ia-from-url`(URL→IA 구조도) · `screen-inventory`(화면 본수 카탈로그) · `benchmark-painpoint`(벤치마킹→페인포인트·개선).
 - **S2B 생산 메커니즘 내재화**: `07_s2b-production-mechanism.md`(SSOT 4계층·8단 디스크립션·마커 5종금지(p1b~p5)/부여 5기법·검색 2-A·골든 복제→개조·콘텐츠 5원칙·도구 인벤토리·입력필드 정책) · 원전 보관 `방법론/s2b-원전/`. `screen-spec` 스킬이 이를 규범으로 삼는다.
 - **에이전트 팀 6종**: `08_agent-team.md` + `.claude/agents/wylie-*.md` (intake·extract·screen·diagram·verify·render). 파이프라인 단계별 롤 분업. `Agent(subagent_type)`·`Workflow(agentType)`로 호출.
+- **세션 회고(방법론 자산)**: `09_session-retrospective.md` — "와일리 OS는 어떤 AI 방법론인가"를 5관점(과정·원리·AI 인사이트·거버넌스·메타)으로 종합. 핵심: **AI는 내용은 맞히나 표준 양식·분량·일관성에서 무너진다 → 골든+SSOT+검증으로 "AI를 표준 위에 올린다"**. 다음 세션 계승용 1문서.
 
 ---
 
