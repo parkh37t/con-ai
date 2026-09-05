@@ -152,7 +152,7 @@ export function GeneratePage({ screenId, route }: { screenId: string; route: Rou
           </label>
           <label className="span-2">
             목적 (변경 목적)
-            <input type="text" value={form.purpose} placeholder="예: 파트너가 견적 요청 목록을 조회하고 상태별로 필터한다" onChange={(e) => update({ purpose: e.target.value })} />
+            <input type="text" data-testid="purpose" value={form.purpose} placeholder="예: 파트너가 견적 요청 목록을 조회하고 상태별로 필터한다" onChange={(e) => update({ purpose: e.target.value })} />
           </label>
           <label className="span-2">
             변경 범위
@@ -197,7 +197,7 @@ export function GeneratePage({ screenId, route }: { screenId: string; route: Rou
             <div className="check-row">
               {ALL_CASES.map((c) => (
                 <label key={c} className="inline">
-                  <input type="checkbox" checked={form.cases.includes(c)} onChange={(e) => update({ cases: toggleIn(form.cases, c, e.target.checked) })} /> {CASE_LABELS[c] ?? c}
+                  <input type="checkbox" data-testid={`case-${c}`} checked={form.cases.includes(c)} onChange={(e) => update({ cases: toggleIn(form.cases, c, e.target.checked) })} /> {CASE_LABELS[c] ?? c}
                 </label>
               ))}
             </div>
@@ -227,10 +227,10 @@ export function GeneratePage({ screenId, route }: { screenId: string; route: Rou
           </div>
         )}
         <div className="button-row">
-          <button type="button" className="btn" onClick={() => void onPreview()} disabled={previewLoading}>
+          <button type="button" className="btn" data-testid="preview-button" onClick={() => void onPreview()} disabled={previewLoading}>
             {previewLoading ? '미리보기 생성 중…' : '프롬프트 미리보기'}
           </button>
-          <button type="button" className="btn btn-primary" onClick={() => void onRun()} disabled={running}>
+          <button type="button" className="btn btn-primary" data-testid="run-button" onClick={() => void onRun()} disabled={running}>
             {running ? '요청 중…' : '생성 실행'}
           </button>
         </div>
@@ -259,9 +259,9 @@ function RequirementPicker({ requirements, requirementIds, criterionIds, onChang
   return (
     <ul className="req-list">
       {requirements.map((r) => (
-        <li key={r.id} className="req-item">
+        <li key={r.id} className="req-item" data-testid={`requirement-${r.external_id}`}>
           <label className="req-head inline">
-            <input type="checkbox" checked={requirementIds.includes(r.id)} onChange={(e) => toggleRequirement(r, e.target.checked)} />
+            <input type="checkbox" data-testid={`requirement-check-${r.external_id}`} checked={requirementIds.includes(r.id)} onChange={(e) => toggleRequirement(r, e.target.checked)} />
             <code>{r.external_id}</code> <strong>{r.title}</strong>
           </label>
           <Collapsible title={`수용조건 ${r.criteria.length}개 (선택 ${r.criteria.filter((c) => criterionIds.includes(c.id)).length})`}>
@@ -270,7 +270,7 @@ function RequirementPicker({ requirements, requirementIds, criterionIds, onChang
               {r.criteria.map((c) => (
                 <li key={c.id}>
                   <label className="inline">
-                    <input type="checkbox" checked={criterionIds.includes(c.id)} onChange={(e) => toggleCriterion(r, c.id, e.target.checked)} />
+                    <input type="checkbox" data-testid={`criterion-${c.id}`} checked={criterionIds.includes(c.id)} onChange={(e) => toggleCriterion(r, c.id, e.target.checked)} />
                     <Badge tone={c.kind === 'ui' ? 'blue' : 'gray'}>{c.kind === 'ui' ? 'UI' : '비UI'}</Badge> <code>{c.id}</code> {c.text}
                   </label>
                 </li>
@@ -286,13 +286,13 @@ function RequirementPicker({ requirements, requirementIds, criterionIds, onChang
 function PromptPreviewView({ preview }: { preview: PromptPreviewResponse }) {
   const ctx = preview.context_summary.length > 0 ? preview.context_summary : preview.prompt.context_summary
   return (
-    <div className="prompt-preview">
+    <div className="prompt-preview" data-testid="prompt-preview">
       <div className="muted small">템플릿 버전 {preview.prompt.template_version}</div>
       <Collapsible title={`문맥 목록 (${ctx.length})`} open>
         {ctx.length === 0 ? (
           <Empty>첨부된 문맥이 없습니다.</Empty>
         ) : (
-          <ul className="context-list">
+          <ul className="context-list" data-testid="context-list">
             {ctx.map((c, i) => (
               <li key={i}>{c}</li>
             ))}
@@ -300,10 +300,14 @@ function PromptPreviewView({ preview }: { preview: PromptPreviewResponse }) {
         )}
       </Collapsible>
       <Collapsible title="system 프롬프트">
-        <pre className="prompt-text">{preview.prompt.system}</pre>
+        <pre className="prompt-text" data-testid="prompt-system">
+          {preview.prompt.system}
+        </pre>
       </Collapsible>
       <Collapsible title="user 프롬프트" open>
-        <pre className="prompt-text">{preview.prompt.user}</pre>
+        <pre className="prompt-text" data-testid="prompt-user">
+          {preview.prompt.user}
+        </pre>
       </Collapsible>
     </div>
   )

@@ -38,7 +38,10 @@ pnpm --filter @con-ai/web build   # dist/ 산출
 pnpm --filter @con-ai/web build
 pnpm vitest run apps/web
 pnpm typecheck          # 루트 tsconfig 가 apps/web/src 를 함께 검사한다 (strict)
+pnpm e2e                # 루트 e2e/slice.spec.ts — API·웹을 띄워 생성→검토→수정→완료→내보내기→재승인 거부를 실제 브라우저로 확인
 ```
+
+e2e 는 `data-testid` 로 요소를 찾는다(문구 변경에 영향받지 않게). 주요 id: `adapter-badge`, `screen-row`, `purpose`, `criterion-<AC id>`, `case-<kind>`, `preview-button`, `run-button`, `job-status`, `preview-iframe`, `case-button-<id>`, `comment-*`, `validation-row`, `revision-row`, `draft-button`, `edit-prompt`, `run-edit-button`, `approve-button`, `export-result`, `export-file`, `approve-error`.
 
 ## 남은 제한
 
@@ -48,4 +51,4 @@ pnpm typecheck          # 루트 tsconfig 가 apps/web/src 를 함께 검사한�
 - 완료 응답에 `manifest` 가 없으면 `/exports/<경로>/manifest.json` 을 읽어 `design_handoff` 를 보여준다. 정적 파일 제공이 없으면 오류로 표시한다.
 - 이미 완료된 화면의 내보내기 경로는 승인 응답에서만 알 수 있어, 새로고침 후에는 "완료 상태" 안내만 남는다(승인 기록 조회 API 없음).
 - 페이지→팝업·구조적 재생성 작업 유형, 프로젝트·화면 편집, 수입(XLSX) 은 이 조각의 범위 밖이다.
-- e2e(Playwright) 는 루트에서 별도로 다룬다. 이 패키지의 vitest 는 순수 함수만 검사한다.
+- 이 패키지의 vitest 는 순수 함수만 검사한다. 브라우저 동작은 루트 `pnpm e2e`(Playwright, `/opt/pw-browsers/chromium` 또는 `PLAYWRIGHT_CHROMIUM_PATH`)가 검사한다.

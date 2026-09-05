@@ -105,9 +105,9 @@ function ApprovalWorkbench({ screen, detail, onApproved }: { screen: ScreenDetai
             <ValidationSummaryBadges summary={pre.summary} />
           </dd>
           <dt>열린 차단 코멘트</dt>
-          <dd>{pre.open_blocking > 0 ? <Badge tone="red">{pre.open_blocking}건</Badge> : <Badge tone="green">0건</Badge>}</dd>
+          <dd data-testid="open-blocking">{pre.open_blocking > 0 ? <Badge tone="red">{pre.open_blocking}건</Badge> : <Badge tone="green">0건</Badge>}</dd>
           <dt>사전 판정</dt>
-          <dd>{pre.ok ? <Badge tone="green">승인 가능 (사전)</Badge> : <Badge tone="red">승인 불가 사유 {pre.reasons.length}건</Badge>}</dd>
+          <dd data-testid="precheck">{pre.ok ? <Badge tone="green">승인 가능 (사전)</Badge> : <Badge tone="red">승인 불가 사유 {pre.reasons.length}건</Badge>}</dd>
         </dl>
         {pre.reasons.length > 0 && (
           <ul className="reason-list">
@@ -124,12 +124,12 @@ function ApprovalWorkbench({ screen, detail, onApproved }: { screen: ScreenDetai
           <div className="form-grid">
             <label>
               승인자
-              <input type="text" value={approver} onChange={(e) => setApprover(e.target.value)} placeholder="이름" />
+              <input type="text" data-testid="approver" value={approver} onChange={(e) => setApprover(e.target.value)} placeholder="이름" />
             </label>
           </div>
-          {error ? <ErrorBox error={error} title="완료 처리가 거부되었습니다" /> : null}
+          {error ? <ErrorBox error={error} title="완료 처리가 거부되었습니다" testId="approve-error" /> : null}
           <div className="button-row">
-            <button type="button" className="btn btn-primary" onClick={() => void approve()} disabled={busy}>
+            <button type="button" className="btn btn-primary" data-testid="approve-button" onClick={() => void approve()} disabled={busy}>
               {busy ? '처리 중…' : '완료 (v1.0)'}
             </button>
             {!pre.ok && <span className="muted small">사전 판정에 사유가 있어 서버가 거부할 가능성이 큽니다. 거부되면 이유가 표시됩니다.</span>}
@@ -164,12 +164,12 @@ function ExportResult({ result }: { result: ApprovalResponse }) {
   const indexUrl = exportFileUrl(result.export_path, 'index.html')
   const handoff = manifest?.design_handoff
   return (
-    <section className="card success-card">
+    <section className="card success-card" data-testid="export-result">
       <div className="card-head">
         <h3>
-          완료 — 버전 <Badge tone="green">v{result.version}</Badge>
+          완료 — 버전 <Badge tone="green" testId="export-version">v{result.version}</Badge>
         </h3>
-        <a className="btn btn-primary" href={indexUrl} target="_blank" rel="noreferrer noopener">
+        <a className="btn btn-primary" data-testid="open-index" href={indexUrl} target="_blank" rel="noreferrer noopener">
           index.html 열기
         </a>
       </div>
@@ -184,7 +184,7 @@ function ExportResult({ result }: { result: ApprovalResponse }) {
         </dd>
         <dt>내보내기 경로</dt>
         <dd>
-          <code>{result.export_path}</code> · <a href={exportDirUrl(result.export_path)} target="_blank" rel="noreferrer noopener">
+          <code data-testid="export-path">{result.export_path}</code> · <a href={exportDirUrl(result.export_path)} target="_blank" rel="noreferrer noopener">
             폴더 URL
           </a>
         </dd>
@@ -203,7 +203,7 @@ function ExportResult({ result }: { result: ApprovalResponse }) {
             </thead>
             <tbody>
               {result.files.map((f) => (
-                <tr key={f.path}>
+                <tr key={f.path} data-testid="export-file" data-path={f.path}>
                   <td>
                     <a href={exportFileUrl(result.export_path, f.path)} target="_blank" rel="noreferrer noopener">
                       {fileBasename(f.path)}
@@ -224,10 +224,10 @@ function ExportResult({ result }: { result: ApprovalResponse }) {
       {!manifest && !manifestError && <Loading text="manifest.json 읽는 중…" />}
       {manifest && !handoff && <Empty>manifest 에 design_handoff 가 없습니다.</Empty>}
       {handoff && (
-        <dl className="kv">
+        <dl className="kv" data-testid="design-handoff">
           <dt>screen_revision_id</dt>
           <dd>
-            <code>{handoff.screen_revision_id}</code>
+            <code data-testid="handoff-revision-id">{handoff.screen_revision_id}</code>
           </dd>
           <dt>design_input_spec_hash</dt>
           <dd>

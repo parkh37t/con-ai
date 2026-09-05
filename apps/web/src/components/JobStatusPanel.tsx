@@ -9,7 +9,7 @@ import { ErrorBox, JobStatusBadge, formatDateTime } from './common.js'
 
 export function JobStatusPanel({ jobId, job, error, polling, screenId, successLabel = '검토로 이동' }: { jobId: string; job: Job | null; error: unknown; polling: boolean; screenId: string; successLabel?: string }) {
   return (
-    <section className="card job-panel" aria-live="polite">
+    <section className="card job-panel" aria-live="polite" data-testid="job-panel">
       <div className="card-head">
         <h3>작업 상태</h3>
         <span className="muted small">
@@ -22,7 +22,9 @@ export function JobStatusPanel({ jobId, job, error, polling, screenId, successLa
       {job && (
         <>
           <div className="job-status-line">
-            <JobStatusBadge status={job.status} />
+            <span data-testid="job-status" data-status={job.status}>
+              <JobStatusBadge status={job.status} />
+            </span>
             {job.adapter && (
               <span className="muted small">
                 어댑터 {job.adapter}
@@ -45,7 +47,7 @@ export function JobStatusPanel({ jobId, job, error, polling, screenId, successLa
             ))}
           </ol>
           {job.status === 'failed' && (
-            <div className="error-box" role="alert">
+            <div className="error-box" role="alert" data-testid="job-failure">
               <strong>
                 작업 실패 — {failureCodeLabel(job.failure?.code ?? 'internal')}
                 {job.failure?.stage ? ` (${STAGE_LABELS[job.failure.stage]} 단계)` : ''}
@@ -67,7 +69,7 @@ export function JobStatusPanel({ jobId, job, error, polling, screenId, successLa
               <div>
                 새 revision 이 저장되었습니다. revision <code>{job.result.revision_id}</code> · artifact <code>{job.result.artifact_id}</code>
               </div>
-              <a className="btn btn-primary" href={hrefToScreen('review', screenId, { rev: job.result.revision_id })}>
+              <a className="btn btn-primary" data-testid="job-success-link" href={hrefToScreen('review', screenId, { rev: job.result.revision_id })}>
                 {successLabel}
               </a>
             </div>

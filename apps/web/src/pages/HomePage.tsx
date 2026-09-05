@@ -13,7 +13,11 @@ export function HomePage({ project, projects, meta }: { project: Project; projec
 
   return (
     <div className="page">
-      {hint && <div className="notice notice-amber">{hint}</div>}
+      {hint && (
+        <div className="notice notice-amber" data-testid="fixture-hint">
+          {hint}
+        </div>
+      )}
       <section className="card">
         <div className="card-head">
           <h2>{project.name}</h2>
@@ -92,7 +96,7 @@ function ScreensTable({ screens }: { screens: ScreenSummary[] }) {
             const hasRevision = s.revision_count > 0 || Boolean(s.current_revision_id)
             const revQuery = s.current_revision_id ? { rev: s.current_revision_id } : undefined
             return (
-              <tr key={s.id}>
+              <tr key={s.id} data-testid="screen-row" data-external-id={s.external_id}>
                 <td>
                   <code>{s.external_id}</code>
                 </td>
@@ -105,7 +109,7 @@ function ScreensTable({ screens }: { screens: ScreenSummary[] }) {
                 <td className="num">{s.revision_count}</td>
                 <td className="num">{s.open_comments > 0 ? <Badge tone="amber">{s.open_comments}</Badge> : 0}</td>
                 <td className="actions">
-                  <a className="btn btn-small" href={hrefToScreen('generate', s.id)}>
+                  <a className="btn btn-small" data-testid="link-generate" href={hrefToScreen('generate', s.id)}>
                     생성
                   </a>
                   {hasRevision ? (

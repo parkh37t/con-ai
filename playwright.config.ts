@@ -1,4 +1,6 @@
 import { existsSync } from 'node:fs'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { defineConfig } from '@playwright/test'
 
 /**
@@ -7,8 +9,10 @@ import { defineConfig } from '@playwright/test'
  * 이 실행 환경처럼 Playwright 기본 브라우저가 없으면 PLAYWRIGHT_CHROMIUM_PATH 의 실행 파일을 쓴다.
  */
 const chromiumPath = process.env['PLAYWRIGHT_CHROMIUM_PATH'] ?? (existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined)
-const e2eDb = '.local/e2e.db'
-const e2eExports = '.local/e2e-exports'
+// API 는 CON_AI_DB·EXPORT_DIR 상대 경로를 자기 cwd(apps/api) 기준으로 풀므로, 초기화(rm)와 서버가 같은 파일을 보도록 절대 경로로 넘긴다.
+const ROOT = dirname(fileURLToPath(import.meta.url))
+const e2eDb = resolve(ROOT, '.local', 'e2e.db')
+const e2eExports = resolve(ROOT, '.local', 'e2e-exports')
 const serverEnv = {
   ...process.env,
   MODEL_ADAPTER: 'fixture',
@@ -32,7 +36,7 @@ export default defineConfig({
   },
   webServer: [
     {
-      command: `rm -f ${e2eDb} && rm -rf ${e2eExports} && pnpm --filter @con-ai/api start`,
+      command: `rm -f ${e2eDb} ${e2eDb}-wal ${e2eDb}-shm && rm -rf ${e2eExports} && pnpm --filter @con-ai/api start`,
       url: 'http://localhost:8787/api/meta',
       reuseExistingServer: false,
       timeout: 60_000,

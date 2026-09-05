@@ -14,9 +14,9 @@ export function ReferenceCard({ reference, selected, onSelect, checkbox }: { ref
   const s = summarizeSpec(reference.spec)
   const inputId = `ref-${reference.id}`
   return (
-    <div className={`ref-card${selected ? ' selected' : ''}`}>
+    <div className={`ref-card${selected ? ' selected' : ''}`} data-testid="ref-card">
       <label htmlFor={inputId} className="ref-card-head">
-        <input id={inputId} type={checkbox ? 'checkbox' : 'radio'} name={checkbox ? undefined : 'reference-select'} checked={selected} onChange={(e) => onSelect(reference.id, e.target.checked)} />
+        <input id={inputId} data-testid={`reference-${reference.id}`} type={checkbox ? 'checkbox' : 'radio'} name={checkbox ? undefined : 'reference-select'} checked={selected} onChange={(e) => onSelect(reference.id, e.target.checked)} />
         <span className="ref-title">{reference.title}</span>
         <Badge tone="blue">{CATEGORY_LABELS[reference.category] ?? reference.category}</Badge>
       </label>

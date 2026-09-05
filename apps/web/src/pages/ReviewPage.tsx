@@ -45,7 +45,7 @@ export function ReviewPage({ screenId, route }: { screenId: string; route: Route
               생성 작업대
             </a>
             {selectedRevId && (
-              <a className="btn btn-small btn-primary" href={hrefToScreen('approve', screenId, { rev: selectedRevId })}>
+              <a className="btn btn-small btn-primary" data-testid="link-approve" href={hrefToScreen('approve', screenId, { rev: selectedRevId })}>
                 완료·내보내기
               </a>
             )}
@@ -86,9 +86,9 @@ function RevisionList({ revisions, selectedId, route }: { revisions: RevisionLis
         </thead>
         <tbody>
           {[...revisions].sort((a, b) => b.revision_no - a.revision_no).map((r) => (
-            <tr key={r.id} className={r.id === selectedId ? 'selected-row' : ''}>
+            <tr key={r.id} className={r.id === selectedId ? 'selected-row' : ''} data-testid="revision-row" data-revision-no={r.revision_no} data-revision-id={r.id} data-selected={r.id === selectedId}>
               <td>
-                <input type="radio" name="revision" aria-label={`revision ${r.revision_no} 선택`} checked={r.id === selectedId} onChange={() => navigate(withQuery(route, { rev: r.id }))} />
+                <input type="radio" name="revision" data-testid="revision-select" aria-label={`revision ${r.revision_no} 선택`} checked={r.id === selectedId} onChange={() => navigate(withQuery(route, { rev: r.id }))} />
               </td>
               <td className="num">#{r.revision_no}</td>
               <td>{formatDateTime(r.created_at)}</td>
@@ -179,14 +179,14 @@ function RevisionWorkbench({ screen, detail, route, onChanged }: { screen: Scree
             <div className="case-buttons" role="group" aria-label="CASE 전환">
               {cases.length === 0 && <span className="muted small">CASE 정보 없음</span>}
               {cases.map((c) => (
-                <button key={c.id} type="button" className={`btn btn-small${c.id === caseId ? ' active' : ''}`} onClick={() => selectCase(c.id)}>
+                <button key={c.id} type="button" data-testid={`case-button-${c.id}`} className={`btn btn-small${c.id === caseId ? ' active' : ''}`} onClick={() => selectCase(c.id)}>
                   {c.label}
                 </button>
               ))}
             </div>
             <div className="device-toggle" role="group" aria-label="기기 폭">
               {(['desktop', 'mobile'] as Device[]).map((d) => (
-                <button key={d} type="button" className={`btn btn-small${d === device ? ' active' : ''}`} onClick={() => setDevice(d)}>
+                <button key={d} type="button" data-testid={`device-${d}`} className={`btn btn-small${d === device ? ' active' : ''}`} onClick={() => setDevice(d)}>
                   {DEVICE_LABELS[d]} {DEVICE_WIDTHS[d]}px
                 </button>
               ))}
@@ -199,6 +199,7 @@ function RevisionWorkbench({ screen, detail, route, onChanged }: { screen: Scree
             <iframe
               key={artifact.id}
               ref={iframeRef}
+              data-testid="preview-iframe"
               title={`화면 미리보기 ${screen.screen.external_id} revision ${revision.revision_no}`}
               sandbox="allow-scripts"
               src={api.artifactHtmlUrl(artifact.id)}
@@ -302,30 +303,30 @@ function CommentForm({ revisionId, click, caseId, onClear, onCreated }: { revisi
       <div className="form-grid compact">
         <label>
           대상
-          <select value={target} onChange={(e) => setTarget(e.target.value as CommentTarget)}>
+          <select data-testid="comment-target" value={target} onChange={(e) => setTarget(e.target.value as CommentTarget)}>
             <option value="screen">화면</option>
             <option value="description">설명</option>
           </select>
         </label>
         <label>
           CASE
-          <input type="text" value={caseField} onChange={(e) => setCaseField(e.target.value)} />
+          <input type="text" data-testid="comment-case-id" value={caseField} onChange={(e) => setCaseField(e.target.value)} />
         </label>
         <label>
           영역 id
-          <input type="text" value={sectionId} onChange={(e) => setSectionId(e.target.value)} />
+          <input type="text" data-testid="comment-section-id" value={sectionId} onChange={(e) => setSectionId(e.target.value)} />
         </label>
         <label>
           요소 id
-          <input type="text" value={elementId} onChange={(e) => setElementId(e.target.value)} />
+          <input type="text" data-testid="comment-element-id" value={elementId} onChange={(e) => setElementId(e.target.value)} />
         </label>
         <label>
           번호
-          <input type="text" value={displayNo} onChange={(e) => setDisplayNo(e.target.value)} />
+          <input type="text" data-testid="comment-display-no" value={displayNo} onChange={(e) => setDisplayNo(e.target.value)} />
         </label>
         <label>
           역할
-          <select value={role} onChange={(e) => setRole(e.target.value)}>
+          <select data-testid="comment-role" value={role} onChange={(e) => setRole(e.target.value)}>
             {ROLES.map((r) => (
               <option key={r} value={r}>
                 {ROLE_LABELS[r]}
@@ -335,14 +336,14 @@ function CommentForm({ revisionId, click, caseId, onClear, onCreated }: { revisi
         </label>
         <label>
           작성자
-          <input type="text" value={author} onChange={(e) => setAuthor(e.target.value)} placeholder="이름" />
+          <input type="text" data-testid="comment-author" value={author} onChange={(e) => setAuthor(e.target.value)} placeholder="이름" />
         </label>
         <label className="inline self-end">
-          <input type="checkbox" checked={blocking} onChange={(e) => setBlocking(e.target.checked)} /> 차단 (해결 전 완료 불가)
+          <input type="checkbox" data-testid="comment-blocking" checked={blocking} onChange={(e) => setBlocking(e.target.checked)} /> 차단 (해결 전 완료 불가)
         </label>
         <label className="span-2">
           내용
-          <textarea rows={3} value={text} onChange={(e) => setText(e.target.value)} placeholder="무엇을 어떻게 바꿔야 하는지" />
+          <textarea rows={3} data-testid="comment-text" value={text} onChange={(e) => setText(e.target.value)} placeholder="무엇을 어떻게 바꿔야 하는지" />
         </label>
       </div>
       {error ? <ErrorBox error={error} title="코멘트를 저장하지 못했습니다" /> : null}
@@ -350,7 +351,7 @@ function CommentForm({ revisionId, click, caseId, onClear, onCreated }: { revisi
         <button type="button" className="btn" onClick={onClear} disabled={!click}>
           대상 지우기
         </button>
-        <button type="button" className="btn btn-primary" onClick={() => void submit()} disabled={saving}>
+        <button type="button" className="btn btn-primary" data-testid="comment-save" onClick={() => void submit()} disabled={saving}>
           {saving ? '저장 중…' : '코멘트 저장'}
         </button>
       </div>
@@ -387,10 +388,10 @@ function CommentList({ comments, selectedIds, onToggle, onHighlight, onChanged }
       {comments.length === 0 && <Empty>코멘트가 없습니다. 미리보기의 요소를 클릭해 첫 코멘트를 남기세요.</Empty>}
       <ul className="comment-list">
         {sorted.map((c) => (
-          <li key={c.id} className={`comment ${c.status}`}>
+          <li key={c.id} className={`comment ${c.status}`} data-testid="comment-item" data-comment-id={c.id} data-status={c.status}>
             <div className="comment-head">
               <label className="inline">
-                <input type="checkbox" checked={selectedIds.includes(c.id)} onChange={(e) => onToggle(c.id, e.target.checked)} aria-label="수정 요청에 포함" />
+                <input type="checkbox" data-testid="comment-select" checked={selectedIds.includes(c.id)} onChange={(e) => onToggle(c.id, e.target.checked)} aria-label="수정 요청에 포함" />
               </label>
               <Badge tone="blue">{ROLE_LABELS[c.role] ?? c.role}</Badge>
               <strong>{c.author}</strong>
@@ -412,7 +413,7 @@ function CommentList({ comments, selectedIds, onToggle, onHighlight, onChanged }
               )}
               <label className="inline">
                 상태
-                <select value={c.status} disabled={busy === c.id} onChange={(e) => void changeStatus(c, e.target.value as CommentStatus)}>
+                <select data-testid="comment-status" value={c.status} disabled={busy === c.id} onChange={(e) => void changeStatus(c, e.target.value as CommentStatus)}>
                   {STATUSES.map((st) => (
                     <option key={st} value={st}>
                       {COMMENT_STATUS_LABELS[st]}
@@ -470,7 +471,7 @@ function ValidationTable({ results, artifactHash }: { results: ValidationResult[
         </thead>
         <tbody>
           {results.map((r) => (
-            <tr key={r.id} className={r.artifact_hash !== artifactHash ? 'muted' : ''}>
+            <tr key={r.id} className={r.artifact_hash !== artifactHash ? 'muted' : ''} data-testid="validation-row" data-check-id={r.check_id} data-status={r.status} data-required={r.required}>
               <td>
                 <code>{r.check_id}</code>
                 {r.artifact_hash !== artifactHash && <span className="small warn"> (다른 hash)</span>}
@@ -566,22 +567,22 @@ function EditRequestPanel({ screen, detail, route, selectedCommentIds }: { scree
         </span>
       </div>
       <div className="button-row">
-        <button type="button" className="btn" onClick={() => void draft()} disabled={drafting || selectedCommentIds.length === 0} title={selectedCommentIds.length === 0 ? '코멘트를 먼저 체크하세요' : ''}>
+        <button type="button" className="btn" data-testid="draft-button" onClick={() => void draft()} disabled={drafting || selectedCommentIds.length === 0} title={selectedCommentIds.length === 0 ? '코멘트를 먼저 체크하세요' : ''}>
           {drafting ? 'AI 초안 생성 중…' : 'AI 수정 프롬프트 생성'}
         </button>
         <span className="muted small">또는 아래에 직접 입력</span>
       </div>
       {draftError ? <ErrorBox error={draftError} title="AI 수정 프롬프트 생성 실패" /> : null}
       {rationale !== null && (
-        <div className="notice">
+        <div className="notice" data-testid="draft-rationale">
           <strong>AI 초안 근거{draftAdapter ? ` (${draftAdapter === 'fixture' ? '더미 어댑터' : draftAdapter})` : ''}</strong>
           <div>{rationale}</div>
         </div>
       )}
-      <textarea rows={8} value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="수정 프롬프트 — 편집한 뒤 실행하면 prompt_override 로 보냅니다" />
+      <textarea rows={8} data-testid="edit-prompt" value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="수정 프롬프트 — 편집한 뒤 실행하면 prompt_override 로 보냅니다" />
       {runError ? <ErrorBox error={runError} title="단건 수정 실행 요청 실패" /> : null}
       <div className="button-row">
-        <button type="button" className="btn btn-primary" onClick={() => void run()} disabled={running}>
+        <button type="button" className="btn btn-primary" data-testid="run-edit-button" onClick={() => void run()} disabled={running}>
           {running ? '요청 중…' : '단건 수정 실행'}
         </button>
       </div>

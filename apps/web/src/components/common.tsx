@@ -5,11 +5,11 @@ import { ARTIFACT_STATUS_LABELS, VALIDATION_STATUS_LABELS } from '../summary.js'
 import type { ArtifactStatus, CommentRole, CommentStatus, JobStatus, ScreenStatus, ValidationStatus, ValidationSummary } from '../types.js'
 import { JOB_STATUS_LABELS } from '../job-progress.js'
 
-export function ErrorBox({ error, title }: { error: unknown; title?: string }) {
+export function ErrorBox({ error, title, testId }: { error: unknown; title?: string; testId?: string }) {
   if (error === null || error === undefined) return null
   const reasons = errorReasons(error)
   return (
-    <div className="error-box" role="alert">
+    <div className="error-box" role="alert" data-testid={testId}>
       <strong>{title ?? '오류'}</strong>
       <div>{errorMessage(error)}</div>
       {reasons.length > 0 && (
@@ -35,9 +35,9 @@ export function Empty({ children }: { children: ReactNode }) {
   return <div className="empty">{children}</div>
 }
 
-export function Badge({ tone = 'gray', children, title }: { tone?: 'gray' | 'green' | 'red' | 'amber' | 'blue' | 'purple'; children: ReactNode; title?: string }) {
+export function Badge({ tone = 'gray', children, title, testId }: { tone?: 'gray' | 'green' | 'red' | 'amber' | 'blue' | 'purple'; children: ReactNode; title?: string; testId?: string }) {
   return (
-    <span className={`badge badge-${tone}`} title={title}>
+    <span className={`badge badge-${tone}`} title={title} data-testid={testId}>
       {children}
     </span>
   )

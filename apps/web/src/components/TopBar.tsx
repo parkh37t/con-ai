@@ -11,7 +11,7 @@ export function TopBar({ meta, metaError, projectName, current }: { meta: Meta |
         <a className="brand" href={hrefTo('home')}>
           con-ai 기획 작업대
         </a>
-        <span className="project-name">{projectName ?? '프로젝트를 불러오는 중…'}</span>
+        <span className="project-name" data-testid="project-name">{projectName ?? '프로젝트를 불러오는 중…'}</span>
       </div>
       <nav className="topbar-nav" aria-label="주요 화면">
         <a href={hrefTo('home')} className={current === 'home' ? 'active' : ''}>
@@ -24,11 +24,11 @@ export function TopBar({ meta, metaError, projectName, current }: { meta: Meta |
       <div className="topbar-right">
         {meta ? (
           <>
-            <Badge tone={meta.adapter === 'anthropic' ? 'green' : 'amber'} title={`어댑터: ${meta.adapter}, 모델: ${meta.model}${meta.auth ? `, 인증: ${meta.auth}` : ''}`}>
+            <Badge testId="adapter-badge" tone={meta.adapter === 'anthropic' ? 'green' : 'amber'} title={`어댑터: ${meta.adapter}, 모델: ${meta.model}${meta.auth ? `, 인증: ${meta.auth}` : ''}`}>
               {meta.adapter === 'anthropic' ? '실제 호출 · ' : ''}
               {adapterBadgeText(meta)}
             </Badge>
-            <Badge tone={meta.playwright ? 'blue' : 'gray'} title="V3 실행 검사(Playwright) 가능 여부">
+            <Badge testId="playwright-badge" tone={meta.playwright ? 'blue' : 'gray'} title="V3 실행 검사(Playwright) 가능 여부">
               Playwright {meta.playwright ? '가능' : '불가 (V3 는 error 로 기록)'}
             </Badge>
             <span className="muted small">API v{meta.version}</span>
