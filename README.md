@@ -4,6 +4,19 @@
 
 Claude Code 는 이 제품의 **개발 도구**다. 운영 중 사용자의 요청을 처리하는 AI 호출은 서버의 모델 어댑터로 분리한다.
 
+## 빠른 시작 (어떤 환경에서든 git clone 뒤 한 번)
+
+```bash
+git clone https://github.com/parkh37t/con-ai.git && cd con-ai
+pnpm bootstrap            # Node 22·pnpm 확인 → 설치 → .env 생성(어댑터·인증 방식 선택) → 브라우저 확인 → 검사
+set -a; source .env; set +a
+pnpm dev                  # 웹 http://localhost:5173 , API http://localhost:8787
+```
+
+- 비대화형: `bash scripts/setup.sh --yes` (fixture 더미 어댑터). 실제 모델: `--adapter anthropic --auth api_key` 또는 `--auth token`.
+- 모델 인증은 두 방식 모두 지원한다: **API 키**(`ANTHROPIC_API_KEY`) 또는 **토큰**(`ANTHROPIC_AUTH_TOKEN`, Bearer). `.env` 에만 두고 커밋하지 않는다.
+- Claude Code 로 이 저장소를 열면 `.claude/hooks/session-start.sh` 가 같은 세팅을 자동으로 수행한다.
+
 ## 현재 상태
 
 **준비 단계(0)**: 참고자료 학습, 개발 규칙(`CLAUDE.md`), 지식 문서, 결정 기록, 구현 계획, 스키마 초안, fixture, 모노레포 골격까지 완료. 설계 §14 의 단계 1(자료·ID·버전·매핑 기반)부터 구현을 시작할 수 있다. 자세한 진행 상태와 남은 제한은 `docs/plan/` 을 본다.
