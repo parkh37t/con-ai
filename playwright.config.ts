@@ -24,6 +24,8 @@ const serverEnv = {
 
 export default defineConfig({
   testDir: 'e2e',
+  // *.spec.ts 만 검사한다. *.capture.ts(화면 캡처 유틸리티)는 CAPTURE=1 일 때만 포함한다.
+  testMatch: process.env['CAPTURE'] ? /\.(spec|capture)\.ts$/ : /\.spec\.ts$/,
   timeout: 120_000,
   expect: { timeout: 15_000 },
   retries: 0,
