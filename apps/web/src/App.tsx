@@ -5,6 +5,8 @@ import { ErrorBox, Loading } from './components/common.js'
 import { TopBar } from './components/TopBar.js'
 import { useAsync, useHashRoute } from './hooks.js'
 import { ApprovePage } from './pages/ApprovePage.js'
+import { AsisDetailPage } from './pages/AsisDetailPage.js'
+import { AsisListPage } from './pages/AsisListPage.js'
 import { GeneratePage } from './pages/GeneratePage.js'
 import { HomePage } from './pages/HomePage.js'
 import { ReferencesPage } from './pages/ReferencesPage.js'
@@ -20,7 +22,16 @@ export function App() {
   const projectList = projects.data ?? []
   const project = (requestedProject ? projectList.find((p) => p.id === requestedProject) : undefined) ?? projectList[0] ?? null
 
-  const current = route.name === 'home' ? 'home' : route.name === 'references' ? 'references' : route.name === 'not_found' ? 'other' : 'screen'
+  const current =
+    route.name === 'home'
+      ? 'home'
+      : route.name === 'references'
+        ? 'references'
+        : route.name === 'asis' || route.name === 'asis_detail'
+          ? 'asis'
+          : route.name === 'not_found'
+            ? 'other'
+            : 'screen'
 
   let body: ReactNode
   if (projects.error) {
@@ -31,6 +42,8 @@ export function App() {
     body = <ReviewPage key={route.screenId} screenId={route.screenId} route={route} />
   } else if (route.name === 'approve') {
     body = <ApprovePage key={route.screenId} screenId={route.screenId} route={route} />
+  } else if (route.name === 'asis_detail') {
+    body = <AsisDetailPage key={route.analysisId} analysisId={route.analysisId} />
   } else if (!projects.data) {
     body = <Loading text="프로젝트를 불러오는 중…" />
   } else if (!project) {
@@ -39,6 +52,8 @@ export function App() {
     body = <HomePage key={project.id} project={project} projects={projectList} meta={meta.data} />
   } else if (route.name === 'references') {
     body = <ReferencesPage key={project.id} projectId={project.id} />
+  } else if (route.name === 'asis') {
+    body = <AsisListPage key={project.id} project={project} />
   } else {
     body = (
       <div className="empty">

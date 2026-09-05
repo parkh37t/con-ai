@@ -14,7 +14,7 @@ export * from './types.js'
 export { AdapterError, type AdapterErrorCode } from './errors.js'
 export { AnthropicAdapter, DEFAULT_MAX_TOKENS, DEFAULT_MODEL, type AnthropicAdapterOptions } from './anthropic-adapter.js'
 export { FixtureAdapter, FIXTURE_MODEL, deriveScreenName } from './fixture-adapter.js'
-export { WireOutput, WireRevisionDraft, WireScreenSpec, toGenerationOutputInput } from './wire-schema.js'
+export { WireOutput, WirePainPoint, WirePainPointDraft, WireRevisionDraft, WireScreenSpec, toGenerationOutputInput } from './wire-schema.js'
 
 /** OAuth 토큰(Authorization: Bearer)에 필요한 beta 헤더. SDK 는 authToken 을 직접 넘길 때 이 헤더를 붙이지 않으므로 defaultHeaders 로 넣는다. */
 export const OAUTH_BETA_HEADER = 'oauth-2025-04-20'

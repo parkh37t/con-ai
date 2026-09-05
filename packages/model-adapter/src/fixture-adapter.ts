@@ -7,12 +7,14 @@
  * - reviseSpec: 코멘트 문장에 단순 규칙("필수" → required, "라벨/이름을 X로" → label, "메시지/문구" → messages, "삭제/제거" → 요소 제거)을
  *   적용하고 나머지는 unresolved 질문으로 남긴다. 잠긴 요소는 바꾸지 않고 unresolved(conflict)에 기록한다. change_summary 에 변경 목록을 적는다.
  * - draftRevisionPrompt: 코멘트를 역할·요소·CASE 별로 묶어 한국어 수정 지시문과 rationale 을 만든다.
+ * - draftPainPoints: AS-IS structure(계약 §12)에 규칙을 적용해 페인포인트 초안을 만든다 (레이블 없는 필드 → high,
+ *   alt 없는 이미지·h1 없음/중복·내비 링크 과다·모호한 버튼 문구 → medium, caption 미확인 표·iframe·description 없음 → low).
  *
  * 화면에는 "더미 어댑터" 로 표시된다 (CLAUDE.md: 더미 동작과 실제 호출을 구분). 시각·난수를 쓰지 않는다.
  */
 import { ScreenSpecShape } from '@con-ai/schemas'
 import type { GenerationContext, SliceCase, SliceGenerationRequest } from '@con-ai/prompt-templates'
-import type { AdapterResult, ModelAdapter } from './types.js'
+import type { AdapterResult, AsisStructure, ModelAdapter, PainPointDraft, PainPointDraftResult } from './types.js'
 import type { WireOutput, WireScreenSpec } from './wire-schema.js'
 
 export const FIXTURE_MODEL = 'fixture' as const
@@ -42,6 +44,15 @@ const CASE_MESSAGE: Record<Exclude<SliceCase, 'normal'>, { kind: WireMessage['ki
 }
 
 const ROLE_LABEL: Record<string, string> = { planner: '기획자', designer: '디자이너', publisher: '퍼블리셔', developer: '개발자', client: '고객' }
+
+/** 클릭해도 무엇이 일어나는지 알 수 없는 모호한 버튼 문구 (계약 §12 fixture 규칙). */
+export const AMBIGUOUS_BUTTON_WORDS = ['클릭', '여기', '확인', '바로가기'] as const
+
+/** 내비 링크가 이 수를 넘으면 과다로 본다 (계약 §12 fixture 규칙: nav_links > 15). */
+export const NAV_LINKS_LIMIT = 15
+
+const SEVERITY_RANK: Record<PainPointDraft['severity'], number> = { high: 0, medium: 1, low: 2 }
+const SEVERITY_LABEL: Record<PainPointDraft['severity'], string> = { high: '심각', medium: '보통', low: '낮음' }
 
 const TASK_LABEL: Record<SliceGenerationRequest['task_type'], string> = { create: '신규', edit: '수정', clone_reference: '참조 복제' }
 
@@ -380,6 +391,125 @@ export class FixtureAdapter implements ModelAdapter {
     const roleSummary = [...byRole].map(([r, l]) => `${roleLabel(r)} ${l.length}`).join(', ')
     const rationale = `[더미 어댑터] 코멘트 ${comments.length}건을 역할 ${byRole.size}개(${roleSummary})로 묶었다. 요소 지정 ${elementCount}건, CASE 지정 ${caseCount}건, 대상 미지정 ${untargeted}건. 잠긴 요소를 가리키는 코멘트 ${lockedCount}건${lockedIds.size > 0 ? `(${[...lockedIds].join(', ')})` : ''}은 변경 대상에서 제외하고 확인 요청으로 남겼다.`
     return { prompt: lines.join('\n'), rationale }
+  }
+
+  /** AS-IS 페인포인트 초안 — structure 규칙 기반 결정적 (계약 §12). 시각·난수를 쓰지 않는다. */
+  async draftPainPoints(input: { url: string; note?: string | undefined; structure: AsisStructure }): Promise<PainPointDraftResult> {
+    const s = input.structure
+    const points: PainPointDraft[] = []
+
+    // 1. 레이블 없는 입력 필드 → high
+    if (s.counts.fields_without_label > 0) {
+      const unlabeled = s.forms.flatMap((f) => f.fields.filter((x) => x.label === undefined || x.label.trim().length === 0)).map((x) => x.name ?? x.type)
+      points.push({
+        area: '입력 폼',
+        severity: 'high',
+        description: `레이블 없는 입력 필드가 ${s.counts.fields_without_label}개다. 무엇을 입력해야 하는지 필드 이름 없이 추측해야 하고, 스크린리더는 항목을 읽지 못한다.`,
+        evidence: `counts.fields_without_label=${s.counts.fields_without_label}${unlabeled.length > 0 ? ` (예: ${unlabeled.slice(0, 5).join(', ')})` : ''}`,
+        suggestion: '모든 입력에 label 요소를 연결하고 필수 여부를 표시한다. placeholder 는 레이블을 대체하지 못한다.',
+      })
+    }
+
+    // 2. alt 없는 이미지 → medium
+    if (s.counts.images_without_alt > 0) {
+      points.push({
+        area: '접근성',
+        severity: 'medium',
+        description: `대체 텍스트(alt) 없는 이미지가 ${s.counts.images_without_alt}개다. 이미지가 전달하는 정보를 스크린리더·이미지 차단 환경에서 알 수 없다.`,
+        evidence: `counts.images_without_alt=${s.counts.images_without_alt} / counts.images=${s.counts.images}`,
+        suggestion: '정보 이미지에는 내용을 설명하는 alt 를, 장식 이미지에는 alt="" 를 명시한다.',
+      })
+    }
+
+    // 3. h1 없음 / 2개 이상 → medium
+    const h1 = s.headings.filter((h) => h.level === 1)
+    if (h1.length === 0) {
+      points.push({
+        area: '정보 구조',
+        severity: 'medium',
+        description: '페이지에 h1 제목이 없다. 페이지의 주제를 나타내는 최상위 제목이 없어 문서 구조·검색·보조기술 탐색이 어렵다.',
+        evidence: `headings 에 h1 0건 (수집된 헤딩 ${s.headings.length}건${s.headings[0] !== undefined ? `, 최상위 h${s.headings[0].level} "${s.headings[0].text}"` : ''})`,
+        suggestion: '페이지 주제를 나타내는 h1 을 하나 두고 h2·h3 로 위계를 정리한다.',
+      })
+    } else if (h1.length >= 2) {
+      points.push({
+        area: '정보 구조',
+        severity: 'medium',
+        description: `h1 제목이 ${h1.length}개다. 최상위 제목이 여러 개면 페이지 주제가 무엇인지 구조로 판단할 수 없다.`,
+        evidence: `h1 ${h1.length}건: ${h1.slice(0, 5).map((h) => `"${h.text}"`).join(', ')}`,
+        suggestion: 'h1 은 페이지당 하나만 두고 나머지는 h2 이하로 낮춘다.',
+      })
+    }
+
+    // 4. 내비 링크 과다 → medium
+    if (s.nav_links.length > NAV_LINKS_LIMIT) {
+      points.push({
+        area: '내비게이션',
+        severity: 'medium',
+        description: `내비게이션 링크가 ${s.nav_links.length}개로 과다하다(기준 ${NAV_LINKS_LIMIT}개 초과). 원하는 메뉴를 찾으려면 전체를 훑어야 한다.`,
+        evidence: `nav_links=${s.nav_links.length}건 (예: ${s.nav_links.slice(0, 5).map((l) => l.text).join(', ')} …)`,
+        suggestion: '메뉴를 상위 범주로 묶어 단계화하고, 사용 빈도가 낮은 항목은 하위 메뉴·더보기로 이동한다.',
+      })
+    }
+
+    // 5. 모호한 버튼 문구 → medium
+    const vague = s.buttons.filter((b) => AMBIGUOUS_BUTTON_WORDS.some((w) => b.includes(w)))
+    if (vague.length > 0) {
+      points.push({
+        area: '버튼 문구',
+        severity: 'medium',
+        description: `무슨 동작인지 알 수 없는 모호한 버튼 문구가 ${vague.length}건 있다("${AMBIGUOUS_BUTTON_WORDS.join('", "')}" 류). 누르기 전에 결과를 예측할 수 없다.`,
+        evidence: `버튼 문구: ${vague.slice(0, 5).map((b) => `"${b}"`).join(', ')}`,
+        suggestion: '버튼 문구를 "견적 저장", "목록 다운로드" 처럼 동작+대상이 드러나게 바꾼다.',
+      })
+    }
+
+    // 6. caption 미확인 표 → low (structure 는 caption 을 수집하지 않으므로 counts.tables 를 근거로 확인 요청을 남긴다)
+    if (s.counts.tables > 0) {
+      points.push({
+        area: '표',
+        severity: 'low',
+        description: `표 ${s.counts.tables}개에서 caption(표 제목)이 확인되지 않는다. 표가 무엇을 나열하는지 제목 없이 셀 내용으로 추측해야 한다.`,
+        evidence: `counts.tables=${s.counts.tables}`,
+        suggestion: '각 표에 caption 과 th 머리글을 넣어 표의 목적과 열 의미를 밝힌다.',
+      })
+    }
+
+    // 7. iframe → low
+    if (s.counts.iframes > 0) {
+      points.push({
+        area: '외부 삽입',
+        severity: 'low',
+        description: `iframe 이 ${s.counts.iframes}개 있다. 삽입 영역은 반응형·접근성·보안 정책을 본문과 함께 제어하기 어렵고 개편 시 별도 이관 대상이다.`,
+        evidence: `counts.iframes=${s.counts.iframes}`,
+        suggestion: 'iframe 콘텐츠를 본문 구성요소로 통합하거나, 유지한다면 title 과 크기·정책을 명시한다.',
+      })
+    }
+
+    // 8. 메타 description 없음 → low
+    if (s.description === undefined || s.description.trim().length === 0) {
+      points.push({
+        area: '메타 정보',
+        severity: 'low',
+        description: '메타 description 이 없다. 검색 결과·링크 공유 미리보기에서 서비스 설명이 비어 보인다.',
+        evidence: 'structure.description 없음',
+        suggestion: '페이지 목적을 한 문장으로 담은 meta description 을 추가한다.',
+      })
+    }
+
+    points.sort((a, b) => SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity])
+
+    if (points.length === 0) {
+      return { summary: '[더미 어댑터] 구조 요약에서 규칙 기반 페인포인트를 찾지 못했다. 규칙에 걸리지 않았을 뿐 문제가 없다는 뜻은 아니므로 기획자 확인이 필요하다.', pain_points: [] }
+    }
+    const bySeverity = (sev: PainPointDraft['severity']): number => points.filter((p) => p.severity === sev).length
+    const topAreas = [...new Set(points.map((p) => p.area))].slice(0, 3).join('·')
+    const summary = [
+      `[더미 어댑터] 대상 페이지 구조에서 페인포인트 ${points.length}건을 찾았다(${SEVERITY_LABEL.high} ${bySeverity('high')}건·${SEVERITY_LABEL.medium} ${bySeverity('medium')}건·${SEVERITY_LABEL.low} ${bySeverity('low')}건).`,
+      `우선 개선 영역은 ${topAreas}이다.`,
+      '규칙 기반 초안이므로 기획자 채택·거부 확인이 필요하다.',
+    ].join(' ')
+    return { summary, pain_points: points }
   }
 }
 

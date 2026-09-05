@@ -7,10 +7,12 @@ import type { ValidationResult } from '@con-ai/schemas'
 /**
  * 문서 종류 (계약 §1). `dummy_data` 는 계약 표에 없던 종류로, 더미데이터(fixture_id → 행 목록)를 reference 와 분리해 두기 위해 추가했다.
  * 문서 id 는 fixture_id(예: `SAMPLE-quote-list-normal`) 그대로다 (documents.ts DummyDataDocument).
+ * `asis_analysis` 는 AS-IS 분석 문서 (계약 §12; 문서 타입은 apps/api/src/asis-runner.ts AsisAnalysisDocument).
  */
 export type DocumentKind =
   | 'project' | 'requirement' | 'ia_node' | 'screen' | 'screen_revision' | 'job' | 'artifact'
   | 'validation_result' | 'comment' | 'approval' | 'reference' | 'prompt_template' | 'dummy_data'
+  | 'asis_analysis'
 
 export interface StoredDocument<T = unknown> { kind: DocumentKind; id: string; revision: number; data: T; created_at: string; updated_at: string }
 

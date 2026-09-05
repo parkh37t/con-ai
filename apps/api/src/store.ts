@@ -3,6 +3,7 @@
  *
  * - `documents(kind, id, revision, json, created_at, updated_at, PRIMARY KEY(kind, id))` 하나에 종류별 JSON 문서를 저장한다.
  * - `artifact_html(artifact_id PRIMARY KEY, html)` 는 생성 HTML 본문.
+ * - `asis_asset(asset_id PRIMARY KEY, png BLOB)` 는 AS-IS 분석 스크린샷 PNG (계약 §12).
  * - put 은 revision 을 비교해 오래된 저장을 거부한다 (StoreConflictError, code 'stale_revision'; 설계 §11).
  * - 경로가 ':memory:' 면 메모리 DB (테스트용). 파일 경로면 디렉터리를 만든다.
  *
@@ -32,7 +33,17 @@ CREATE TABLE IF NOT EXISTS artifact_html (
   artifact_id TEXT PRIMARY KEY,
   html TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS asis_asset (
+  asset_id TEXT PRIMARY KEY,
+  png BLOB NOT NULL
+);
 `
+
+/** AS-IS 스크린샷 PNG 저장소 (계약 §12 `asis_asset`). SqliteStore 가 구현하고 asis 라우트·러너가 쓴다. */
+export interface AssetStore {
+  putAsset(assetId: string, png: Uint8Array): void
+  getAsset(assetId: string): Uint8Array | undefined
+}
 
 interface Row {
   kind: string
@@ -43,7 +54,7 @@ interface Row {
   updated_at: string
 }
 
-export class SqliteStore implements Store {
+export class SqliteStore implements Store, AssetStore {
   readonly path: string
   private readonly db: DatabaseSync
   private readonly now: () => string
@@ -94,6 +105,16 @@ export class SqliteStore implements Store {
 
   putHtml(artifactId: string, html: string): void {
     this.db.prepare('INSERT INTO artifact_html (artifact_id, html) VALUES (?, ?) ON CONFLICT(artifact_id) DO UPDATE SET html = excluded.html').run(artifactId, html)
+  }
+
+  /** AS-IS 스크린샷 PNG 저장 (계약 §12). 같은 id 면 덮어쓴다. */
+  putAsset(assetId: string, png: Uint8Array): void {
+    this.db.prepare('INSERT INTO asis_asset (asset_id, png) VALUES (?, ?) ON CONFLICT(asset_id) DO UPDATE SET png = excluded.png').run(assetId, png)
+  }
+
+  getAsset(assetId: string): Uint8Array | undefined {
+    const row = this.db.prepare('SELECT png FROM asis_asset WHERE asset_id = ?').get(assetId) as { png: Uint8Array } | undefined
+    return row?.png
   }
 
   /** 문서 수 (kind 별). 시드 여부 판단용. */

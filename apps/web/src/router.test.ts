@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { hrefTo, hrefToScreen, parseRoute, withQuery } from './router.js'
+import { hrefTo, hrefToAsisDetail, hrefToScreen, parseRoute, withQuery } from './router.js'
 
 describe('parseRoute — 해시 라우팅', () => {
   it('빈 해시·`#`·`#/` 는 홈이다', () => {
@@ -11,6 +11,15 @@ describe('parseRoute — 해시 라우팅', () => {
   it('레퍼런스 포트폴리오', () => {
     expect(parseRoute('#/references')).toEqual({ name: 'references', query: {} })
     expect(parseRoute('#/references/')).toEqual({ name: 'references', query: {} })
+  })
+
+  it('AS-IS 분석 — 목록·상세 (계약 §12)', () => {
+    expect(parseRoute('#/asis')).toEqual({ name: 'asis', query: {} })
+    expect(parseRoute('#/asis/')).toEqual({ name: 'asis', query: {} })
+    expect(parseRoute('#/asis?project=p1')).toEqual({ name: 'asis', query: { project: 'p1' } })
+    expect(parseRoute('#/asis/an-1')).toEqual({ name: 'asis_detail', analysisId: 'an-1', query: {} })
+    expect(parseRoute('#/asis/an%201?tab=x')).toEqual({ name: 'asis_detail', analysisId: 'an 1', query: { tab: 'x' } })
+    expect(parseRoute('#/asis/an-1/extra')).toEqual({ name: 'not_found', path: '/asis/an-1/extra', query: {} })
   })
 
   it('화면 경로 — generate / review / approve 와 화면 id', () => {
@@ -42,6 +51,15 @@ describe('hrefTo / hrefToScreen / withQuery — 링크 생성', () => {
     expect(hrefTo('home')).toBe('#/')
     expect(hrefTo('references')).toBe('#/references')
     expect(hrefTo('home', { project: 'p1' })).toBe('#/?project=p1')
+  })
+
+  it('AS-IS 분석 링크는 id 를 인코딩하고 다시 파싱하면 같은 라우트가 된다', () => {
+    expect(hrefTo('asis')).toBe('#/asis')
+    expect(hrefTo('asis', { project: 'p1' })).toBe('#/asis?project=p1')
+    expect(hrefToAsisDetail('a b')).toBe('#/asis/a%20b')
+    expect(parseRoute(hrefToAsisDetail('x/y'))).toEqual({ name: 'asis_detail', analysisId: 'x/y', query: {} })
+    expect(withQuery(parseRoute('#/asis?project=p1'), { project: '' })).toBe('#/asis')
+    expect(withQuery(parseRoute('#/asis/an-1'), { shot: 'mobile' })).toBe('#/asis/an-1?shot=mobile')
   })
 
   it('화면 링크는 id 와 쿼리를 인코딩하고 빈 값은 뺀다', () => {

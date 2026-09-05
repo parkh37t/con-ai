@@ -143,9 +143,20 @@ export const WireOutput = z.object({
 /** 코멘트 → 수정 지시문 초안 (draftRevisionPrompt 의 구조화 출력). */
 export const WireRevisionDraft = z.object({ prompt: z.string(), rationale: z.string() })
 
+/** AS-IS 분석 페인포인트 초안 (draftPainPoints 의 구조화 출력, 계약 §12). id·status 는 서버가 부여하므로 여기 없다. */
+export const WirePainPoint = z.object({
+  area: z.string(),
+  severity: z.enum(['high', 'medium', 'low']),
+  description: z.string(),
+  evidence: z.string(),
+  suggestion: z.string(),
+})
+export const WirePainPointDraft = z.object({ summary: z.string(), pain_points: z.array(WirePainPoint) })
+
 export type WireScreenSpec = z.infer<typeof WireScreenSpec>
 export type WireOutput = z.infer<typeof WireOutput>
 export type WireRevisionDraft = z.infer<typeof WireRevisionDraft>
+export type WirePainPointDraft = z.infer<typeof WirePainPointDraft>
 
 /** wire 결과는 그대로 GenerationOutputInput 이어야 한다 — 어긋나면 여기서 컴파일이 실패한다. */
 export function toGenerationOutputInput(wire: WireOutput): GenerationOutputInput {

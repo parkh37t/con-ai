@@ -4,12 +4,15 @@
  */
 import type {
   ApprovalResponse,
+  AsisAnalysis,
+  AsisAnalysisSummary,
   Comment,
   CommentInput,
   CommentStatus,
   ExportManifest,
   Job,
   Meta,
+  PainPointStatus,
   Project,
   ProjectDetail,
   PromptPreviewResponse,
@@ -116,6 +119,20 @@ export const api = {
   approve: (screenId: string, body: { revision_id: string; approver: string }) => request<ApprovalResponse>('POST', `/api/screens/${encodeURIComponent(screenId)}/approvals`, body),
   /** 내보낸 manifest.json — 승인 응답에 manifest 가 없을 때 읽는다. */
   exportManifest: (exportPath: string) => request<ExportManifest>('GET', exportFileUrl(exportPath, 'manifest.json')),
+
+  // -------------------------------------------------------------- AS-IS 분석 (계약 §12)
+  /** 분석 실행 — 202 `{analysis_id}`. http/https URL 만 (서버가 다시 검사한다). */
+  createAsisAnalysis: (projectId: string, body: { url: string; note?: string }) =>
+    request<{ analysis_id: string }>('POST', `/api/projects/${encodeURIComponent(projectId)}/asis-analyses`, body),
+  /** 프로젝트의 분석 목록 요약 (id, url, status, 페인포인트 수, created_at). */
+  asisAnalyses: (projectId: string) => request<AsisAnalysisSummary[]>('GET', `/api/projects/${encodeURIComponent(projectId)}/asis-analyses`),
+  /** 분석 문서 전체 (structure·screenshots·summary·pain_points·failure). */
+  asisAnalysis: (id: string) => request<AsisAnalysis>('GET', `/api/asis-analyses/${encodeURIComponent(id)}`),
+  /** 페인포인트 채택/거부 — 갱신된 문서를 돌려받는다. revision 은 낙관적 잠금. */
+  patchAsisPainPoint: (analysisId: string, painPointId: string, body: { status: PainPointStatus; revision: number }) =>
+    request<AsisAnalysis>('PATCH', `/api/asis-analyses/${encodeURIComponent(analysisId)}/pain-points/${encodeURIComponent(painPointId)}`, body),
+  /** 스크린샷 PNG URL (image/png). */
+  asisAssetUrl: (assetId: string) => `/api/asis-assets/${encodeURIComponent(assetId)}`,
 }
 
 /** 화면 표시용 오류 문자열. */

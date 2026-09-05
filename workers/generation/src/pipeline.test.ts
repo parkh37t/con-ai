@@ -157,6 +157,8 @@ function fakeAdapter(handlers: { generate?: (input: { prompt: AssembledPrompt; c
     generateSpec: handlers.generate ?? (async () => okResult(sampleSpec())),
     reviseSpec: handlers.revise ?? (async ({ current }) => okResult({ ...(current as ScreenSpecInput), purpose: '수정된 목적' }, '코멘트 반영: 제목 수정')),
     draftRevisionPrompt: async () => ({ prompt: '수정 프롬프트', rationale: '테스트' }),
+    // 계약 §12 (AS-IS) — 생성 파이프라인은 쓰지 않지만 ModelAdapter 인터페이스가 요구한다.
+    draftPainPoints: async () => ({ summary: '테스트 요약', pain_points: [] }),
   }
 }
 

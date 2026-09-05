@@ -35,10 +35,12 @@ import {
   type Store,
   type StoredDocument,
 } from '@con-ai/worker-generation'
+import { recoverInterruptedAsisAnalyses, runAsisAnalysis, type AsisAnalysisDocument, type AsisStore } from './asis-runner.js'
+import { ASIS_SAMPLE_HTML } from './asis-sample.js'
 import { EXPORT_VERSION, exportApprovedRevision, summarizeValidation } from './export.js'
 import { buildMeta } from './meta.js'
 import { JobQueue, recoverInterruptedJobs } from './queue.js'
-import { ApprovalBody, CommentBody, CommentPatchBody, RevisionPromptBody, SliceGenerationRequestBody, toSliceRequest } from './schemas.js'
+import { ApprovalBody, AsisCreateBody, AsisPainPointPatchBody, CommentBody, CommentPatchBody, RevisionPromptBody, SliceGenerationRequestBody, toSliceRequest } from './schemas.js'
 
 /** 생성 HTML 응답의 CSP (계약 §7): 외부 자원 없음, 인라인 스타일·스크립트만, 이미지는 data: 만. */
 export const ARTIFACT_HTML_CSP = "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:"
@@ -48,7 +50,8 @@ export const HUMAN_REVIEW_CHECK_ID = 'V6.human_review'
 export const HUMAN_REVIEW_CHECKER_VERSION = 'human-review-v0'
 
 export interface AppOptions {
-  store: Store
+  /** 문서 저장소 + AS-IS 스크린샷 저장소 (계약 §1·§12). SqliteStore 가 둘 다 구현한다. */
+  store: AsisStore
   adapter: ModelAdapter
   render: PipelineDeps['render']
   validate: PipelineDeps['validate']
@@ -69,6 +72,8 @@ export interface ConAiApp {
   deps: PipelineDeps
   /** 시작 시 failed 로 정리한(서버 재시작으로 중단된) 작업 id. */
   recovered_job_ids: string[]
+  /** 시작 시 failed 로 정리한(서버 재시작으로 중단된) AS-IS 분석 id (계약 §12). */
+  recovered_asis_ids: string[]
 }
 
 export function createApp(options: AppOptions): ConAiApp {
@@ -83,7 +88,12 @@ export function createApp(options: AppOptions): ConAiApp {
 
   const deps: PipelineDeps = { store, adapter, render: options.render, validate: options.validate, now, newId, required_check_ids: requiredCheckIds, profile, assembler: options.assembler }
   const recovered = recoverInterruptedJobs(store, now)
-  const queue = new JobQueue({ deps, onError: (jobId, err) => log(`[queue] 작업 ${jobId} 예외: ${err instanceof Error ? err.message : String(err)}`) })
+  const recoveredAsis = recoverInterruptedAsisAnalyses(store, now)
+  const queue = new JobQueue({
+    deps,
+    runAsis: (analysisId) => runAsisAnalysis(analysisId, { store, adapter, now, env }),
+    onError: (jobId, err) => log(`[queue] 작업 ${jobId} 예외: ${err instanceof Error ? err.message : String(err)}`),
+  })
 
   const app = new Hono()
 
@@ -452,11 +462,79 @@ export function createApp(options: AppOptions): ConAiApp {
     return c.json({ approval, version: EXPORT_VERSION, export_path: exported.export_path, export_url: `/exports/${exported.export_path.split('\\').join('/')}/index.html`, files: exported.files, manifest: exported.manifest })
   })
 
+  // ---------- AS-IS 분석 (계약 §12) ----------
+
+  // 합성 레거시 데모 페이지 — 분석 데모·e2e 대상 (외부 egress 없이 자체 제공).
+  app.get('/asis-sample', (c) => {
+    c.header('X-Content-Type-Options', 'nosniff')
+    return c.html(ASIS_SAMPLE_HTML)
+  })
+
+  app.post('/api/projects/:id/asis-analyses', async (c) => {
+    const project = store.get<ProjectDocument>('project', c.req.param('id'))
+    if (!project) return notFound(c, '프로젝트')
+    const parsed = await parseJson(c, AsisCreateBody)
+    if ('response' in parsed) return parsed.response
+    const id = newId()
+    const doc: AsisAnalysisDocument = {
+      id,
+      project_id: project.id,
+      url: parsed.data.url,
+      status: 'queued',
+      adapter: adapter.kind,
+      model: adapter.model,
+      created_at: now(),
+      pain_points: [],
+    }
+    if (parsed.data.note !== undefined) doc.note = parsed.data.note
+    store.put<AsisAnalysisDocument>('asis_analysis', id, doc, 0)
+    queue.enqueue(id, 'asis') // 생성 작업과 같은 순차 큐
+    return c.json({ analysis_id: id }, 202)
+  })
+
+  app.get('/api/projects/:id/asis-analyses', (c) => {
+    const project = store.get<ProjectDocument>('project', c.req.param('id'))
+    if (!project) return notFound(c, '프로젝트')
+    const list = store
+      .list<AsisAnalysisDocument>('asis_analysis', (d) => d.data.project_id === project.id)
+      .map((d) => ({ id: d.id, url: d.data.url, status: d.data.status, pain_point_count: d.data.pain_points.length, created_at: d.data.created_at }))
+    return c.json(list)
+  })
+
+  app.get('/api/asis-analyses/:id', (c) => {
+    const doc = store.get<AsisAnalysisDocument>('asis_analysis', c.req.param('id'))
+    if (!doc) return notFound(c, 'AS-IS 분석')
+    // revision 은 PATCH(채택/거부)의 오래된 저장 방지용 (코멘트와 같은 관례).
+    return c.json({ ...doc.data, revision: doc.revision })
+  })
+
+  app.patch('/api/asis-analyses/:id/pain-points/:pid', async (c) => {
+    const doc = store.get<AsisAnalysisDocument>('asis_analysis', c.req.param('id'))
+    if (!doc) return notFound(c, 'AS-IS 분석')
+    const parsed = await parseJson(c, AsisPainPointPatchBody)
+    if ('response' in parsed) return parsed.response
+    const pid = c.req.param('pid')
+    if (!doc.data.pain_points.some((p) => p.id === pid)) return notFound(c, '페인포인트')
+    const pain_points = doc.data.pain_points.map((p) => (p.id === pid ? { ...p, status: parsed.data.status } : p))
+    // 클라이언트가 본 revision 으로 저장 — 오래되면 StoreConflictError → 409 stale_revision (onError).
+    const stored = store.put<AsisAnalysisDocument>('asis_analysis', doc.id, { ...doc.data, pain_points }, parsed.data.revision)
+    return c.json({ ...stored.data, revision: stored.revision })
+  })
+
+  app.get('/api/asis-assets/:id', (c) => {
+    const png = store.getAsset(c.req.param('id'))
+    if (png === undefined) return notFound(c, '스크린샷')
+    c.header('Content-Type', 'image/png')
+    c.header('Cache-Control', 'no-store')
+    c.header('X-Content-Type-Options', 'nosniff')
+    return c.body(png.slice().buffer)
+  })
+
   // ---------- 내보낸 정적 파일 ----------
 
   app.use('/exports/*', serveStatic({ root: options.export_dir, rewriteRequestPath: (path) => path.replace(/^\/exports/, '') }))
 
-  return { app, queue, deps, recovered_job_ids: recovered }
+  return { app, queue, deps, recovered_job_ids: recovered, recovered_asis_ids: recoveredAsis }
 }
 
 // ---------- 보조 ----------

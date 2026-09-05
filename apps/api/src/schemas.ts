@@ -83,3 +83,31 @@ export const ApprovalBody = z.strictObject({
   note: z.string().optional(),
 })
 export type ApprovalBody = z.infer<typeof ApprovalBody>
+
+/** 계약 §12: AS-IS 분석 대상 URL — http/https 만, 최대 2000자. */
+const AsisUrl = z
+  .string()
+  .trim()
+  .min(1, '빈 문자열은 허용하지 않는다')
+  .max(2000, 'URL 은 2000자 이하여야 한다')
+  .refine((value) => {
+    try {
+      const u = new URL(value)
+      return u.protocol === 'http:' || u.protocol === 'https:'
+    } catch {
+      return false
+    }
+  }, 'http/https URL 만 허용한다')
+
+export const AsisCreateBody = z.strictObject({
+  url: AsisUrl,
+  note: z.string().optional(),
+})
+export type AsisCreateBody = z.infer<typeof AsisCreateBody>
+
+/** 계약 §12: 페인포인트 채택/거부. revision 은 클라이언트가 본 asis_analysis 문서 revision (오래된 저장 거부). */
+export const AsisPainPointPatchBody = z.strictObject({
+  status: z.enum(['proposed', 'adopted', 'rejected']),
+  revision: z.int().min(1).describe('클라이언트가 본 문서 revision (설계 §11)'),
+})
+export type AsisPainPointPatchBody = z.infer<typeof AsisPainPointPatchBody>

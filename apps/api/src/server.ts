@@ -39,7 +39,7 @@ function main(): void {
   const seed = seedIfEmpty(store)
   const adapter = createAdapter(env)
 
-  const { app, recovered_job_ids } = createApp({
+  const { app, recovered_job_ids, recovered_asis_ids } = createApp({
     store,
     adapter,
     export_dir: config.export_dir,
@@ -59,6 +59,7 @@ function main(): void {
     }
     if (seed.seeded) console.log(`[con-ai api] 샘플 프로젝트를 시드했다 (project ${seed.project_id})`)
     if (recovered_job_ids.length > 0) console.log(`[con-ai api] 서버 재시작으로 중단된 작업 ${recovered_job_ids.length}건을 failed 로 정리했다`)
+    if (recovered_asis_ids.length > 0) console.log(`[con-ai api] 서버 재시작으로 중단된 AS-IS 분석 ${recovered_asis_ids.length}건을 failed 로 정리했다`)
   })
 }
 

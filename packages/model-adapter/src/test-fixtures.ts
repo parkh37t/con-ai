@@ -2,6 +2,7 @@
 import type { ClientOptions } from '@anthropic-ai/sdk'
 import { EXAMPLE_ORDER_LIST_EXTENDED, type ScreenSpecInput } from '@con-ai/schemas'
 import type { GenerationContext, SliceGenerationRequest } from '@con-ai/prompt-templates'
+import type { AsisStructure } from './types.js'
 import type { WireOutput } from './wire-schema.js'
 
 export const REQ_UUID = '33333333-3333-4333-8333-333333333333'
@@ -69,6 +70,36 @@ export function sampleWireOutput(): WireOutput {
     trace_proposals: [{ requirement_id: 'EXAMPLE-REQ-001', criterion_id: 'EXAMPLE-AC-01', element_or_action_id: 'query', rationale: '검색어 입력' }],
     unresolved: [],
     change_summary: { summary: '예시 명세 생성', added_ids: ['query'], changed_ids: [], removed_ids: [], locked_violations: [] },
+  }
+}
+
+/**
+ * `/asis-sample`(합성 레거시 파트너몰 데모) 형태의 AS-IS structure — 러너가 추출했다고 가정하는 합성 값.
+ * 레이블 없는 필드 3, alt 없는 이미지 2, h1 없음(h2 만), nav 링크 18, 모호한 버튼(클릭·여기), caption 없는 표 1, iframe 1, description 없음.
+ */
+export function sampleAsisStructure(overrides: Partial<AsisStructure> = {}): AsisStructure {
+  return {
+    title: '레거시 파트너몰(데모)',
+    headings: [
+      { level: 2, text: '레거시 파트너몰(데모)' },
+      { level: 2, text: '파트너 로그인' },
+      { level: 2, text: '공지사항' },
+      { level: 3, text: '이용 안내' },
+    ],
+    nav_links: Array.from({ length: 18 }, (_, i) => ({ text: `메뉴${String(i + 1).padStart(2, '0')}`, href: `#menu-${i + 1}` })),
+    forms: [
+      {
+        name: 'login',
+        fields: [
+          { type: 'text', name: 'partner_id' },
+          { type: 'password', name: 'partner_pw' },
+          { type: 'text', name: 'branch_code' },
+        ],
+      },
+    ],
+    buttons: ['클릭', '여기', '로그인'],
+    counts: { links: 22, images: 2, images_without_alt: 2, tables: 1, fields_without_label: 3, iframes: 1 },
+    ...overrides,
   }
 }
 

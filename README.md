@@ -27,7 +27,9 @@ pnpm dev                  # 웹 http://localhost:5173 , API http://localhost:878
 4. 수정: 코멘트 선택 → AI 수정 프롬프트 초안 또는 직접 입력 → 단건 수정 → 새 revision, 코멘트 해결
 5. 완료: 승인 판정(필수 검사 pass, hash 일치, 차단 코멘트 0) → v1.0 → `exports/<프로젝트>/<화면>/v1.0/` 에 index.html·spec·trace·validation·comments·manifest(디자인 이관 필드)
 
-다음 단계는 `docs/plan/구현계획.md` (AS-IS 분석 에이전트, 다중 화면·프로젝트, V4·V5, 디자인 에이전트 연계).
+**AS-IS 분석(①) 동작**: URL 을 입력하면 Playwright 로 방문해 데스크톱·모바일 스크린샷과 페이지 구조를 수집하고, 어댑터가 페인포인트 초안을 만들며, 기획자가 채택/거부로 확정한다. 외부 네트워크 없이 시연할 수 있도록 합성 레거시 페이지 `/asis-sample` 을 제공한다.
+
+다음 단계는 `docs/plan/구현계획.md` (채택한 페인포인트 → 요구사항 연결, 다중 화면·프로젝트, V4·V5, 사용자별 계정 인증(`docs/decisions/0014`), 디자인 에이전트 연계).
 
 ## 문서 안내
 

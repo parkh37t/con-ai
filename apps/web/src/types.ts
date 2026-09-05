@@ -371,3 +371,94 @@ export interface ApprovalResponse {
 
 /** 거부 이유 — domain RuleReason 형태 또는 문자열. */
 export type ReasonLike = string | { code?: string; message: string }
+
+// ---------------------------------------------------------------- AS-IS 분석 (§12)
+export type AsisStatus = 'queued' | 'running' | 'succeeded' | 'failed'
+export type AsisFailureCode = 'navigation' | 'browser' | 'draft' | 'internal'
+export interface AsisFailure {
+  /** 계약의 네 코드 외 값이 와도 그대로 보여준다. */
+  code: AsisFailureCode | (string & {})
+  message: string
+}
+
+export type PainPointSeverity = 'high' | 'medium' | 'low'
+export type PainPointStatus = 'proposed' | 'adopted' | 'rejected'
+export interface PainPoint {
+  id: string
+  area: string
+  severity: PainPointSeverity
+  description: string
+  evidence: string
+  suggestion: string
+  status: PainPointStatus
+}
+
+export interface AsisHeading {
+  level: number
+  text: string
+}
+export interface AsisNavLink {
+  text: string
+  href: string
+}
+export interface AsisFormField {
+  type: string
+  label?: string
+  name?: string
+}
+export interface AsisForm {
+  name?: string
+  fields: AsisFormField[]
+}
+export interface AsisCounts {
+  links: number
+  images: number
+  images_without_alt: number
+  tables: number
+  fields_without_label: number
+  iframes: number
+}
+export interface AsisStructure {
+  title: string
+  description?: string
+  lang?: string
+  headings: AsisHeading[]
+  nav_links: AsisNavLink[]
+  forms: AsisForm[]
+  buttons: string[]
+  counts: AsisCounts
+}
+
+/** GET /api/asis-analyses/:id — kind `asis_analysis` 전체 문서. */
+export interface AsisAnalysis {
+  id: string
+  project_id: string
+  url: string
+  note?: string
+  status: AsisStatus
+  failure?: AsisFailure
+  adapter: AdapterKind
+  model: string
+  created_at: string
+  finished_at?: string
+  structure?: AsisStructure
+  screenshots?: { desktop: string; mobile: string }
+  summary?: string
+  pain_points: PainPoint[]
+  /** documents 테이블의 revision(낙관적 잠금). 페인포인트 PATCH 에 다시 보낸다. */
+  revision?: number
+}
+
+/** GET /api/projects/:id/asis-analyses — 목록 요약(id, url, status, 페인포인트 수, created_at). */
+export interface AsisAnalysisSummary {
+  id: string
+  url: string
+  status: AsisStatus
+  created_at: string
+  note?: string
+  finished_at?: string
+  failure?: AsisFailure
+  /** "페인포인트 수" 의 필드명이 계약에 고정되지 않아 어느 쪽이 와도 읽는다 (asis.ts painPointCountOf). */
+  pain_point_count?: number
+  pain_points?: number | unknown[]
+}

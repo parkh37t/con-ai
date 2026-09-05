@@ -4,7 +4,7 @@ import { hrefTo } from '../router.js'
 import type { Meta } from '../types.js'
 import { Badge } from './common.js'
 
-export function TopBar({ meta, metaError, projectName, current }: { meta: Meta | null; metaError: unknown; projectName: string | null; current: 'home' | 'references' | 'screen' | 'other' }) {
+export function TopBar({ meta, metaError, projectName, current }: { meta: Meta | null; metaError: unknown; projectName: string | null; current: 'home' | 'references' | 'asis' | 'screen' | 'other' }) {
   return (
     <header className="topbar">
       <div className="topbar-left">
@@ -19,6 +19,9 @@ export function TopBar({ meta, metaError, projectName, current }: { meta: Meta |
         </a>
         <a href={hrefTo('references')} className={current === 'references' ? 'active' : ''}>
           레퍼런스 포트폴리오
+        </a>
+        <a href={hrefTo('asis')} className={current === 'asis' ? 'active' : ''} data-testid="nav-asis">
+          AS-IS 분석
         </a>
       </nav>
       <div className="topbar-right">

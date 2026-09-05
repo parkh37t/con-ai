@@ -1,25 +1,40 @@
 /**
- * 작업 큐 — API 프로세스 안의 메모리 순차 큐 (계약 §7). enqueue(jobId) 하면 실행 중이 아닐 때 즉시 runGenerationJob 을 시작한다.
- * 상태는 모두 DB(job 문서)에 있으므로 새로고침 후에도 GET /api/jobs/:id 로 읽는다.
- * 서버 재시작 시 queued/running 으로 남은 작업은 recoverInterruptedJobs 가 failed(internal) 로 정리한다 — 메모리 큐는 복원하지 않는다.
+ * 작업 큐 — API 프로세스 안의 메모리 순차 큐 (계약 §7·§12). enqueue(id, kind) 하면 실행 중이 아닐 때 즉시 실행을 시작한다.
+ * kind 'generation'(기본)은 runGenerationJob, 'asis' 는 주입된 runAsis(AS-IS 분석 러너)를 부른다 — 두 종류가 같은 큐를 순차로 쓴다.
+ * 상태는 모두 DB(job / asis_analysis 문서)에 있으므로 새로고침 후에도 GET API 로 읽는다.
+ * 서버 재시작 시 queued/running 으로 남은 작업·분석은 recoverInterruptedJobs / recoverInterruptedAsisAnalyses 가
+ * failed(internal) 로 정리한다 — 메모리 큐는 복원하지 않는다.
  */
 import { runGenerationJob, type JobDocument, type PipelineDeps, type Store } from '@con-ai/worker-generation'
+import { markAsisFailedIfUnfinished } from './asis-runner.js'
+
+/** 큐에 넣는 작업 종류 (계약 §12: asis 실행은 생성 작업과 같은 순차 큐를 쓴다). */
+export type QueueJobKind = 'generation' | 'asis'
+
+interface QueueEntry {
+  id: string
+  kind: QueueJobKind
+}
 
 export interface JobQueueOptions {
   deps: PipelineDeps
-  /** 파이프라인이 예외로 끝났을 때(정상 실패는 job.failure 로 기록되므로 여기 오지 않는다) 호출. */
+  /** AS-IS 분석 실행 함수 (계약 §12). enqueue(id, 'asis') 를 쓰려면 주입해야 한다. */
+  runAsis?: ((analysisId: string) => Promise<void>) | undefined
+  /** 파이프라인·러너가 예외로 끝났을 때(정상 실패는 문서 failure 로 기록되므로 여기 오지 않는다) 호출. */
   onError?: ((jobId: string, err: unknown) => void) | undefined
 }
 
 export class JobQueue {
-  private readonly pending: string[] = []
+  private readonly pending: QueueEntry[] = []
   private running = false
   private idleWaiters: Array<() => void> = []
   private readonly deps: PipelineDeps
+  private readonly runAsis: ((analysisId: string) => Promise<void>) | undefined
   private readonly onError: (jobId: string, err: unknown) => void
 
   constructor(options: JobQueueOptions) {
     this.deps = options.deps
+    this.runAsis = options.runAsis
     this.onError = options.onError ?? ((jobId, err) => console.error(`[queue] 작업 ${jobId} 실행 중 예외:`, err))
   }
 
@@ -31,8 +46,8 @@ export class JobQueue {
     return this.running
   }
 
-  enqueue(jobId: string): void {
-    this.pending.push(jobId)
+  enqueue(jobId: string, kind: QueueJobKind = 'generation'): void {
+    this.pending.push({ id: jobId, kind })
     if (!this.running) void this.drain()
   }
 
@@ -46,13 +61,20 @@ export class JobQueue {
     this.running = true
     try {
       while (this.pending.length > 0) {
-        const jobId = this.pending.shift()
-        if (jobId === undefined) break
+        const entry = this.pending.shift()
+        if (entry === undefined) break
         try {
-          await runGenerationJob(jobId, this.deps)
+          if (entry.kind === 'asis') {
+            if (this.runAsis === undefined) throw new Error('asis 실행 함수(runAsis)가 주입되지 않았다')
+            await this.runAsis(entry.id)
+          } else {
+            await runGenerationJob(entry.id, this.deps)
+          }
         } catch (err) {
-          this.onError(jobId, err)
-          markFailedIfUnfinished(this.deps.store, jobId, this.deps.now(), `실행 중 예외: ${err instanceof Error ? err.message : String(err)}`)
+          this.onError(entry.id, err)
+          const message = `실행 중 예외: ${err instanceof Error ? err.message : String(err)}`
+          if (entry.kind === 'asis') markAsisFailedIfUnfinished(this.deps.store, entry.id, this.deps.now(), message)
+          else markFailedIfUnfinished(this.deps.store, entry.id, this.deps.now(), message)
         }
       }
     } finally {
