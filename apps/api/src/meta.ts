@@ -37,13 +37,15 @@ export function apiVersion(): string {
 
 /**
  * Playwright 브라우저 실행 파일이 있는지 (V3 실행 검사를 돌릴 수 있는지).
- * PLAYWRIGHT_CHROMIUM_PATH 가 가리키는 파일, 또는 PLAYWRIGHT_BROWSERS_PATH / ~/.cache/ms-playwright 아래 chromium* 디렉터리를 찾는다.
+ * PLAYWRIGHT_CHROMIUM_PATH 가 가리키는 파일, 또는 PLAYWRIGHT_BROWSERS_PATH / <HOME>/.cache/ms-playwright 아래 chromium* 디렉터리를 찾는다.
  * 여기서는 존재만 확인하며 실행하지 않는다 — 실제 실행 가능 여부는 V3 결과(status error)로 드러난다.
  */
 export function detectPlaywright(env: NodeJS.ProcessEnv): boolean {
   const explicit = env.PLAYWRIGHT_CHROMIUM_PATH?.trim()
   if (explicit && existsSync(explicit)) return true
-  const roots = [env.PLAYWRIGHT_BROWSERS_PATH?.trim(), join(homedir(), '.cache', 'ms-playwright')].filter((p): p is string => !!p)
+  // 홈 디렉터리도 주입된 env 를 따른다(테스트가 환경을 온전히 통제할 수 있어야 한다).
+  const home = env.HOME?.trim() || env.USERPROFILE?.trim() || homedir()
+  const roots = [env.PLAYWRIGHT_BROWSERS_PATH?.trim(), join(home, '.cache', 'ms-playwright')].filter((p): p is string => !!p)
   for (const root of roots) {
     try {
       if (readdirSync(root).some((name) => name.startsWith('chromium'))) return true

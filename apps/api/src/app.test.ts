@@ -134,7 +134,8 @@ function harness(options: { seed?: boolean; store?: SqliteStore } = {}): Harness
     render: fakeRender,
     validate: makeValidate(validateMode),
     export_dir: exportDir,
-    env: { PLAYWRIGHT_CHROMIUM_PATH: '/definitely/not/here', PLAYWRIGHT_BROWSERS_PATH: join(exportDir, 'no-browsers') },
+    // 브라우저가 설치된 CI 에서도 결과가 같도록 HOME 까지 통제한다(meta.playwright 는 이 env 만 본다).
+    env: { PLAYWRIGHT_CHROMIUM_PATH: '/definitely/not/here', PLAYWRIGHT_BROWSERS_PATH: join(exportDir, 'no-browsers'), HOME: join(exportDir, 'no-home') },
     now,
     newId,
     required_check_ids: REQUIRED,
