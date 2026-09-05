@@ -2,9 +2,8 @@
   "name": "@con-ai/renderer",
   "version": "0.0.0",
   "private": true,
-  "description": "화면명세 → 컴포넌트·shell·우측 설명 렌더링 (UI와 설명을 같은 명세에서 생성)",
+  "description": "ScreenSpec → 오프라인 HTML 목업 + 우측 설명 (같은 명세에서 생성, S2B 학습 규격 프로파일)",
   "type": "module",
-  "exports": {
-    ".": "./src/index.ts"
-  }
+  "exports": { ".": "./src/index.ts" },
+  "dependencies": { "@con-ai/schemas": "workspace:*" }
 }

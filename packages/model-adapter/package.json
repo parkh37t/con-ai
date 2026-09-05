@@ -1,0 +1,14 @@
+{
+  "name": "@con-ai/model-adapter",
+  "version": "0.0.0",
+  "private": true,
+  "description": "모델 호출 어댑터: anthropic(실제 호출, 구조화 출력) / fixture(더미). 키는 서버 환경변수에서만 읽는다",
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "dependencies": {
+    "@anthropic-ai/sdk": "0.124.0",
+    "@con-ai/prompt-templates": "workspace:*",
+    "@con-ai/schemas": "workspace:*",
+    "zod": "4.5.4"
+  }
+}

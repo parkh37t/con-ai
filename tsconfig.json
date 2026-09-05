@@ -1,7 +1,10 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "lib": ["ES2022", "DOM"],
+    "lib": [
+      "ES2022",
+      "DOM"
+    ],
     "module": "ESNext",
     "moduleResolution": "bundler",
     "strict": true,
@@ -15,13 +18,22 @@
     "resolveJsonModule": true,
     "esModuleInterop": true,
     "noEmit": true,
-    "types": ["node"]
+    "types": [
+      "node"
+    ],
+    "jsx": "react-jsx"
   },
   "include": [
     "apps/*/src/**/*.ts",
+    "apps/*/src/**/*.tsx",
     "workers/*/src/**/*.ts",
     "packages/*/src/**/*.ts",
     "fixtures/**/*.ts",
+    "e2e/**/*.ts",
     "vitest.config.ts"
+  ],
+  "exclude": [
+    "**/node_modules",
+    "**/dist"
   ]
 }

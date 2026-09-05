@@ -2,6 +2,22 @@
   "name": "@con-ai/api",
   "version": "0.0.0",
   "private": true,
-  "description": "권한·편집·승인 API (프로젝트 권한, 입력 검증, revision 기반 버전 충돌 확인)",
-  "type": "module"
+  "description": "권한·편집·승인 API + 저장소(node:sqlite) + 작업 큐 (Hono)",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "start": "tsx src/server.ts"
+  },
+  "dependencies": {
+    "@con-ai/domain": "workspace:*",
+    "@con-ai/model-adapter": "workspace:*",
+    "@con-ai/prompt-templates": "workspace:*",
+    "@con-ai/renderer": "workspace:*",
+    "@con-ai/schemas": "workspace:*",
+    "@con-ai/validators": "workspace:*",
+    "@con-ai/worker-generation": "workspace:*",
+    "@hono/node-server": "2.1.1",
+    "hono": "4.13.7",
+    "zod": "4.5.4"
+  }
 }

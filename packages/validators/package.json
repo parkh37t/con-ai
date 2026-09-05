@@ -2,9 +2,13 @@
   "name": "@con-ai/validators",
   "version": "0.0.0",
   "private": true,
-  "description": "구조·참조·CASE·추적 검사 (pass/fail/error/not_run)",
+  "description": "V1 명세·V2 렌더 구조·V3 실행(Playwright) 검사. 결과는 pass/fail/error/not_run",
   "type": "module",
-  "exports": {
-    ".": "./src/index.ts"
+  "exports": { ".": "./src/index.ts" },
+  "dependencies": {
+    "@con-ai/renderer": "workspace:*",
+    "@con-ai/schemas": "workspace:*",
+    "playwright": "1.63.0",
+    "zod": "4.5.4"
   }
 }

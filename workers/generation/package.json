@@ -2,6 +2,16 @@
   "name": "@con-ai/worker-generation",
   "version": "0.0.0",
   "private": true,
-  "description": "단계별 생성 실행 (문맥 구성 → AI 명세 작성 → 스키마 검사 → 렌더링 → 자동 검증 → 결과 저장)",
-  "type": "module"
+  "description": "생성 파이프라인: context_build → spec_generate → schema_check → render → validate → persist",
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "dependencies": {
+    "@con-ai/domain": "workspace:*",
+    "@con-ai/model-adapter": "workspace:*",
+    "@con-ai/prompt-templates": "workspace:*",
+    "@con-ai/renderer": "workspace:*",
+    "@con-ai/schemas": "workspace:*",
+    "@con-ai/validators": "workspace:*",
+    "zod": "4.5.4"
+  }
 }
