@@ -368,7 +368,16 @@ export const CLIENT_SCRIPT: string = String.raw`
     if (devBtn && root) {
       root.setAttribute('data-device', devBtn.getAttribute('data-device-toggle'));
       each(qa('[data-device-toggle]'), function (b) { b.classList.toggle('is-active', b === devBtn); });
-      setStatus('기기 폭: ' + (devBtn.getAttribute('data-device-toggle') === 'mobile' ? '모바일(420px)' : 'PC'));
+      each(qa('.gnb.is-open'), function (g) { g.classList.remove('is-open'); });
+      setStatus('기기 폭: ' + (devBtn.getAttribute('data-device-toggle') === 'mobile' ? '모바일(폰 프레임 420px)' : 'PC'));
+      return;
+    }
+    // 모바일 폰 프레임의 햄버거 — GNB 메뉴를 시트로 펼친다 (표시만, 실제 이동 없음)
+    var ham = t.closest('[data-gnb-toggle]');
+    if (ham) {
+      var gnb = ham.closest('.gnb');
+      if (gnb) gnb.classList.toggle('is-open');
+      setStatus('모바일 메뉴(더미): ' + (gnb && gnb.classList.contains('is-open') ? '펼침' : '접음'));
       return;
     }
     if (t.closest('[data-modal-close]') || (modal && t === modal)) { closeModal(); return; }

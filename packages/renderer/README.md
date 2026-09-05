@@ -18,7 +18,12 @@ const { html, description, element_index } = renderScreen({
   spec,                                   // ScreenSpecShape (서버가 이미 ScreenSpec 으로 참조 검사한 것)
   profile: S2B_LEARNED_PROFILE,
   dummy: { 'orders-normal': rows, ... },  // states[].fixture_id → 행 목록
-  meta: { screen_title, requirements: [{ external_id, title, criterion_ids }], revision_label: 'rev 3', generated_by: '더미 어댑터(fixture)' },
+  meta: {
+    screen_title, requirements: [{ external_id, title, criterion_ids }],
+    revision_label: 'rev 3', generated_by: '더미 어댑터(fixture)',
+    portal_name: '파트너 포털',                 // 선택. 없으면 spec.shell 접두어에서 만든다 (buyer-page → "구매 포털")
+    menus: [{ label: '홈' }, { label: '견적', active: true }],  // 선택. 없으면 화면명 첫 낱말로 기본 메뉴를 만든다
+  },
 })
 ```
 
@@ -32,7 +37,7 @@ const { html, description, element_index } = renderScreen({
 | `src/description.ts` | `buildDescription` — 명세 → 설명 모델(8절) |
 | `src/client-data.ts` | 인라인 JS 가 읽는 데이터(CASE·메시지·표·동작·더미데이터). 동작의 대상 표·검색 입력을 미리 푼다 |
 | `src/html.ts` | HTML 조립: shell → 목업(영역·요소 컴포넌트) + 설명 패널 + 툴바 + 모달 + 인라인 데이터/JS |
-| `src/styles.ts` | 인라인 CSS (시스템 글꼴, 외부 자원 없음) |
+| `src/styles.ts` | 인라인 CSS — 화면설계서 시각 규격을 토큰(`:root` 사용자 정의 속성)으로 둔다. 시스템 글꼴만 쓰고 외부 자원 없음 |
 | `src/client-script.ts` | 인라인 JS (CASE 전환·검색·정렬·팝업·다운로드·postMessage) |
 | `src/render.ts` | `renderScreen`, `RENDERER_VERSION` |
 | `src/labels.ts` | 컴포넌트·동작·CASE·메시지 종류의 한국어 라벨 |
@@ -41,13 +46,22 @@ const { html, description, element_index } = renderScreen({
 
 ```text
 body[data-screen-id][data-shell][data-shell-kind][data-case][data-action-types]
-├─ .con-ai-toolbar[data-toolbar]        CASE 버튼(button[data-case]) · PC/모바일 폭 토글 · 생성 어댑터/revision · 상태 (부모 창이 있으면 숨김)
+├─ .con-ai-toolbar[data-toolbar]        CASE 버튼(button[data-case]) · PC/모바일 토글 · 생성 어댑터/revision · 상태 (부모 창이 있으면 숨김)
 ├─ .root-shell[data-shell-root][data-device]              (팝업 shell 은 .popup-shell)
-│  ├─ .screen-wrap[data-region="screen"]                  (팝업은 .popup-wrap; GNB·breadcrumb 없음)
-│  │  ├─ header (GNB 자리 · breadcrumb · 화면명 + 화면 ID)
-│  │  ├─ .screen-messages[data-messages]                  현재 CASE 의 message_ids
-│  │  ├─ section.area[data-element-id=영역][data-section-id][data-display-no="1"]
-│  │  │  └─ .field.field-<type>[data-element-id=요소][data-display-no="a"] … 배지 + 레이블 + 컨트롤
+│  ├─ .screen-wrap[data-region="screen"]                  (팝업은 .popup-wrap > .popup-card; GNB·breadcrumb 없음)
+│  │  ├─ .phone-status                                    모바일에서만 보이는 폰 상태 표시줄
+│  │  ├─ header.screen-head
+│  │  │  ├─ nav.gnb  로고 pill(포털명) · .gnb-menu .m(.on = 활성, 밑줄) · .util · button[data-gnb-toggle](모바일 햄버거)
+│  │  │  └─ .breadcrumb                                   홈 › 그룹 › 화면명
+│  │  ├─ .body-wrap                                       최대 1180px, 가운데 정렬
+│  │  │  ├─ .screen-title-row                             화면명 + 화면 ID(모노스페이스), 2px 검은 밑줄
+│  │  │  ├─ .screen-messages[data-messages]               현재 CASE 의 message_ids
+│  │  │  └─ section.area[data-element-id=영역][data-section-id][data-display-no="1"]   둥근 카드
+│  │  │     ├─ span.badge.badge-section[data-badge-for]   카드 바깥으로 걸친 검은 사각 번호
+│  │  │     ├─ h2.area-title
+│  │  │     └─ .area-body
+│  │  │        └─ .field.field-<type>[data-element-id=요소][data-display-no="a"]
+│  │  │           └─ .field-label(span.badge.badge-element = 파란 원형 번호 + 라벨) + .control
 │  │  └─ .screen-status[data-status]                      더미 동작 결과 표시 (navigate 등)
 │  └─ aside#right-panel[data-region="description"]        (팝업은 aside.spec-side)
 │     └─ section.desc-section[data-desc-key=…] × 8        설명 항목 .desc-item[data-element-id][data-display-no]
@@ -56,9 +70,30 @@ body[data-screen-id][data-shell][data-shell-kind][data-case][data-action-types]
 └─ script                                                 인라인 JS
 ```
 
+`section.area` 의 요소가 모두 `text` 면 `.area.area-info` 가 되어 행이 붙은 "기본 정보 표"로 쌓인다.
+
+### 시각 규격 (화면설계서 문서)
+
+출력은 웹앱이 아니라 **흰 바탕의 화면설계서**로 보이게 만든다. 값은 `styles.ts` 의 `:root` 토큰에 주석과 함께 모아 두었다.
+
+| 요소 | 규격 |
+|---|---|
+| 배치 | 좌 목업 `flex:11.5` / 우 설명 `flex:4.5`(최소 360px), 사이에 2px 검은 세로선(`#right-panel{border-left}`) |
+| 영역 | 둥근 카드(1.5px `#333`, radius 10px) + 좌상단 **바깥으로 걸친 검은 사각 번호 배지** |
+| 요소 | 라벨 앞 **파란 원형 배지**(`#1d6ef5`) |
+| 표 | 회색 머리(`#f1f3f5`) · 얇은 테두리(`#444`) · 9~11px 셀 여백 |
+| 버튼 | 주요 `.btn`(검은 채움) / 보조 `.btn.btn-secondary`(흰 배경 테두리) |
+| 우측 패널 | 모노스페이스 화면 ID + 2.5px 검은 밑줄 → 개요 표(`table.info-table`) → 작은 회색 절 라벨(`.desc-kicker`) → 영역 머리(`.desc-area-head`)·요소 한 줄(`.desc-item`) → 검은 머리 메시지 표(`table.msg-table`) |
+| 정책 | 파란 왼쪽 막대 강조 상자(`.desc-policy`) |
+| 모바일 | `[data-device="mobile"]` 이면 목업 열이 420px **폰 프레임**(9px 검은 테두리, radius 34px)이 되고 상태 표시줄·햄버거 시트가 보인다. 회색 무대 위에 가운데 배치 |
+
+다크모드는 두지 않는다(설계 문서는 흰 바탕 고정). 글꼴은 `'Pretendard','Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR',sans-serif` — 시스템에 있는 것만 고르고 웹폰트를 불러오지 않는다.
+
 ### 설명 순서 (프로파일 `description_order`, 설계 §9)
 
-`screen_id`(화면 ID 제목 + revision·생성 어댑터·기준 버전) → `overview`(화면명·목적·역할·REQ 와 수용조건 ID) → `cases`(CASE 표) → `flow`(처리 흐름 = actions) → `policy`(검증 규칙·잠금·미확정) → `data_mapping`(근거 anchor 가 있는 매핑) → `sections`(영역·필드 설명, element_index 와 같은 순서·번호, trace 수용조건 표시) → `messages`(메시지 표).
+`screen_id`(모노스페이스 화면 ID 제목 + revision·생성 어댑터·기준 버전 꼬리표) → `overview`(개요 표: 화면명·목적·역할·REQ 와 수용조건 ID) → `cases`(CASE 표) → `flow`(처리 흐름 = actions, 한 줄 목록) → `policy`(검증 규칙·잠금·미확정, 파란 강조 상자) → `data_mapping`(근거 anchor 가 있는 매핑 표) → `sections`("영역별 디스크립션" — element_index 와 같은 순서·번호, trace 수용조건 표시) → `messages`(검은 머리 메시지 표).
+
+절의 라벨은 `DESCRIPTION_TITLES` 를 쓴다. 설명 항목의 `label` 에는 번호를 적지 않는다 — 번호는 `display_no`(=`element_index`) 하나에서 나와 배지로만 붙는다.
 
 ### 번호 규칙
 

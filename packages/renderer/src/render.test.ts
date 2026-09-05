@@ -1,7 +1,7 @@
 import vm from 'node:vm'
 import { describe, expect, it } from 'vitest'
 import { EXAMPLE_ORDER_LIST, EXAMPLE_ORDER_LIST_EXTENDED, type ScreenSpecInput } from '@con-ai/schemas'
-import { buildDescription } from './description.js'
+import { DESCRIPTION_TITLES, buildDescription } from './description.js'
 import { buildElementIndex, buildNumbering, toAlpha } from './element-index.js'
 import { S2B_LEARNED_PROFILE } from './profile.js'
 import { renderScreen } from './render.js'
@@ -132,9 +132,52 @@ describe('renderScreen — 확장 예시 (EXAMPLE_ORDER_LIST_EXTENDED)', () => {
     expect(sec?.items.map((i) => ({ element_id: i.element_id, display_no: i.display_no }))).toEqual(
       out.element_index.map((e) => ({ element_id: e.element_id, display_no: e.display_no })),
     )
-    expect(at(sec?.items, 1).label).toBe('a. 검색어')
+    // 라벨은 명세의 영역 제목·요소 라벨 그대로다. 번호는 display_no 하나에서만 나오고 라벨에 박아 넣지 않는다.
+    expect(at(sec?.items, 1).label).toBe('검색어')
+    expect(sec?.items.map((i) => i.label)).toEqual(input.spec.sections.flatMap((s) => [s.title, ...s.elements.map((e) => e.label)]))
+    for (const item of sec?.items ?? []) expect(item.label, `라벨에 번호를 박아 넣지 않는다: ${item.label}`).not.toMatch(/^(\d+|[a-z]+)\.\s/)
     expect(at(sec?.items, 1).text).toContain('수용조건: EXAMPLE-AC-01')
     expect(at(sec?.items, 5).text).toContain('잠긴 요소')
+  })
+
+  it('설명 패널이 목표 문서 구조를 따른다: 모노스페이스 화면 ID → 개요 표 → 절 라벨 → 영역 머리·요소 줄 → 검은 머리 메시지 표', () => {
+    const panel = html.slice(html.indexOf('data-region="description"'))
+    expect(panel).toContain('<h2 class="desc-screen-id">EXAMPLE-order-list</h2>')
+    // 개요는 표로(화면명·목적·역할·REQ), CASE·데이터 매핑도 표, 메시지는 검은 머리 표
+    expect(panel).toMatch(/<section class="desc-section" data-desc-key="overview"><table class="info-table">/)
+    expect(panel).toMatch(/data-desc-key="cases">[\s\S]*?<table class="desc-table">/)
+    expect(panel).toMatch(/data-desc-key="messages">[\s\S]*?<table class="msg-table">/)
+    // 절 라벨은 DESCRIPTION_TITLES 를 쓴다 (영역·필드 절은 목표 문서 표기인 "영역별 디스크립션")
+    expect(panel).toContain('<div class="desc-kicker">영역별 디스크립션</div>')
+    expect(DESCRIPTION_TITLES.sections).toBe('영역별 디스크립션')
+    // 영역은 검은 사각 배지가 붙은 머리로, 요소는 파란 원형 배지 + 굵은 이름 + " — " + 설명 한 줄로
+    expect(panel).toMatch(/<div class="desc-area-head desc-item"[^>]*data-element-id="search"[^>]*><span class="badge badge-section" data-badge-for="search">1<\/span><span class="desc-label">검색<\/span><\/div>/)
+    expect(panel).toMatch(
+      /<div class="desc-item"[^>]*data-element-id="query"[^>]*data-display-no="a"[^>]*><span class="badge badge-element" data-badge-for="query">a<\/span><b class="desc-label">검색어<\/b><span class="desc-sep">—<\/span>/,
+    )
+  })
+
+  it('설명 패널의 번호 배지도 화면 배지와 같은 element_index 를 쓴다', () => {
+    const panel = html.slice(html.indexOf('data-region="description"'))
+    const badges = [...panel.matchAll(/<span class="badge badge-(section|element)" data-badge-for="([^"]+)">([^<]*)<\/span>/g)]
+    expect(badges.length).toBeGreaterThanOrEqual(out.element_index.length)
+    for (const m of badges) {
+      const entry = out.element_index.find((e) => e.element_id === m[2])
+      expect(entry, `설명 배지 ${m[2]} 는 element_index 에 있어야 한다`).toBeDefined()
+      expect(m[3], `설명 배지 ${m[2]}`).toBe(entry?.display_no)
+      expect(m[1]).toBe(entry?.element_id === entry?.section_id ? 'section' : 'element')
+    }
+  })
+
+  it('목업 머리에 GNB(로고·메뉴·활성 밑줄·유틸)와 breadcrumb 를 두고 메타로 덮어쓸 수 있다', () => {
+    expect(html).toMatch(/<nav class="gnb" aria-label="GNB"><span class="logo">구매 포털<\/span>/)
+    expect(html).toContain('<span class="m on">주문</span>')
+    expect(html).toContain('<span>통합검색 ⌕</span>')
+    expect(html).toMatch(/<div class="breadcrumb" aria-label="breadcrumb">홈 › 주문 › <b>주문 목록<\/b><\/div>/)
+    const custom = renderScreen(renderInputOf(EXAMPLE_ORDER_LIST_EXTENDED, { meta: { ...EXAMPLE_META, portal_name: '조달 포털', menus: [{ label: '입찰' }, { label: '계약', active: true }] } }))
+    expect(custom.html).toContain('<span class="logo">조달 포털</span>')
+    expect(custom.html).toContain('<span class="m">입찰</span><span class="m on">계약</span>')
+    expect(custom.html).not.toContain('구매 포털')
   })
 
   it('외부 URL·CDN·폰트 참조가 없다 (오프라인 단일 파일)', () => {
@@ -161,7 +204,8 @@ describe('renderScreen — 확장 예시 (EXAMPLE_ORDER_LIST_EXTENDED)', () => {
     expect(byKey.flow?.items.map((i) => i.label)).toEqual(['search-submit', 'sort-orders', 'download-orders', 'open-order-detail', 'show-error'])
     expect(at(byKey.flow?.items, 3).text).toContain('대상 화면: EXAMPLE-order-detail-popup')
     expect(at(byKey.flow?.items, 2).text).toContain('잠긴 동작')
-    expect(byKey.policy?.items.map((i) => i.label)).toEqual(['a. 검색어', '잠긴 요소', '잠긴 동작', '미확정(질문)'])
+    expect(byKey.policy?.items.map((i) => i.label)).toEqual(['검색어', '잠긴 요소', '잠긴 동작', '미확정(질문)'])
+    expect(at(byKey.policy?.items, 0)).toMatchObject({ element_id: 'query', display_no: 'a' })
     expect(at(byKey.policy?.items, 0).text).toBe('최대 글자수=50 → msg-query-too-long')
     expect(byKey.data_mapping?.items.map((i) => i.label)).toEqual(['order-table.order_no', 'order-table.status'])
     expect(byKey.messages?.items.map((i) => i.label)).toEqual(['msg-empty', 'msg-error', 'msg-query-too-long'])
@@ -252,11 +296,19 @@ describe('renderScreen — 팝업 shell·모바일·이스케이프·컴포넌�
     expect(idsIn(out.html, 'screen').map((x) => x.id)).toEqual(out.element_index.map((e) => e.element_id))
   })
 
-  it('모바일 명세는 루트에 data-device="mobile" 을 두고 420px 규칙을 갖는다', () => {
+  it('모바일 명세는 루트에 data-device="mobile" 을 두고 목업을 420px 폰 프레임에 넣는다', () => {
     const spec: ScreenSpecInput = { ...structuredClone(EXAMPLE_ORDER_LIST_EXTENDED), device: 'mobile' }
     const { html } = renderScreen(renderInputOf(spec))
     expect(html).toMatch(/<div class="root-shell" data-shell-root data-device="mobile">/)
-    expect(html).toContain('.root-shell[data-device="mobile"] .screen-wrap,.popup-shell[data-device="mobile"] .popup-wrap{max-width:420px')
+    // 폰 프레임: 목업 열의 폭을 420px 로 묶고 검은 테두리·둥근 모서리를 준다 (목표 모바일 문서의 .phone)
+    const frame = /\.root-shell\[data-device="mobile"\] \.screen-wrap\{[^}]*\}/.exec(html)?.[0] ?? ''
+    expect(frame).toContain('max-width:420px')
+    expect(frame).toMatch(/border:9px solid var\(--ink\)/)
+    expect(frame).toMatch(/border-radius:34px/)
+    // 상태 표시줄·햄버거는 마크업에 늘 있고 모바일에서만 보인다 (기기 토글로도 같은 모양이 된다)
+    expect(html).toContain('<div class="phone-status" aria-hidden="true">')
+    expect(html).toContain('data-gnb-toggle')
+    expect(html).toContain('[data-device="mobile"] .phone-status{display:flex')
     expect(html).toContain('모바일')
   })
 
@@ -303,7 +355,9 @@ describe('renderScreen — 팝업 shell·모바일·이스케이프·컴포넌�
     expect(html).toMatch(/<textarea id="el-el-textarea"/)
     expect(html).toMatch(/<input type="radio" value="v1"/)
     expect(html).toMatch(/<a href="#" class="link" data-link="1"/)
-    expect(html).toContain('<p class="static-text">라벨 text</p>')
+    // text 요소: 라벨은 필드 라벨로, 표시값은 note 가 있으면 note, 없으면 더미 자리표시 문구
+    expect(html).toContain('<p class="static-text is-placeholder">표시값(더미)</p>')
+    expect(html).toContain('<span class="label-text">라벨 text</span>')
     expect(html).toContain('<td data-column-id="c1" class="fmt-text">x</td>')
     expect(html).toContain('<td data-column-id="c1" class="fmt-text"></td>')
     expect(() => new vm.Script(inlineScript(html))).not.toThrow()

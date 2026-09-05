@@ -12,11 +12,17 @@ export interface RenderProfile {
 }
 export interface DescriptionSection { key: string; title: string; items: Array<{ label: string; text: string; element_id?: string; display_no?: string }> }
 export interface DescriptionModel { screen_id: string; title: string; sections: DescriptionSection[] }
+/** GNB 메뉴 한 칸 (활성 메뉴는 밑줄로 표시한다). */
+export interface RenderNavItem { label: string; active?: boolean }
 export interface RenderMeta {
   screen_title: string
   requirements: Array<{ external_id: string; title: string; criterion_ids: string[] }>
   revision_label: string
   generated_by: string
+  /** 목업 GNB 의 포털 이름. 없으면 spec.shell 접두어에서 만든다 (html.ts portalNameOf) */
+  portal_name?: string
+  /** 목업 GNB 메뉴. 없으면 화면명에서 기본 메뉴를 만든다 (html.ts menusOf) */
+  menus?: RenderNavItem[]
 }
 export interface RenderInput { spec: ScreenSpecShape; profile: RenderProfile; dummy: Record<string, unknown[]>; meta: RenderMeta }
 export interface RenderOutput { html: string; description: DescriptionModel; element_index: Array<{ element_id: string; section_id: string; display_no: string }> }

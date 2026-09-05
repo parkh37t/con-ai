@@ -27,9 +27,9 @@ export const DESCRIPTION_TITLES: Record<string, string> = {
   cases: 'CASE',
   flow: '처리 흐름',
   policy: '정책',
-  data_mapping: '데이터 매핑(근거)',
-  sections: '영역·필드 설명',
-  messages: '메시지',
+  data_mapping: '데이터 매핑 · 근거',
+  sections: '영역별 디스크립션',
+  messages: '메시지 · 알림',
 }
 
 function item(label: string, text: string, ref?: { element_id: string; display_no?: string | undefined }): Item {
@@ -141,7 +141,8 @@ export function buildDescription(input: RenderInput, numbering: Numbering): Desc
           `${labelOf(VALIDATION_RULE_LABELS, v.rule)}${v.value !== undefined ? `=${String(v.value)}` : ''}${v.message_id !== undefined ? ` → ${v.message_id}` : ''}`,
         )
       }
-      if (rules.length > 0) policyItems.push(item(`${ne.display_no}. ${el.label}`, rules.join('; '), { element_id: el.id, display_no: ne.display_no }))
+      // 라벨에는 번호를 붙이지 않는다. 번호는 display_no(=element_index) 하나에서 나와 배지로만 표시한다.
+      if (rules.length > 0) policyItems.push(item(el.label, rules.join('; '), { element_id: el.id, display_no: ne.display_no }))
     }
   }
   if (spec.locked_elements.length > 0) policyItems.push(item('잠긴 요소', spec.locked_elements.join(', ')))
@@ -164,13 +165,15 @@ export function buildDescription(input: RenderInput, numbering: Numbering): Desc
         )
       : [item('데이터 매핑', '근거가 있는 데이터 매핑이 없다 (빠진 근거는 정책 절의 미확정 참조)')]
 
+  // 영역·필드 설명 — 라벨은 영역 제목·요소 라벨 그대로다. 번호는 display_no(=element_index) 로만 전달하고
+  // 화면 배지와 설명 배지가 같은 값을 쓴다 (설계 §9: 화면 숫자와 설명 숫자는 같은 데이터에서).
   const sectionItems: Item[] = []
   for (const ns of numbering.sections) {
     const s = ns.section
-    sectionItems.push(item(`${ns.display_no}. ${s.title}`, s.note ?? `영역 · 요소 ${s.elements.length}개`, { element_id: s.id, display_no: ns.display_no }))
+    sectionItems.push(item(s.title, s.note ?? `영역 · 요소 ${s.elements.length}개`, { element_id: s.id, display_no: ns.display_no }))
     for (const ne of ns.elements) {
       sectionItems.push(
-        item(`${ne.display_no}. ${ne.element.label}`, describeElement(ne.element, spec.locked_elements.includes(ne.element.id)), {
+        item(ne.element.label, describeElement(ne.element, spec.locked_elements.includes(ne.element.id)), {
           element_id: ne.element.id,
           display_no: ne.display_no,
         }),

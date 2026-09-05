@@ -189,15 +189,16 @@ export function runV2(html: string, spec: ScreenSpecShape, profile: RenderProfil
       if (!d || !d.has(entry.display_no)) problems.push(`설명 ${entry.element_id}: 기대 ${entry.display_no}, 실제 ${d ? [...d].join('/') : '없음'}`)
       else if (d.size > 1) problems.push(`설명 ${entry.element_id}: 번호가 여러 개 ${[...d].join('/')}`)
     }
-    // 배지 텍스트가 data-display-no 와 같은지 (화면 쪽)
-    const badgeRe = /<span class="badge[^"]*" data-badge-for="([^"]+)">([^<]*)<\/span>/g
-    const region = regions.screen
-    if (region) {
+    // 배지 텍스트가 data-display-no 와 같은지 (화면·설명 양쪽). 화면 배지와 설명 배지는 같은 element_index 에서 나와야 한다.
+    for (const region of [regions.screen, regions.description]) {
+      if (!region) continue
+      const badgeRe = /<span class="badge[^"]*" data-badge-for="([^"]+)">([^<]*)<\/span>/g
       const part = html.slice(region.start, region.end)
       let m: RegExpExecArray | null
       while ((m = badgeRe.exec(part)) !== null) {
         const exp = expected.find((e) => e.element_id === m?.[1])
-        if (exp && exp.display_no !== m[2]) problems.push(`배지 ${m[1]}: 표시 ${m[2]}, 기대 ${exp.display_no}`)
+        if (!exp) problems.push(`배지 ${m[1]}: 명세에 없는 요소`)
+        else if (exp.display_no !== m[2]) problems.push(`배지 ${m[1]}: 표시 ${m[2]}, 기대 ${exp.display_no}`)
       }
     }
     results.push(
