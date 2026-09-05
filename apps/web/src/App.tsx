@@ -1,9 +1,9 @@
 /** 앱 루트 — 해시 라우팅, 메타·프로젝트 로딩, 상단 바. */
-import type { ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { api } from './api.js'
 import { ErrorBox, Loading } from './components/common.js'
-import { CredentialPanel } from './components/CredentialPanel.js'
-import { TopBar } from './components/TopBar.js'
+import { CredentialChip, CredentialPanel } from './components/CredentialPanel.js'
+import { TopBar, type TopBarSection } from './components/TopBar.js'
 import { DEMO_BANNER_TEXT, DEMO_REPO_URL, IS_DEMO } from './demo-mode.js'
 import { useAsync, useHashRoute } from './hooks.js'
 import { ApprovePage } from './pages/ApprovePage.js'
@@ -30,7 +30,14 @@ export function App() {
   // 메인·만들기·설계서 결과는 자체 상단 바를 가진다 — 앱 상단 바·자격 증명 패널 없이 화면만 보여준다 (UI 를 단순하게 유지).
   const simpleShell = route.name === 'main' || route.name === 'create' || route.name === 'design'
 
-  const current =
+  // 자격 증명 패널은 기본으로 접혀 있다. 칩을 누르거나, 패널을 열려는 기존 진입(`?help=key` / `?cred=open`)이면 열린 채로 온다.
+  const credentialRequested = route.query['help'] === 'key' || route.query['cred'] === 'open'
+  const [credentialOpen, setCredentialOpen] = useState(credentialRequested)
+  useEffect(() => {
+    if (credentialRequested) setCredentialOpen(true)
+  }, [credentialRequested])
+
+  const current: TopBarSection =
     route.name === 'advanced'
       ? 'home'
       : route.name === 'references'
@@ -88,16 +95,24 @@ export function App() {
 
   return (
     <div className="app">
-      <DemoBanner />
-      {/* 정적 배포에서만 자격 증명 패널을 보여준다. 서버 모드에서는 모델 호출이 서버 어댑터의 몫이라 화면에 인증정보를 두지 않는다. */}
-      {IS_DEMO && <CredentialPanel onChanged={() => meta.reload()} />}
-      <TopBar meta={meta.data} metaError={meta.error} projectName={project?.name ?? null} current={current} />
+      {/* 상단 도크 — 내비 한 줄이 기준선이고, 자격 증명 패널은 그 아래로 필요할 때만 펼쳐진다.
+          데모 안내는 별도 띠가 아니라 내비 오른쪽 칩으로 흡수해 상단 겹침(배너+패널+내비+헤더)을 없앴다. */}
+      <div className="topdock">
+        <TopBar
+          meta={meta.data}
+          metaError={meta.error}
+          current={current}
+          /* 정적 배포에서만 자격 증명을 다룬다. 서버 모드에서는 모델 호출이 서버 어댑터의 몫이라 화면에 인증정보를 두지 않는다. */
+          credentialChip={IS_DEMO ? <CredentialChip open={credentialOpen} onToggle={() => setCredentialOpen((v) => !v)} /> : null}
+        />
+        {IS_DEMO && <CredentialPanel open={credentialOpen} onClose={() => setCredentialOpen(false)} onChanged={() => meta.reload()} />}
+      </div>
       <main className="main">{body}</main>
     </div>
   )
 }
 
-/** 정적 데모(GitHub Pages) 배너 — 데모 빌드가 아니면 아무것도 그리지 않는다. */
+/** 정적 데모(GitHub Pages) 안내 — 자체 상단 바를 쓰는 화면(메인·만들기·설계서)에서만 한 줄 띠로 남긴다. */
 function DemoBanner() {
   if (!IS_DEMO) return null
   return (

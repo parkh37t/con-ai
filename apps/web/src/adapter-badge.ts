@@ -23,7 +23,7 @@ export function adapterBadgeText(meta: Pick<Meta, 'adapter' | 'model' | 'auth'>,
 export function realModelHint(meta: Pick<Meta, 'adapter'> | null, opts: { demo?: boolean } = {}): string | null {
   if (!meta || meta.adapter !== 'fixture') return null
   if (opts.demo === true) {
-    return '지금은 스냅샷 데모입니다(모델 호출 없음). 위 자격 증명 패널에 Claude API 키나 토큰을 넣으면 이 브라우저가 직접 모델을 호출해 실제로 생성합니다.'
+    return '지금은 스냅샷 데모입니다(모델 호출 없음). 상단 오른쪽 자격 증명 칩을 눌러 자격 증명 패널에 Claude API 키나 토큰을 넣으면 이 브라우저가 직접 모델을 호출해 실제로 생성합니다.'
   }
   return '지금은 fixture 더미 어댑터입니다. 실제 모델을 쓰려면 .env 에 MODEL_ADAPTER=anthropic 과 ANTHROPIC_API_KEY 또는 ANTHROPIC_AUTH_TOKEN 을 설정하고 API 를 재시작하세요.'
 }

@@ -178,7 +178,9 @@ function allProjectDetails(state: DemoState): ProjectDetail[] {
  * 브라우저에서는 Playwright 를 띄울 수 없으므로 playwright 는 항상 false 다.
  */
 export function metaOf(state: DemoState): Meta {
-  const base = (state.gets.get('/api/meta') as Meta | undefined) ?? { adapter: 'fixture', model: 'fixture', version: '0.0.0', playwright: false }
+  const snapshot = state.gets.get('/api/meta') as Meta | undefined
+  // 스냅샷의 meta 는 서버에서 찍힌 것이라 playwright:true 일 수 있다. 브라우저에서는 V3 를 돌릴 수 없으므로 항상 false 로 덮는다.
+  const base: Meta = { ...(snapshot ?? { adapter: 'fixture', model: 'fixture', version: '0.0.0' }), playwright: false }
   const cred = browserRuntime.credential()
   if (!cred) return base
   return { ...base, adapter: 'anthropic', model: browserRuntime.model, auth: cred.kind, playwright: false }
@@ -627,7 +629,7 @@ function referencesFor(state: DemoState, projectId: string): Reference[] {
 /** 요청 하나를 파이프라인 입력으로 옮긴다 (생성 실행과 프롬프트 미리보기가 같은 문맥을 쓰도록). */
 function pipelineInputFor(state: DemoState, screenId: string, body: unknown): { error: DemoResponse } | { input: PipelineInput; base: RevisionDetail | undefined } {
   const credential = browserRuntime.credential()
-  if (!credential) return { error: badRequest('no_credential', '자격 증명이 없습니다. 상단 패널에서 API 키나 토큰을 먼저 넣으세요.') }
+  if (!credential) return { error: badRequest('no_credential', '자격 증명이 없습니다. 상단 오른쪽 자격 증명 칩을 눌러 API 키나 토큰을 먼저 넣으세요.') }
   const screen = screenDetail(state, screenId)
   if (!screen) return { error: notFound('화면') }
   const project = projectDetailFor(state, screen.screen.project_id)
@@ -770,7 +772,7 @@ function resolveEditedComments(state: DemoState, request: SliceGenerationRequest
 /** 실제 모델로 수정 프롬프트 초안을 만든다 (검토 화면의 "AI 수정 프롬프트 생성"). */
 export async function browserRevisionPrompt(state: DemoState, revisionId: string, body: unknown): Promise<DemoResponse> {
   const credential = browserRuntime.credential()
-  if (!credential) return badRequest('no_credential', '자격 증명이 없습니다. 상단 패널에서 API 키나 토큰을 먼저 넣으세요.')
+  if (!credential) return badRequest('no_credential', '자격 증명이 없습니다. 상단 오른쪽 자격 증명 칩을 눌러 API 키나 토큰을 먼저 넣으세요.')
   const detail = revisionDetail(state, revisionId)
   if (!detail) return notFound('revision')
   const ids = asRecord(body)['comment_ids']

@@ -21,7 +21,7 @@ export function HomePage({ project, projects, meta }: { project: Project; projec
       )}
       <section className="card">
         <div className="card-head">
-          <h2>{project.name}</h2>
+          <h2 data-testid="project-name">{project.name}</h2>
           <span className="actions">
             <a className="btn btn-small" data-testid="link-asis" href={hrefTo('asis')} title="4단계 프로세스 ① — 대상 서비스 분석·페인포인트">
               AS-IS 분석

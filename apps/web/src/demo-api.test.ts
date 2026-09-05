@@ -13,6 +13,7 @@ import {
   type DemoFiles,
   type DemoState,
 } from './demo-api.js'
+import { browserRuntime, setBrowserRuntime } from './browser-run/runtime.js'
 import type { AsisAnalysis, Comment, Job, ProjectDetail, RevisionDetail, ScreenDetail } from './types.js'
 
 const PROJECT = 'P1'
@@ -106,10 +107,23 @@ function newState(): DemoState {
 describe('GET — 스냅샷 조회', () => {
   it('저장된 경로는 그대로, 없는 경로는 404 오류 형태', () => {
     const state = newState()
-    expect(handleWith(state, 'GET', '/api/meta')).toEqual({ status: 200, data: { adapter: 'fixture', model: 'fixture', version: '0.0.0', playwright: true } })
+    // 스냅샷 meta 는 서버에서 찍혀 playwright:true 지만, 브라우저에서는 V3 를 돌릴 수 없으므로 false 로 덮어야 한다.
+    expect(handleWith(state, 'GET', '/api/meta')).toEqual({ status: 200, data: { adapter: 'fixture', model: 'fixture', version: '0.0.0', playwright: false } })
     const missing = handleWith(state, 'GET', '/api/revisions/없는것')
     expect(missing.status).toBe(404)
     expect(missing.data).toMatchObject({ error: 'not_found' })
+  })
+  it('브라우저 모드는 자격 증명이 있어도 실행 검사(Playwright) 가능이라고 말하지 않는다', () => {
+    const state = newState()
+    const before = browserRuntime.credential
+    setBrowserRuntime({ credential: () => ({ kind: 'api_key', value: 'sk-ant-test-1234', persist: false }) })
+    try {
+      const meta = handleWith(state, 'GET', '/api/meta').data as { adapter: string; playwright: boolean }
+      expect(meta.adapter).toBe('anthropic') // 자격 증명이 있으면 실제 호출 상태로 알린다
+      expect(meta.playwright).toBe(false) // 그래도 V3 는 브라우저에서 돌릴 수 없다
+    } finally {
+      setBrowserRuntime({ credential: before })
+    }
   })
   it('처리하지 않는 요청은 404 로 알린다 (조용히 성공시키지 않는다)', () => {
     expect(handleWith(newState(), 'DELETE', '/api/comments/x').status).toBe(404)

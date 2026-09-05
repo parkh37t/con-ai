@@ -1,19 +1,23 @@
 import { describe, expect, it } from 'vitest'
 import {
   ASIS_SAMPLE_URL,
+  asisDurationLabel,
   asisFailureLabel,
+  asisSignalRows,
   asisStatusLabel,
   asisStatusTone,
   isTerminalAsis,
+  filterPainPoints,
   painPointCountOf,
   painPointStatusLabel,
+  painPointTally,
   painPointStatusTone,
   severityLabel,
   severityTone,
   structureSummaryRows,
   validateAsisUrl,
 } from './asis.js'
-import type { AsisStructure } from './types.js'
+import type { AsisStructure, PainPoint } from './types.js'
 
 describe('AS-IS 상태·심각도 표시', () => {
   it('상태 한국어 표시와 색', () => {
@@ -126,5 +130,94 @@ describe('structureSummaryRows — 구조 요약 표', () => {
   it('구조가 없으면 빈 배열', () => {
     expect(structureSummaryRows(null)).toEqual([])
     expect(structureSummaryRows(undefined)).toEqual([])
+  })
+})
+
+describe('asisSignalRows — 문제 있는 항목만 고른다', () => {
+  const clean: AsisStructure = {
+    title: '깨끗한 페이지',
+    description: '서비스 한 줄 설명',
+    lang: 'ko',
+    headings: [{ level: 1, text: '제목' }],
+    nav_links: [{ text: '홈', href: '/' }],
+    forms: [],
+    buttons: [],
+    counts: { links: 5, images: 2, images_without_alt: 0, tables: 0, fields_without_label: 0, iframes: 0 },
+  }
+
+  it('정상값만 있으면 신호가 없다 (정상 항목을 신호로 올리지 않는다)', () => {
+    expect(asisSignalRows(clean)).toEqual([])
+  })
+
+  it('레이블 없는 필드·alt 없는 이미지·iframe 은 0보다 클 때만 신호', () => {
+    const rows = asisSignalRows({ ...clean, counts: { ...clean.counts, fields_without_label: 3, images_without_alt: 2, iframes: 1 } })
+    const byKey = new Map(rows.map((r) => [r.key, r]))
+    expect(byKey.get('fields_without_label')?.value).toBe('3개')
+    expect(byKey.get('images_without_alt')?.value).toBe('2개')
+    expect(byKey.get('iframes')?.value).toBe('1개')
+    expect(byKey.get('h1_missing')).toBeUndefined()
+    expect(byKey.get('description')).toBeUndefined()
+  })
+
+  it('h1 0건·내비 링크 15개 초과·meta description 없음', () => {
+    const nav = Array.from({ length: 18 }, (_, i) => ({ text: `메뉴${i}`, href: `/${i}` }))
+    const rows = asisSignalRows({ ...clean, description: '  ', headings: [{ level: 2, text: '소제목' }], nav_links: nav })
+    const byKey = new Map(rows.map((r) => [r.key, r]))
+    expect(byKey.get('h1_missing')?.value).toBe('0건')
+    expect(byKey.get('nav_links')?.value).toBe('18개')
+    expect(byKey.get('description')?.value).toBe('없음')
+  })
+
+  it('내비 링크가 기준(15) 이하면 신호가 아니다', () => {
+    const nav = Array.from({ length: 15 }, (_, i) => ({ text: `메뉴${i}`, href: `/${i}` }))
+    expect(asisSignalRows({ ...clean, nav_links: nav }).some((r) => r.key === 'nav_links')).toBe(false)
+  })
+
+  it('구조가 없으면 빈 배열', () => {
+    expect(asisSignalRows(null)).toEqual([])
+    expect(asisSignalRows(undefined)).toEqual([])
+  })
+})
+
+describe('페인포인트 필터·집계', () => {
+  const pp = (id: string, severity: PainPoint['severity'], status: PainPoint['status']): PainPoint => ({
+    id,
+    area: '입력 폼',
+    severity,
+    description: '설명',
+    evidence: '근거',
+    suggestion: '제안',
+    status,
+  })
+  const list = [pp('PP-001', 'high', 'proposed'), pp('PP-002', 'medium', 'adopted'), pp('PP-003', 'low', 'rejected'), pp('PP-004', 'medium', 'proposed')]
+
+  it('상태별 건수를 센다', () => {
+    expect(painPointTally(list)).toEqual({ total: 4, proposed: 2, adopted: 1, rejected: 1 })
+    expect(painPointTally([])).toEqual({ total: 0, proposed: 0, adopted: 0, rejected: 0 })
+  })
+
+  it("기본값('전체','전체')은 순서·건수를 그대로 둔다", () => {
+    expect(filterPainPoints(list, 'all', 'all').map((p) => p.id)).toEqual(['PP-001', 'PP-002', 'PP-003', 'PP-004'])
+  })
+
+  it('심각도·상태 필터는 AND 로 걸린다', () => {
+    expect(filterPainPoints(list, 'medium', 'all').map((p) => p.id)).toEqual(['PP-002', 'PP-004'])
+    expect(filterPainPoints(list, 'all', 'proposed').map((p) => p.id)).toEqual(['PP-001', 'PP-004'])
+    expect(filterPainPoints(list, 'medium', 'proposed').map((p) => p.id)).toEqual(['PP-004'])
+    expect(filterPainPoints(list, 'high', 'rejected')).toEqual([])
+  })
+})
+
+describe('asisDurationLabel — 소요 시간', () => {
+  it('ms·초·분 단위로 표시한다', () => {
+    expect(asisDurationLabel('2026-09-05T00:00:00.000Z', '2026-09-05T00:00:00.400Z')).toBe('400ms')
+    expect(asisDurationLabel('2026-09-05T00:00:00.000Z', '2026-09-05T00:00:01.500Z')).toBe('1.5초')
+    expect(asisDurationLabel('2026-09-05T00:00:00.000Z', '2026-09-05T00:01:30.000Z')).toBe('1분 30초')
+  })
+  it('값이 없거나 뒤집혔으면 null (0 으로 위장하지 않는다)', () => {
+    expect(asisDurationLabel(undefined, '2026-09-05T00:00:01.000Z')).toBeNull()
+    expect(asisDurationLabel('2026-09-05T00:00:01.000Z', undefined)).toBeNull()
+    expect(asisDurationLabel('2026-09-05T00:00:02.000Z', '2026-09-05T00:00:01.000Z')).toBeNull()
+    expect(asisDurationLabel('nope', '2026-09-05T00:00:01.000Z')).toBeNull()
   })
 })

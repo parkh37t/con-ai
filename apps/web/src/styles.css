@@ -20,6 +20,14 @@
   --gray: #374151;
   --gray-bg: #e5e7eb;
   --radius: 6px;
+  /* 설계서 렌더러·메인 화면과 같은 언어 (흰 바탕·검정 위주·얇은 선·파랑 강조 하나).
+     의미색(빨강·주황)은 AS-IS 심각도에만 쓴다 — 이 제품에서 색이 뜻을 갖는 유일한 자리다. */
+  --doc-ink: #111111;
+  --doc-text: #222222;
+  --doc-line-soft: #dddddd;
+  --doc-muted: #666666;
+  --doc-accent: #1d6ef5;
+  --doc-accent-soft: #eef4ff;
 }
 
 * {
@@ -78,30 +86,35 @@ ul {
   display: flex;
   flex-direction: column;
 }
-/* 정적 데모(GitHub Pages) 안내 배너 — 데모 빌드에서만 렌더된다 */
+/* 정적 데모 안내 — 메인·만들기·설계서(자체 상단 바) 화면에만 남는 한 줄 띠.
+   노란 배경을 쓰면 바로 아래 내비와 색이 겹쳐 어디가 머리인지 흐려졌다 → 무채색으로 낮춘다.
+   앱 셸(내비가 있는 화면)에서는 이 띠 대신 내비 오른쪽 「정적 데모」 칩으로 흡수했다. */
 .demo-banner {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   flex-wrap: wrap;
-  padding: 6px 20px;
-  background: var(--amber-bg);
-  color: var(--amber);
+  padding: 5px 20px;
+  background: #f8fafc;
+  color: var(--muted);
   border-bottom: 1px solid var(--border);
-  font-size: 13px;
+  font-size: 12px;
 }
 .demo-banner a {
-  color: var(--amber);
+  color: var(--muted);
 }
-/* 자격 증명 패널 (정적 배포 전용) — 내 토큰으로 실제 호출하기 위한 입력. 값은 화면에 다시 표시하지 않는다. */
+/* 자격 증명 패널 (정적 배포 전용) — 내 토큰으로 실제 호출하기 위한 입력. 값은 화면에 다시 표시하지 않는다.
+   기본은 접힘: 상단 바의 칩을 눌렀을 때만 열린다 (예전 기본 펼침이 본문을 170px 넘게 밀어냈다). */
 .cred-panel {
-  padding: 8px 20px;
+  padding: 10px 20px 12px;
   background: #ffffff;
   border-bottom: 1px solid var(--border);
   font-size: 13px;
 }
-.cred-panel[data-active='true'] {
-  background: var(--green-bg, #f2fbf5);
+.cred-head-right {
+  margin-left: auto;
+  display: inline-flex;
+  gap: 6px;
 }
 .cred-head,
 .cred-fields,
@@ -124,44 +137,60 @@ ul {
 .cred-foot {
   margin-top: 6px;
 }
-.topbar {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 8px 20px;
-  background: #ffffff;
-  border-bottom: 1px solid var(--border);
+.topdock {
   position: sticky;
   top: 0;
   z-index: 10;
+}
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 20px;
+  min-height: 46px;
+  background: #ffffff;
+  border-bottom: 1px solid var(--border);
   flex-wrap: wrap;
 }
-.topbar-left {
-  display: flex;
-  align-items: baseline;
-  gap: 12px;
-}
+/* 제품명 — 메뉴보다 한 단계 위. 프로젝트명은 여기 두지 않는다(본문 헤더가 가진다). */
 .brand {
-  font-weight: 700;
+  font-size: 14.5px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
   text-decoration: none;
-  color: var(--text);
+  color: var(--doc-ink);
+  white-space: nowrap;
 }
-.project-name {
-  color: var(--muted);
+/* 이름과 메뉴를 가르는 얇은 세로선 */
+.topbar-sep {
+  flex: none;
+  width: 1px;
+  height: 18px;
+  background: var(--border);
 }
 .topbar-nav {
   display: flex;
-  gap: 4px;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
 }
+/* 현재 메뉴는 배경 박스가 아니라 밑줄 — 설계서 GNB 와 같은 언어 */
 .topbar-nav a {
-  padding: 4px 10px;
-  border-radius: var(--radius);
+  padding: 13px 0;
+  font-size: 13.5px;
+  color: #555555;
   text-decoration: none;
-  color: var(--text);
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
 }
-.topbar-nav a.active,
 .topbar-nav a:hover {
-  background: var(--gray-bg);
+  color: var(--doc-ink);
+  border-bottom-color: var(--doc-line-soft);
+}
+.topbar-nav a.active {
+  color: var(--doc-ink);
+  font-weight: 700;
+  border-bottom-color: var(--doc-ink);
 }
 .topbar-right {
   margin-left: auto;
@@ -183,6 +212,55 @@ ul {
 }
 .page-wide {
   max-width: 1800px;
+}
+/* 읽는 화면(AS-IS 목록·상세)의 본문 폭 — 1440px 에서도 한 줄이 길어지지 않게 */
+.page-reading {
+  max-width: 960px;
+}
+.page-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 2px;
+}
+.page-head-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.page-head h2 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--doc-ink);
+}
+.page-meta {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.page-lead {
+  margin: 8px 0 0;
+  max-width: 70ch;
+  font-size: 13.5px;
+  line-height: 1.7;
+  color: #444444;
+}
+/* 한국어 본문은 단어 중간에서 끊지 않는다 (읽는 덩어리를 지킨다) */
+.page-lead,
+.asis-summary,
+.pp-desc,
+.pp-line,
+.signal-text {
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+.section-title {
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--doc-ink);
 }
 .breadcrumb {
   color: var(--muted);
@@ -807,20 +885,324 @@ textarea {
   width: auto;
 }
 
-/* AS-IS 분석 (계약 §12) */
+/* ================================================================
+   AS-IS 분석 (계약 §12)
+   흰 바탕·검정 위주·얇은 테두리 카드. 강조는 파랑(--doc-accent) 하나.
+   ★ 예외: 심각도(높음 빨강 · 중간 주황 · 낮음 회색)와 「발견된 신호」의 붉은 계열만
+     의미를 갖는 색을 쓴다. 제품 전체에서 색이 뜻을 갖는 자리는 여기뿐이다.
+   ================================================================ */
 .asis-url {
   word-break: break-all;
 }
 .asis-summary {
   white-space: pre-wrap;
+  max-width: 76ch;
+  line-height: 1.75;
 }
+
+/* ── 실행 폼: URL + 버튼 한 줄, 메모는 보조 입력 ── */
+.asis-run-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.asis-url-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+.asis-run-row .btn {
+  flex: none;
+  white-space: nowrap;
+}
+.asis-run-hint {
+  margin: 7px 0 0;
+}
+.asis-note-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+.asis-note-field > span {
+  flex: none;
+  white-space: nowrap;
+}
+.asis-note-field input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* ── 목록: 표 대신 행 카드 (URL 이 주인공) ── */
+.asis-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.asis-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--doc-line-soft);
+  border-radius: 8px;
+  background: #ffffff;
+}
+.asis-row:hover {
+  border-color: var(--doc-ink);
+}
+.asis-row-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.asis-row-url {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--doc-ink);
+  text-decoration: none;
+  word-break: break-all;
+}
+.asis-row-url:hover {
+  text-decoration: underline;
+  text-decoration-color: var(--doc-accent);
+}
+.asis-row-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.asis-row-meta strong {
+  color: var(--doc-ink);
+  font-weight: 700;
+}
+.asis-row-note {
+  padding-left: 10px;
+  border-left: 1px solid var(--doc-line-soft);
+}
+.asis-row .btn {
+  flex: none;
+}
+
+/* ── 상세 헤더: 대상 URL 이 제목, 나머지는 한 줄 메타 ── */
+.asis-head h2 {
+  margin: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: clamp(16px, 2.1vw, 21px);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.4;
+  color: var(--doc-ink);
+  word-break: break-all;
+}
+.asis-head-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 8px 0 0;
+  font-size: 12.5px;
+}
+.asis-head-note {
+  margin: 6px 0 0;
+}
+
+/* ── 발견된 신호: 문제 있는 항목만 (의미색 예외 ①) ── */
+.signal-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.signal {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  padding: 10px 12px;
+  border: 1px solid #f0cccc;
+  border-left: 3px solid #c0392b;
+  border-radius: 6px;
+  background: #fdf7f7;
+}
+.signal-value {
+  flex: none;
+  min-width: 58px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 15px;
+  font-weight: 800;
+  color: #a52f22;
+}
+.signal-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 70ch;
+}
+.signal-text strong {
+  font-weight: 700;
+  color: var(--doc-ink);
+}
+
+/* ── 페인포인트: 필터 칩 + 카드 목록 ── */
+.pp-filters {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--doc-line-soft);
+}
+.pp-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+.pp-filter-label {
+  margin-right: 2px;
+}
+.pp-tally {
+  margin-left: auto;
+}
+.pp-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.pp-card {
+  display: flex;
+  border: 1px solid var(--doc-line-soft);
+  border-radius: 8px;
+  background: #ffffff;
+  overflow: hidden;
+}
+/* 심각도 스트라이프 (의미색 예외 ②) */
+.pp-stripe {
+  flex: none;
+  width: 4px;
+  align-self: stretch;
+  background: #b9c0c8;
+}
+.pp-stripe-high {
+  background: #c0392b;
+}
+.pp-stripe-medium {
+  background: #d98324;
+}
+.pp-stripe-low {
+  background: #b9c0c8;
+}
+.pp-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+}
+.pp-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.pp-id {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--doc-ink);
+  background: #f1f3f5;
+  padding: 1px 6px;
+  border-radius: 3px;
+}
+.pp-area {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--doc-ink);
+}
+/* 채택·거부는 가로로 나란히 (세로로 쌓이지 않게) */
+.pp-actions {
+  margin-left: auto;
+  display: inline-flex;
+  gap: 6px;
+  flex: none;
+}
+.pp-desc {
+  margin: 2px 0 0;
+  max-width: 70ch;
+  font-size: 13.5px;
+  line-height: 1.7;
+  color: var(--doc-text);
+}
+.pp-line {
+  margin: 0;
+  max-width: 80ch;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: #444444;
+}
+.pp-tag {
+  display: inline-block;
+  min-width: 28px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+}
+.pp-evidence {
+  font-size: 11.5px;
+  color: #555555;
+  background: #f6f7f9;
+  word-break: break-all;
+}
+.pp-evidence-more {
+  margin: 0;
+}
+.pp-evidence-more > summary {
+  cursor: pointer;
+  list-style: none;
+  font-size: 12.5px;
+  color: #444444;
+}
+.pp-evidence-more > summary::-webkit-details-marker {
+  display: none;
+}
+.pp-evidence-full {
+  display: block;
+  margin: 4px 0 0 28px;
+  white-space: pre-wrap;
+}
+/* 현재 상태인 버튼은 눌린 상태로 보여준다 (비활성이어도 흐려지지 않게) */
+.btn.is-on {
+  background: var(--doc-ink);
+  border-color: var(--doc-ink);
+  color: #ffffff;
+}
+.btn.is-on:disabled,
+.btn.is-on.disabled {
+  opacity: 1;
+  cursor: default;
+}
+
 .shot-toggle {
   display: flex;
   gap: 6px;
   margin-bottom: 8px;
 }
 .shot-wrap {
-  max-height: 640px;
+  max-height: 560px;
   overflow: auto;
   background: #e9ecef;
   border: 1px solid var(--border);
@@ -904,6 +1286,40 @@ textarea {
   border-color: var(--blue);
   color: var(--blue);
   font-weight: 600;
+}
+.chip-quiet {
+  background: #ffffff;
+  border-color: var(--border);
+  color: var(--muted);
+  text-decoration: none;
+}
+/* 유일한 강조색(파랑) — 실제 모델 호출처럼 "지금 진짜로 동작 중" 인 상태에만 쓴다 */
+.chip-accent {
+  background: var(--doc-accent-soft);
+  border-color: #c9dbf7;
+  color: #123f7b;
+  font-weight: 700;
+}
+.chip-red {
+  background: var(--red-bg);
+  border-color: #fca5a5;
+  color: var(--red);
+}
+button.chip,
+.chip-button {
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 1.5;
+  cursor: pointer;
+}
+button.chip:hover,
+.chip-button:hover {
+  border-color: var(--doc-ink);
+  color: var(--doc-ink);
+}
+.chip-current.chip-button:hover {
+  border-color: var(--blue);
+  color: var(--blue);
 }
 
 .simple-hero {
@@ -1475,5 +1891,70 @@ textarea {
   }
   .main-section {
     margin-top: 42px;
+  }
+}
+
+/* ── AS-IS·상단 바 좁은 화면 (모바일 390px 포함) ── */
+@media (max-width: 720px) {
+  /* 좁은 화면에서는 상단 바가 여러 줄이 되므로 고정하지 않는다 (본문 높이를 잡아먹지 않게) */
+  .topdock {
+    position: static;
+  }
+  .topbar {
+    padding: 0 14px 4px;
+    gap: 10px;
+  }
+  .topbar-right .chip {
+    font-size: 11.5px;
+    padding: 2px 7px;
+  }
+  .topbar-nav {
+    gap: 14px;
+  }
+  .topbar-nav a {
+    padding: 9px 0;
+  }
+  .topbar-right {
+    width: 100%;
+    margin-left: 0;
+    padding-bottom: 8px;
+  }
+  .topbar-sep {
+    display: none;
+  }
+  .cred-panel,
+  .demo-banner {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+  .main {
+    padding: 14px 14px 40px;
+  }
+  .asis-run-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .asis-note-field {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+  }
+  .asis-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .asis-row .btn {
+    align-self: flex-start;
+  }
+  .pp-tally,
+  .pp-actions {
+    margin-left: 0;
+  }
+  .pp-actions {
+    width: 100%;
+  }
+  .signal {
+    flex-direction: column;
+    gap: 4px;
   }
 }

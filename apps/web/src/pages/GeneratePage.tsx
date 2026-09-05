@@ -116,7 +116,7 @@ export function GeneratePage({ screenId, route }: { screenId: string; route: Rou
 
       {IS_DEMO && !hasCredential && (
         <div className="notice notice-amber" data-testid="browser-mode-hint">
-          지금은 스냅샷 데모입니다 — 생성 실행은 저장된 결과를 보여줄 뿐입니다. <strong>위 자격 증명 패널에 토큰을 넣으면 실제로 생성됩니다</strong> (이 브라우저가 api.anthropic.com 을 직접 호출).
+          지금은 스냅샷 데모입니다 — 생성 실행은 저장된 결과를 보여줄 뿐입니다. <strong>상단 오른쪽 자격 증명 칩을 눌러 토큰을 넣으면 실제로 생성됩니다</strong> (이 브라우저가 api.anthropic.com 을 직접 호출).
         </div>
       )}
 
