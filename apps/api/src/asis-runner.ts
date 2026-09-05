@@ -8,11 +8,23 @@
  * - 데스크톱 1280×800 fullPage PNG → 모바일 390×844 PNG(viewport 변경) → page.evaluate 로 structure 추출(각 목록 상위 30 절단).
  * - draftPainPoints 실패는 failed(code 'draft'), 그 밖의 예외는 failed(code 'internal').
  * - 절대 실패를 succeeded 로 표시하지 않는다. 성공 시에만 asis_asset 2건과 pain_points(`PP-001`…, status 'proposed')를 저장한다.
+ *
+ * SSRF 차단 (ssrf.ts, docs/plan/배포.md §7) — 요청 접수(app.ts POST)와 별개로 러너에서도 막는다.
+ * 접수 때 통과한 URL 이 리다이렉트로 내부 주소에 도달할 수 있기 때문이다.
+ *  1. 나가는 요청: `page.route('**\/*')` 로 http/https 요청마다 checkUrl → 차단 대역이면 abort(요청 자체를 막는다).
+ *     해석 결과는 cacheResolve 로 호스트 단위 캐시라 요청마다 DNS 를 치지 않는다.
+ *  2. 리다이렉트 각 단계: **route 핸들러는 리다이렉트로 이어진 요청에는 다시 불리지 않는다**(이 저장소의
+ *     Playwright 1.63 으로 확인했다 — 302 를 따라간 요청은 `page.on('request')` 로만 보인다). 그래서
+ *     redirectedFrom 이 있는 요청을 따로 검사한다. 이미 나간 요청이라 **막지는 못하고 탐지**만 한다 —
+ *     메인 문서 체인에 내부 주소가 끼어 있었으면 캡처하지 않고 failed(code 'blocked') 로 끝낸다.
+ *  3. 최종 URL: goto 후 `page.url()`(리다이렉트 결과)을 다시 checkUrl → 위반이면 캡처·구조 추출을 하지 않는다.
+ * 차단된 **하위 리소스**는 분석을 실패시키지 않는다 — structure 에만 영향을 주고 `blocked_requests` 로 몇 건인지 남긴다.
  */
 import { chromium, type Browser, type Page } from 'playwright'
 import type { AsisStructure, ModelAdapter, PainPointSeverity } from '@con-ai/model-adapter'
 import { launchPlan } from '@con-ai/validators'
 import type { Store, StoredDocument } from '@con-ai/worker-generation'
+import { cacheResolve, checkUrl, lookupResolve, parsePolicy, type SsrfPolicy, type SsrfResolve, type SsrfVerdict } from './ssrf.js'
 import type { AssetStore } from './store.js'
 
 export type AsisStore = Store & AssetStore
@@ -20,7 +32,14 @@ export type AsisStore = Store & AssetStore
 // ---------- 문서 타입 (계약 §12 kind `asis_analysis`) ----------
 
 export type AsisStatus = 'queued' | 'running' | 'succeeded' | 'failed'
-export type AsisFailureCode = 'navigation' | 'browser' | 'draft' | 'internal'
+/**
+ * 계약 §12 의 네 코드 + SSRF 차단용 'blocked'.
+ * `navigation` 을 재사용하지 않은 이유: "대상이 죽어 있었다" 와 "정책이 거부했다" 는 운영자가 다르게 대응해야 한다
+ * (전자는 재시도, 후자는 ASIS_ALLOW_PRIVATE/ASIS_ALLOWED_HOSTS 설정). 웹은 `AsisFailure.code` 를
+ * `AsisFailureCode | (string & {})` 로 두고 모르는 코드는 그대로 보여주도록 이미 만들어져 있어(apps/web/src/types.ts,
+ * asis.ts `ASIS_FAILURE_LABELS[code] ?? code`) 코드를 늘려도 표시가 깨지지 않는다. 한국어 설명은 message 에 담는다.
+ */
+export type AsisFailureCode = 'navigation' | 'browser' | 'draft' | 'internal' | 'blocked'
 export type AsisPainPointStatus = 'proposed' | 'adopted' | 'rejected'
 
 export interface AsisPainPoint {
@@ -53,6 +72,13 @@ export interface AsisAnalysisDocument {
   screenshots?: { desktop: string; mobile: string } | undefined
   summary?: string | undefined
   pain_points: AsisPainPoint[]
+  /**
+   * SSRF 정책이 막은 요청 수(하위 리소스 포함). route 로 abort 한 것과, 리다이렉트 단계에서 뒤늦게 잡은 것을 함께 센다.
+   * 계약 §12 에 없는 추가 필드이지만 저장은 kind 별 JSON 이고 웹은 모르는 필드를 무시하므로
+   * (apps/web 의 AsisAnalysis 는 TS 인터페이스일 뿐이다) 스키마·표시를 깨지 않는다.
+   * 스크린샷에 이미지가 비어 보이는 이유를 설명하기 위해 남긴다.
+   */
+  blocked_requests?: number | undefined
 }
 
 // ---------- 러너 ----------
@@ -71,6 +97,19 @@ export interface AsisRunnerDeps {
   env?: NodeJS.ProcessEnv | undefined
   /** goto 제한 시간 (기본 20초, 계약 §12). 테스트에서만 바꾼다. */
   navigation_timeout_ms?: number | undefined
+  /** SSRF 정책 (기본 parsePolicy(env)). */
+  ssrf_policy?: SsrfPolicy | undefined
+  /** 호스트 해석기 (기본 node:dns lookup). 테스트에서 특정 호스트만 사설로 보이게 주입한다. */
+  ssrf_resolve?: SsrfResolve | undefined
+}
+
+/** 메인 프레임의 문서 요청인가 (리다이렉트 각 단계 포함). 서비스 워커 요청 등에서는 frame() 이 던질 수 있어 감싼다. */
+function isMainNavigation(request: { isNavigationRequest: () => boolean; frame: () => unknown }, page: Page): boolean {
+  try {
+    return request.isNavigationRequest() && request.frame() === page.mainFrame()
+  } catch {
+    return false
+  }
 }
 
 function firstLine(e: unknown): string {
@@ -90,6 +129,10 @@ export async function runAsisAnalysis(analysisId: string, deps: AsisRunnerDeps):
 
   const env = deps.env ?? process.env
   const timeout = deps.navigation_timeout_ms ?? ASIS_NAVIGATION_TIMEOUT_MS
+  const policy = deps.ssrf_policy ?? parsePolicy(env)
+  // 이 분석 실행 동안만 사는 호스트 단위 캐시 — 하위 리소스마다 DNS 를 다시 치지 않는다.
+  const resolve = cacheResolve(deps.ssrf_resolve ?? lookupResolve)
+  const guard = (target: string) => checkUrl(target, policy, resolve)
 
   /** 항상 최신 revision 을 다시 읽어 저장한다 (PATCH 와의 충돌 방지 — 큐는 순차라 실제 충돌은 드물다). */
   const save = (patch: Partial<AsisAnalysisDocument>): StoredDocument<AsisAnalysisDocument> => {
@@ -97,8 +140,8 @@ export async function runAsisAnalysis(analysisId: string, deps: AsisRunnerDeps):
     if (!fresh) throw new Error(`AS-IS 분석 문서가 사라졌다: ${analysisId}`)
     return deps.store.put<AsisAnalysisDocument>('asis_analysis', analysisId, { ...fresh.data, ...patch }, fresh.revision)
   }
-  const fail = (code: AsisFailureCode, message: string): void => {
-    save({ status: 'failed', failure: { code, message }, finished_at: deps.now() })
+  const fail = (code: AsisFailureCode, message: string, extra?: Partial<AsisAnalysisDocument>): void => {
+    save({ status: 'failed', failure: { code, message }, finished_at: deps.now(), ...extra })
   }
 
   save({ status: 'running' })
@@ -126,13 +169,74 @@ export async function runAsisAnalysis(analysisId: string, deps: AsisRunnerDeps):
     let desktopPng: Uint8Array
     let mobilePng: Uint8Array
     let structure: AsisStructure
+    /** 정책이 막은 요청 수 — route 로 abort 한 것 + 리다이렉트 단계에서 뒤늦게 잡은 것(이미 나갔다). */
+    let blockedRequests = 0
+    /** 메인 문서(리다이렉트 각 단계 포함)가 막혔을 때의 사유 — goto 실패를 'navigation' 이 아니라 'blocked' 로 분류한다. */
+    let blockedNavigation: string | undefined
     try {
       const page = await browser.newPage({ viewport: { ...ASIS_DESKTOP_VIEWPORT } })
-      // 2. 이동 — 실패하면 failed('navigation') 에 원인을 남긴다.
+
+      // 1-2. 나가는 요청마다 검사 — 차단 대역이면 abort. 메인 문서의 첫 요청과 모든 하위 리소스가 여기를 지난다
+      //      (리다이렉트로 이어진 요청은 여기 오지 않는다 — 아래 1-3).
+      await page.route('**/*', async (route) => {
+        const request = route.request()
+        const target = request.url()
+        let verdict: SsrfVerdict
+        try {
+          // http/https 가 아닌 스킴(data:·blob:)은 네트워크로 나가지 않으므로 검사 대상이 아니다.
+          verdict = /^https?:$/i.test(new URL(target).protocol) ? await guard(target) : { allowed: true, ips: [] }
+        } catch (e) {
+          // 검사 자체가 실패하면 통과시키지 않는다 (fail closed).
+          verdict = { allowed: false, code: 'invalid_url', reason: `요청 URL 을 검사하지 못했다: ${firstLine(e)}` }
+        }
+        // 페이지가 이동·종료되면 route 처리가 이미 끝나 있을 수 있다 — 그때의 예외는 분석 실패 사유가 아니다.
+        if (verdict.allowed) {
+          await route.continue().catch(() => undefined)
+          return
+        }
+        blockedRequests += 1
+        if (isMainNavigation(request, page) && blockedNavigation === undefined) blockedNavigation = `${target} — ${verdict.reason}`
+        await route.abort('blockedbyclient').catch(() => undefined)
+      })
+
+      // 1-3. 리다이렉트로 이어진 요청은 route 핸들러가 다시 불리지 않는다 — 여기서만 보인다.
+      //      이미 나간 요청이라 막을 수는 없지만, 체인 중간에 내부 주소가 끼었는지 탐지해 캡처를 막는다.
+      const pendingChecks: Array<Promise<void>> = []
+      page.on('request', (request) => {
+        if (request.redirectedFrom() === null) return // 첫 요청은 위 route 핸들러가 이미 막는다 (중복 집계 방지)
+        const target = request.url()
+        pendingChecks.push(
+          (async () => {
+            if (!/^https?:$/i.test(new URL(target).protocol)) return
+            const verdict = await guard(target)
+            if (verdict.allowed) return
+            blockedRequests += 1
+            if (isMainNavigation(request, page) && blockedNavigation === undefined) blockedNavigation = `${target} — ${verdict.reason}`
+          })().catch(() => undefined),
+        )
+      })
+
+      // 2. 이동 — 실패하면 failed('navigation') 에 원인을 남긴다. 정책이 막아서 실패한 것이면 'blocked'.
       try {
         await page.goto(url, { waitUntil: 'domcontentloaded', timeout })
       } catch (e) {
-        fail('navigation', `URL 로 이동하지 못했다 (${url}): ${firstLine(e)}`)
+        await Promise.all(pendingChecks)
+        if (blockedNavigation !== undefined) fail('blocked', `분석 대상이 정책에 막혔다: ${blockedNavigation}`, { blocked_requests: blockedRequests })
+        else fail('navigation', `URL 로 이동하지 못했다 (${url}): ${firstLine(e)}`)
+        return
+      }
+      // 2-2. 리다이렉트 체인 검사 결과를 반영한 뒤 판단한다 (내부 주소를 거쳐 왔으면 캡처하지 않는다).
+      await Promise.all(pendingChecks)
+      if (blockedNavigation !== undefined) {
+        fail('blocked', `분석 대상이 정책에 막힌 주소를 거쳐 갔다: ${blockedNavigation}`, { blocked_requests: blockedRequests })
+        return
+      }
+      // 2-3. 최종 URL 재검사 — 리다이렉트 후 실제로 열린 주소가 정책을 지키는지 본다.
+      //      위반이면 캡처·구조 추출을 하지 않고 끝낸다 (내부 페이지를 스크린샷으로 유출하지 않는다).
+      const finalUrl = page.url()
+      const finalVerdict = await guard(finalUrl)
+      if (!finalVerdict.allowed) {
+        fail('blocked', `리다이렉트 후 최종 URL 이 정책에 막혔다 (${finalUrl}): ${finalVerdict.reason}`, { blocked_requests: blockedRequests })
         return
       }
       // 3. 스크린샷 — 데스크톱 fullPage → 모바일(viewport 변경).
@@ -141,6 +245,8 @@ export async function runAsisAnalysis(analysisId: string, deps: AsisRunnerDeps):
       mobilePng = await page.screenshot({ type: 'png' })
       // 4. structure 추출.
       structure = await extractStructure(page)
+      // 캡처 중에 늦게 나간 요청(리다이렉트 하위 리소스)의 검사까지 반영해 blocked_requests 를 센다.
+      await Promise.all(pendingChecks)
     } finally {
       await browser.close().catch(() => undefined)
     }
@@ -165,6 +271,7 @@ export async function runAsisAnalysis(analysisId: string, deps: AsisRunnerDeps):
       screenshots,
       summary: drafted.summary,
       pain_points: assignPainPointIds(drafted.pain_points),
+      blocked_requests: blockedRequests,
     })
   } catch (e) {
     // 위에서 분류하지 못한 예외 — 실패를 succeeded 로 위장하지 않는다.

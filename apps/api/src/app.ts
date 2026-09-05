@@ -42,6 +42,7 @@ import { buildMeta, detectPlaywright } from './meta.js'
 import { JobQueue, recoverInterruptedJobs } from './queue.js'
 import { mountWebStatic, notFoundBody } from './runtime.js'
 import { ApprovalBody, AsisCreateBody, AsisPainPointPatchBody, CommentBody, CommentPatchBody, RevisionPromptBody, SliceGenerationRequestBody, toSliceRequest } from './schemas.js'
+import { checkUrl, lookupResolve, parsePolicy, type SsrfPolicy, type SsrfResolve } from './ssrf.js'
 
 /** 생성 HTML 응답의 CSP (계약 §7): 외부 자원 없음, 인라인 스타일·스크립트만, 이미지는 data: 만. */
 export const ARTIFACT_HTML_CSP = "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:"
@@ -64,6 +65,10 @@ export interface AppOptions {
    */
   web_dist?: string | undefined
   env?: NodeJS.ProcessEnv | undefined
+  /** AS-IS 분석 대상 URL 정책 (SSRF 차단, ssrf.ts). 기본은 env 에서 읽는다. 테스트에서 주입한다. */
+  ssrf_policy?: SsrfPolicy | undefined
+  /** 호스트 → IP 해석기. 기본은 node:dns lookup. 테스트에서 특정 호스트만 사설로 보이게 주입한다. */
+  ssrf_resolve?: SsrfResolve | undefined
   now?: (() => string) | undefined
   newId?: (() => string) | undefined
   required_check_ids?: readonly string[] | undefined
@@ -97,9 +102,12 @@ export function createApp(options: AppOptions): ConAiApp {
   const deps: PipelineDeps = { store, adapter, render: options.render, validate: options.validate, now, newId, required_check_ids: requiredCheckIds, profile, assembler: options.assembler }
   const recovered = recoverInterruptedJobs(store, now)
   const recoveredAsis = recoverInterruptedAsisAnalyses(store, now)
+  // SSRF 정책은 접수(POST)와 러너가 **같은 것**을 쓴다 — 두 곳의 판단이 갈리면 우회가 생긴다.
+  const ssrfPolicy = options.ssrf_policy ?? parsePolicy(env)
+  const ssrfResolve = options.ssrf_resolve ?? lookupResolve
   const queue = new JobQueue({
     deps,
-    runAsis: (analysisId) => runAsisAnalysis(analysisId, { store, adapter, now, env }),
+    runAsis: (analysisId) => runAsisAnalysis(analysisId, { store, adapter, now, env, ssrf_policy: ssrfPolicy, ssrf_resolve: ssrfResolve }),
     onError: (jobId, err) => log(`[queue] 작업 ${jobId} 예외: ${err instanceof Error ? err.message : String(err)}`),
   })
 
@@ -503,6 +511,14 @@ export function createApp(options: AppOptions): ConAiApp {
     if (!project) return notFound(c, '프로젝트')
     const parsed = await parseJson(c, AsisCreateBody)
     if ('response' in parsed) return parsed.response
+    // SSRF 차단 (docs/plan/배포.md §7) — 사설·루프백·링크로컬(클라우드 메타데이터)로 가는 URL 은 접수하지 않는다.
+    // 문맥 검증 실패와 같은 관례: 400 + 이유. 분석 문서를 만들지 않으므로 큐에도 들어가지 않는다.
+    const verdict = await checkUrl(parsed.data.url, ssrfPolicy, ssrfResolve)
+    if (!verdict.allowed) {
+      // 로그에는 호스트와 코드만 남긴다 — URL 에 자격 증명(user:pass@)이 들어 있을 수 있다.
+      log(`[asis] 대상 URL 거부 (${verdict.code}): ${hostOf(parsed.data.url)}`)
+      return c.json({ error: 'blocked_url', code: verdict.code, message: verdict.reason, reasons: [verdict.reason] }, 400)
+    }
     const id = newId()
     const doc: AsisAnalysisDocument = {
       id,
@@ -571,6 +587,15 @@ export function createApp(options: AppOptions): ConAiApp {
 }
 
 // ---------- 보조 ----------
+
+/** 로그용 호스트만 뽑는다 (자격 증명·경로·질의는 남기지 않는다). 읽을 수 없으면 '(URL 아님)'. */
+function hostOf(url: string): string {
+  try {
+    return new URL(url).host
+  } catch {
+    return '(URL 아님)'
+  }
+}
 
 function notFound(c: Context, what: string): Response {
   return c.json({ error: 'not_found', message: `${what}을(를) 찾을 수 없다` }, 404)

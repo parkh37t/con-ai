@@ -60,6 +60,7 @@ export const ASIS_FAILURE_LABELS: Readonly<Record<string, string>> = {
   navigation: '페이지 이동 실패',
   browser: '브라우저 실행 실패',
   draft: '페인포인트 초안 생성 실패',
+  blocked: '정책 차단 (사설·내부 주소)',
   internal: '내부 오류',
 }
 export function asisFailureLabel(code: string | undefined): string {
