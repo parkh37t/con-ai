@@ -15,7 +15,10 @@ export function TopBar({ meta, metaError, projectName, current }: { meta: Meta |
         <span className="project-name" data-testid="project-name">{projectName ?? '프로젝트를 불러오는 중…'}</span>
       </div>
       <nav className="topbar-nav" aria-label="주요 화면">
-        <a href={hrefTo('home')} className={current === 'home' ? 'active' : ''}>
+        <a href={hrefTo('home')} data-testid="nav-simple">
+          만들기
+        </a>
+        <a href={hrefTo('advanced')} className={current === 'home' ? 'active' : ''}>
           프로젝트 홈
         </a>
         <a href={hrefTo('references')} className={current === 'references' ? 'active' : ''}>

@@ -19,6 +19,9 @@ import type {
   ReasonLike,
   Reference,
   RevisionDetail,
+  Screen,
+  ScreenCreateInput,
+  ScreenCreateResponse,
   RevisionPromptDraft,
   ScreenDetail,
   SliceGenerationRequest,
@@ -129,6 +132,10 @@ export const api = {
   createJob: (screenId: string, req: SliceGenerationRequest) => request<{ job_id: string }>('POST', `/api/screens/${encodeURIComponent(screenId)}/generation-jobs`, req),
   job: (id: string) => request<Job>('GET', `/api/jobs/${encodeURIComponent(id)}`),
   screen: (id: string) => request<ScreenDetail>('GET', `/api/screens/${encodeURIComponent(id)}`),
+  /** 화면 만들기 (한 줄 입력 흐름). 외부 ID 는 서버가 자동 부여한다. */
+  createScreen: (projectId: string, body: ScreenCreateInput) => request<ScreenCreateResponse>('POST', `/api/projects/${encodeURIComponent(projectId)}/screens`, body),
+  /** 화면 제목만 수정 (외부 ID·별칭은 그대로). */
+  renameScreen: (id: string, title: string) => request<Screen>('PATCH', `/api/screens/${encodeURIComponent(id)}`, { title }),
   revision: (id: string) => request<RevisionDetail>('GET', `/api/revisions/${encodeURIComponent(id)}`),
   /**
    * 격리 iframe 이 읽는 산출물 HTML.

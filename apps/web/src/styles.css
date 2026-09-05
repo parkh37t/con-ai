@@ -838,3 +838,288 @@ textarea {
   width: 390px;
   max-width: 100%;
 }
+
+/* ================================================================
+   만들기(기본 화면, #/) · 설계서 결과(#/d/:id)
+   문장 하나 → 버튼 하나. 기술 용어·표·배지를 두지 않고 입력과 결과만 크게 보여준다.
+   ================================================================ */
+.main-simple {
+  padding: 0;
+}
+.simple-page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 18px 20px 60px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+.simple-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.simple-brand {
+  font-weight: 700;
+  font-size: 15px;
+}
+.simple-top-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.simple-advanced {
+  color: var(--muted);
+  font-size: 12px;
+  text-decoration: none;
+  border-bottom: 1px dotted var(--muted);
+}
+.chip {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: #ffffff;
+  font-size: 12px;
+  color: var(--muted);
+}
+.chip-amber {
+  background: var(--amber-bg);
+  border-color: #fcd34d;
+  color: var(--amber);
+}
+.chip-green {
+  background: var(--green-bg);
+  border-color: #86efac;
+  color: var(--green);
+}
+.chip-link {
+  text-decoration: none;
+  color: var(--text);
+}
+.chip-current {
+  background: var(--blue-bg);
+  border-color: var(--blue);
+  color: var(--blue);
+  font-weight: 600;
+}
+
+.simple-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 40px;
+}
+.simple-hero h1 {
+  margin: 0;
+  font-size: 27px;
+  font-weight: 700;
+  letter-spacing: -0.4px;
+}
+.simple-input {
+  width: 100%;
+  padding: 14px 16px;
+  font: inherit;
+  font-size: 16px;
+  line-height: 1.6;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+  resize: vertical;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+.simple-input:focus {
+  outline: 2px solid var(--primary);
+  outline-offset: -1px;
+}
+.simple-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.simple-actions .btn-big {
+  margin-left: auto;
+  padding: 10px 22px;
+  font-size: 15px;
+  font-weight: 600;
+  border-radius: 8px;
+}
+.simple-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--text);
+}
+.spinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--border);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation: none;
+  }
+}
+.simple-failure {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 1px solid #fca5a5;
+  border-radius: 8px;
+  background: var(--red-bg);
+  color: var(--red);
+}
+.simple-failure .btn {
+  margin-left: auto;
+}
+.simple-cred {
+  border: 1px solid var(--blue);
+  background: var(--blue-bg);
+  border-radius: 8px;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.simple-cred-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.simple-cred input[type='password'] {
+  flex: 1 1 260px;
+  padding: 6px 10px;
+  font: inherit;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.simple-auto {
+  color: var(--muted);
+  font-size: 12px;
+}
+.simple-auto summary {
+  cursor: pointer;
+}
+
+.simple-recent h2 {
+  font-size: 14px;
+  color: var(--muted);
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+.simple-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 12px;
+}
+.simple-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+  text-decoration: none;
+  color: var(--text);
+  min-height: 96px;
+}
+.simple-card:hover {
+  border-color: var(--primary);
+  box-shadow: 0 2px 8px rgba(29, 78, 216, 0.08);
+}
+.simple-card-foot {
+  margin-top: auto;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* 설계서 결과 — iframe 이 화면 대부분을 차지한다 */
+.design-page {
+  max-width: 1500px;
+  margin: 0 auto;
+  padding: 12px 16px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.design-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.design-title input {
+  font: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: transparent;
+  min-width: 220px;
+}
+.design-title input:hover {
+  border-color: var(--border);
+}
+.design-title input:focus {
+  border-color: var(--primary);
+  background: #ffffff;
+  outline: none;
+}
+.design-versions {
+  display: flex;
+  gap: 4px;
+}
+.design-top-right {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+}
+.design-frame {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #ffffff;
+  overflow: hidden;
+}
+.design-frame iframe {
+  display: block;
+  width: 100%;
+  height: 78vh;
+  min-height: 70vh;
+  border: 0;
+  background: #ffffff;
+}
+.design-edit {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.design-edit label {
+  font-weight: 600;
+}
+.design-edit input {
+  flex: 1 1 320px;
+  padding: 9px 12px;
+  font: inherit;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+}

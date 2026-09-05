@@ -51,6 +51,28 @@ export function toSliceRequest(screenId: string, body: SliceGenerationRequestBod
   return req
 }
 
+/**
+ * 화면 생성 (한 줄 입력 → 화면설계서). 외부 ID 는 서버가 자동 부여하므로 본문에 받지 않는다.
+ * `sample_from` 은 예시 더미데이터를 복제해 올 레퍼런스 id (선택).
+ */
+export const ScreenCreateBody = z.strictObject({
+  title: NonEmpty.max(120, '제목은 120자 이하여야 한다'),
+  device: z.enum(['desktop', 'mobile']).default('desktop'),
+  shell: z
+    .string()
+    .trim()
+    .regex(/^[a-z][a-z0-9]*(?:-[a-z0-9]+)*-(?:page|popup)$/, 'shell 은 `<포털>-page` 또는 `<포털>-popup` 형식이어야 한다')
+    .optional(),
+  sample_from: z.string().optional(),
+})
+export type ScreenCreateBody = z.infer<typeof ScreenCreateBody>
+
+/** 화면 제목 수정 — 외부 ID·별칭·상태는 바꾸지 않는다 (개명은 별도 작업, CLAUDE.md ID 규칙). */
+export const ScreenPatchBody = z.strictObject({
+  title: NonEmpty.max(120, '제목은 120자 이하여야 한다'),
+})
+export type ScreenPatchBody = z.infer<typeof ScreenPatchBody>
+
 export const CommentBody = z.strictObject({
   target: z.enum(['screen', 'description']),
   element_id: z.string().optional(),

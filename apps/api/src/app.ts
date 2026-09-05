@@ -28,6 +28,7 @@ import {
   type ProjectDocument,
   type PromptAssembler,
   type PromptTemplateDocument,
+  type DummyDataDocument,
   type ReferenceDocument,
   type RequirementDocument,
   type ScreenDocument,
@@ -41,7 +42,8 @@ import { EXPORT_VERSION, exportApprovedRevision, summarizeValidation } from './e
 import { buildMeta, detectPlaywright } from './meta.js'
 import { JobQueue, recoverInterruptedJobs } from './queue.js'
 import { mountWebStatic, notFoundBody } from './runtime.js'
-import { ApprovalBody, AsisCreateBody, AsisPainPointPatchBody, CommentBody, CommentPatchBody, RevisionPromptBody, SliceGenerationRequestBody, toSliceRequest } from './schemas.js'
+import { ApprovalBody, AsisCreateBody, AsisPainPointPatchBody, CommentBody, CommentPatchBody, RevisionPromptBody, ScreenCreateBody, ScreenPatchBody, SliceGenerationRequestBody, toSliceRequest } from './schemas.js'
+import { copyDummyForNewScreen, deriveShell, newScreenDocument, nextScreenExternalId } from './screens.js'
 import { checkUrl, lookupResolve, parsePolicy, type SsrfPolicy, type SsrfResolve } from './ssrf.js'
 
 /** 생성 HTML 응답의 CSP (계약 §7): 외부 자원 없음, 인라인 스타일·스크립트만, 이미지는 data: 만. */
@@ -164,6 +166,45 @@ export function createApp(options: AppOptions): ConAiApp {
     if (!store.get('project', id)) return notFound(c, '프로젝트')
     const refs = store.list<ReferenceDocument>('reference', (d) => d.data.project_id === undefined || d.data.project_id === id).map((d) => d.data)
     return c.json(refs)
+  })
+
+  /**
+   * 화면 만들기 (한 줄 입력 흐름) — 프로젝트에 새 화면 레코드를 만든다.
+   * 외부 ID 는 서버가 `SCREEN-001` 형식으로 자동 부여한다(기존 화면 ID 는 건드리지 않는다).
+   * `sample_from` 레퍼런스가 있으면 그 예시 더미데이터를 새 화면 이름으로 복제해 표가 채워진 목업이 나오게 한다.
+   */
+  app.post('/api/projects/:id/screens', async (c) => {
+    const project = store.get<ProjectDocument>('project', c.req.param('id'))
+    if (!project) return notFound(c, '프로젝트')
+    const parsed = await parseJson(c, ScreenCreateBody)
+    if ('response' in parsed) return parsed.response
+    const body = parsed.data
+    const screens = store.list<ScreenDocument>('screen', (d) => d.data.project_id === project.id).map((d) => d.data)
+    const externalId = nextScreenExternalId(screens.map((s) => s.external_id))
+    const shell = body.shell ?? deriveShell(body.title, screens.map((s) => s.shell))
+    const screen = newScreenDocument({ id: newId(), project_id: project.id, external_id: externalId, title: body.title, shell, device: body.device })
+    const stored = store.put<ScreenDocument>('screen', screen.id, screen, 0)
+
+    const reference = body.sample_from === undefined ? undefined : store.get<ReferenceDocument>('reference', body.sample_from)
+    if (body.sample_from !== undefined && !reference) return c.json({ error: 'reference_invalid', message: `참고 레퍼런스를 찾을 수 없다: ${body.sample_from}` }, 400)
+    const copied = copyDummyForNewScreen({
+      reference: reference?.data,
+      dummy: store.list<DummyDataDocument>('dummy_data').map((d) => d.data),
+      project_id: project.id,
+      new_external_id: externalId,
+    })
+    for (const doc of copied) store.put<DummyDataDocument>('dummy_data', doc.id, doc, 0)
+    return c.json({ screen: stored.data, sample_fixtures: copied.map((d) => d.id) }, 201)
+  })
+
+  /** 화면 제목만 바꾼다 (외부 ID·별칭·상태는 그대로). 만든 직후 이름을 고치는 용도. */
+  app.patch('/api/screens/:id', async (c) => {
+    const doc = store.get<ScreenDocument>('screen', c.req.param('id'))
+    if (!doc) return notFound(c, '화면')
+    const parsed = await parseJson(c, ScreenPatchBody)
+    if ('response' in parsed) return parsed.response
+    const stored = store.put<ScreenDocument>('screen', doc.id, { ...doc.data, title: parsed.data.title }, doc.revision)
+    return c.json(stored.data)
   })
 
   // ---------- 생성 ----------

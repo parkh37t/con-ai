@@ -33,7 +33,7 @@ export function ReviewPage({ screenId, route }: { screenId: string; route: Route
   return (
     <div className="page page-wide">
       <nav className="breadcrumb" aria-label="경로">
-        <a href={hrefTo('home')}>프로젝트 홈</a> › <code>{s.external_id}</code> › 화면 검토
+        <a href={hrefTo('advanced')}>프로젝트 홈</a> › <code>{s.external_id}</code> › 화면 검토
       </nav>
       <section className="card">
         <div className="card-head">

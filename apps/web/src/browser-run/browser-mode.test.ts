@@ -259,3 +259,60 @@ describe('applyBrowserOverlay — 저장된 코멘트·승인을 스냅샷 위�
     expect(screen.screen.version).toBe('1.0')
   })
 })
+
+describe('화면 만들기 — 한 줄 입력 흐름 (브라우저 모드)', () => {
+  it('화면을 만들고 바로 생성하면 새 화면·설계서가 이어지고 새로고침 후에도 남는다', async () => {
+    const { state, store } = browserState([modelResponse(modelOutput({ ...snapshotSpec(), screen_id: 'SCREEN-001' }))])
+    const references = handleWith(state, 'GET', `/api/projects/${PROJECT}/references`).data as Array<{ id: string; category: string }>
+    const listRef = references.find((r) => r.category === 'list')
+
+    const created = handleWith(state, 'POST', `/api/projects/${PROJECT}/screens`, { title: '견적 요청 목록', device: 'desktop', shell: 'partner-page', sample_from: listRef?.id })
+    expect(created.status).toBe(201)
+    const { screen, sample_fixtures } = created.data as { screen: { id: string; external_id: string; title: string; shell: string }; sample_fixtures: string[] }
+    expect(screen.external_id).toBe('SCREEN-001')
+    // 레퍼런스 열 구성으로 예시 더미데이터가 붙는다 (표가 빈 채로 나오지 않게)
+    expect(sample_fixtures).toContain('SCREEN-001-normal')
+
+    // 프로젝트 목록에 바로 보인다
+    const project = handleWith(state, 'GET', `/api/projects/${PROJECT}`).data as ProjectDetail
+    expect(project.screens.some((s) => s.external_id === 'SCREEN-001')).toBe(true)
+
+    const job = await waitJob(
+      state,
+      (
+        (await handleAsyncWith(state, 'POST', `/api/screens/${screen.id}/generation-jobs`, {
+          ...REQUEST,
+          screen_id: screen.id,
+          reference_ids: listRef ? [listRef.id] : [],
+          prompt_override: '파트너가 견적 요청 목록을 조회한다',
+        })).data as { job_id: string }
+      ).job_id,
+    )
+    expect(job.status, JSON.stringify(job.failure)).toBe('succeeded')
+    const revisionId = job.result?.revision_id ?? ''
+    const detail = handleWith(state, 'GET', `/api/revisions/${revisionId}`).data as RevisionDetail
+    expect(detail.revision.screen_id).toBe(screen.id)
+
+    // 제목만 수정 — 외부 ID 는 그대로
+    const renamed = handleWith(state, 'PATCH', `/api/screens/${screen.id}`, { title: '견적 요청 목록(수정)' })
+    expect(renamed.status).toBe(200)
+    expect(renamed.data).toMatchObject({ external_id: 'SCREEN-001', title: '견적 요청 목록(수정)' })
+
+    // 새로고침(새 상태)에서도 화면·설계서·바뀐 제목이 남는다
+    const reloaded = createDemoState(files(), { now: () => 0, store })
+    const after = handleWith(reloaded, 'GET', `/api/screens/${screen.id}`).data as ScreenDetail
+    expect(after.screen.title).toBe('견적 요청 목록(수정)')
+    expect(after.screen.external_id).toBe('SCREEN-001')
+    expect(after.revisions.map((r) => r.id)).toEqual([revisionId])
+    expect(handleWith(reloaded, 'GET', `/api/revisions/${revisionId}`).status).toBe(200)
+  })
+
+  it('빈 제목·잘못된 shell·없는 레퍼런스는 400, 없는 프로젝트는 404', () => {
+    const { state } = browserState([])
+    expect(handleWith(state, 'POST', `/api/projects/${PROJECT}/screens`, { title: '  ' }).status).toBe(400)
+    expect(handleWith(state, 'POST', `/api/projects/${PROJECT}/screens`, { title: 'x', shell: 'nope' }).status).toBe(400)
+    expect(handleWith(state, 'POST', `/api/projects/${PROJECT}/screens`, { title: 'x', sample_from: '없는-레퍼런스' }).status).toBe(400)
+    expect(handleWith(state, 'POST', '/api/projects/없는것/screens', { title: 'x' }).status).toBe(404)
+    expect(handleWith(state, 'PATCH', '/api/screens/없는것', { title: 'x' }).status).toBe(404)
+  })
+})

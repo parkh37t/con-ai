@@ -17,7 +17,8 @@
 import { assemblePrompt, assembleRevisionPrompt } from './browser-run/deps.js'
 import { buildContext, draftRevisionPromptInBrowser, revisionInstruction, runBrowserPipeline, type PipelineInput } from './browser-run/pipeline.js'
 import { browserModeActive, browserRuntime, toJobFailure } from './browser-run/runtime.js'
-import { registerArtifactHtml, type BrowserApprovalRecord, type BrowserRevisionRecord, type BrowserStore } from './browser-run/store.js'
+import { registerArtifactHtml, type BrowserApprovalRecord, type BrowserRevisionRecord, type BrowserScreenRecord, type BrowserStore } from './browser-run/store.js'
+import { nextScreenExternalId } from './simple-flow.js'
 import { DEMO_BASE } from './demo-mode.js'
 import { JOB_STAGES } from './job-progress.js'
 import { summarizeValidation } from './summary.js'
@@ -38,7 +39,9 @@ import type {
   RevisionDetail,
   RevisionListItem,
   RevisionPromptDraft,
+  Screen,
   ScreenDetail,
+  ScreenSpecLike,
   SliceGenerationRequest,
 } from './types.js'
 
@@ -95,6 +98,8 @@ interface DemoAsisRun {
 export interface DemoState {
   /** 경로 → GET 응답. 데모에서 만든 작업·분석도 여기에 등록해 폴링이 그대로 동작한다. */
   gets: Map<string, unknown>
+  /** 브라우저에서 만든 화면에 붙인 예시 더미데이터 (fixture_id → 행). 스냅샷에는 더미데이터가 없어 여기서 채운다. */
+  extra_dummy: Record<string, unknown[]>
   files: DemoFiles
   jobs: Map<string, DemoJobRun>
   analyses: Map<string, DemoAsisRun>
@@ -206,6 +211,7 @@ export function createDemoState(files: DemoFiles, opts: { now?: () => number; st
   for (const [path, value] of Object.entries(clone(files.snapshot))) gets.set(path, value)
   const state: DemoState = {
     gets,
+    extra_dummy: {},
     files: clone(files),
     jobs: new Map(),
     analyses: new Map(),
@@ -544,11 +550,14 @@ function browserApprovalReasons(revision: RevisionDetail | undefined): Array<{ c
 /** 스냅샷 위에 브라우저 저장 데이터를 얹는다 (생성 revision → 코멘트 → 승인 순). */
 export function applyBrowserOverlay(state: DemoState, store: BrowserStore): void {
   const data = store.load()
+  // 화면 → revision → 코멘트 → 제목 → 승인 순 (revision 이 화면에 붙어야 목록이 맞는다).
+  for (const record of data.screens) registerBrowserScreen(state, record)
   for (const record of data.revisions) registerBrowserRevision(state, record)
   for (const [revisionId, comments] of Object.entries(data.comments)) {
     const detail = revisionDetail(state, revisionId)
     if (detail) detail.comments = comments.map((c) => ({ ...c }))
   }
+  for (const [screenId, title] of Object.entries(data.titles)) applyStoredTitle(state, screenId, title)
   for (const approval of Object.values(data.approvals) as BrowserApprovalRecord[]) {
     markApproved(state, approval.screen_id, approval.revision_id, approval.version)
   }
@@ -596,10 +605,14 @@ export function registerBrowserRevision(state: DemoState, record: BrowserRevisio
   }
 }
 
-/** 스냅샷에 더미데이터가 들어 있으면 쓴다 (없으면 빈 객체 → 파이프라인이 unresolved 로 남긴다). */
+/**
+ * 스냅샷의 더미데이터 + 이 브라우저에서 만든 화면의 예시 더미데이터.
+ * 어느 쪽에도 없으면 파이프라인이 빈 배열로 렌더하고 unresolved 에 남긴다 (없는 것을 있는 것처럼 꾸미지 않는다).
+ */
 function dummyDataOf(state: DemoState): Record<string, unknown[]> {
   const raw = (state.files.snapshot as Record<string, unknown>)['dummy_data']
-  return typeof raw === 'object' && raw !== null ? (raw as Record<string, unknown[]>) : {}
+  const fromSnapshot = typeof raw === 'object' && raw !== null ? (raw as Record<string, unknown[]>) : {}
+  return { ...fromSnapshot, ...state.extra_dummy }
 }
 
 function projectDetailFor(state: DemoState, projectId: string): ProjectDetail | undefined {
@@ -786,6 +799,163 @@ export async function browserRevisionPrompt(state: DemoState, revisionId: string
   }
 }
 
+// ---------------------------------------------------------------- 화면 만들기 (한 줄 입력 흐름)
+
+/** 새 화면에 붙일 예시 더미데이터의 CASE 별 행 수 (정상 5행, 검색 결과 1행, 나머지는 0행). */
+const SAMPLE_FIXTURE_PLAN: ReadonlyArray<{ suffix: string; rows: number }> = [
+  { suffix: 'normal', rows: 5 },
+  { suffix: 'searched', rows: 1 },
+  { suffix: 'empty', rows: 0 },
+  { suffix: 'error', rows: 0 },
+  { suffix: 'permission', rows: 5 },
+  { suffix: 'processing', rows: 0 },
+]
+
+interface ColumnLike {
+  id: string
+  label?: string
+  format?: string
+}
+
+/** 레퍼런스 명세의 첫 표에서 열 목록을 꺼낸다 (표가 없으면 빈 배열). */
+export function columnsOfSpec(spec: ScreenSpecLike | undefined): ColumnLike[] {
+  for (const section of spec?.sections ?? []) {
+    for (const el of section.elements ?? []) {
+      const columns = (el as unknown as Record<string, unknown>)['columns']
+      if (!Array.isArray(columns)) continue
+      const out: ColumnLike[] = []
+      for (const c of columns) {
+        if (typeof c !== 'object' || c === null) continue
+        const rec = c as Record<string, unknown>
+        if (typeof rec['id'] !== 'string') continue
+        const col: ColumnLike = { id: rec['id'] }
+        if (typeof rec['label'] === 'string') col.label = rec['label']
+        if (typeof rec['format'] === 'string') col.format = rec['format']
+        out.push(col)
+      }
+      if (out.length > 0) return out
+    }
+  }
+  return []
+}
+
+/** 열 구성에 맞는 예시 행. 값은 합성 예시이며 실제 업무 데이터가 아니다 (렌더러가 "더미데이터" 로 표시한다). */
+export function sampleRows(columns: readonly ColumnLike[], count: number): Record<string, unknown>[] {
+  const statuses = ['요청', '검토', '승인', '반려', '완료']
+  const rows: Record<string, unknown>[] = []
+  for (let i = 0; i < count; i += 1) {
+    const row: Record<string, unknown> = {}
+    for (const c of columns) {
+      const label = c.label ?? c.id
+      switch (c.format) {
+        case 'number':
+          row[c.id] = (i + 1) * 3
+          break
+        case 'currency':
+          row[c.id] = (i + 1) * 120000
+          break
+        case 'date':
+        case 'datetime':
+          row[c.id] = `2026-09-${String(20 - i).padStart(2, '0')}`
+          break
+        case 'status':
+          row[c.id] = statuses[i % statuses.length]
+          break
+        default:
+          row[c.id] = `예시 ${label} ${i + 1}`
+      }
+    }
+    rows.push(row)
+  }
+  return rows
+}
+
+/** 새 화면에 붙일 fixture 묶음 (`<외부 ID>-<CASE>`). 레퍼런스 열 구성을 그대로 쓴다. */
+export function sampleDummyFor(externalId: string, reference: Reference | undefined): Record<string, unknown[]> {
+  const columns = columnsOfSpec(reference?.spec)
+  if (columns.length === 0) return {}
+  const out: Record<string, unknown[]> = {}
+  for (const plan of SAMPLE_FIXTURE_PLAN) out[`${externalId}-${plan.suffix}`] = sampleRows(columns, plan.rows)
+  return out
+}
+
+/** 만든 화면을 데모 상태에 등록한다 (프로젝트 목록·화면 상세·예시 더미데이터). */
+function registerBrowserScreen(state: DemoState, record: BrowserScreenRecord): void {
+  const screen = record.screen
+  const existing = screenDetail(state, screen.id)
+  state.gets.set(`/api/screens/${screen.id}`, { screen: { ...screen }, revisions: existing?.revisions ?? [] } satisfies ScreenDetail)
+  Object.assign(state.extra_dummy, record.dummy)
+  const project = projectDetailFor(state, screen.project_id)
+  if (project && !project.screens.some((s) => s.id === screen.id)) {
+    project.screens.push({
+      id: screen.id,
+      external_id: screen.external_id,
+      title: screen.title,
+      status: screen.status,
+      revision_count: existing?.revisions.length ?? 0,
+      open_comments: 0,
+      shell: screen.shell,
+      device: screen.device,
+      ...(screen.current_revision_id ? { current_revision_id: screen.current_revision_id } : {}),
+    })
+  }
+}
+
+/** 저장해 둔 제목을 화면 상세·프로젝트 목록에 반영한다. */
+function applyStoredTitle(state: DemoState, screenId: string, title: string): void {
+  const detail = screenDetail(state, screenId)
+  if (detail) detail.screen.title = title
+  for (const project of allProjectDetails(state)) {
+    for (const s of project.screens) if (s.id === screenId) s.title = title
+  }
+}
+
+/** POST /api/projects/:id/screens — 서버와 같은 규칙(외부 ID 자동 부여·레퍼런스 예시 데이터 복제)으로 화면을 만든다. */
+export function createScreen(state: DemoState, projectId: string, body: unknown): DemoResponse {
+  const project = projectDetailFor(state, projectId)
+  if (!project) return notFound('프로젝트')
+  const b = asRecord(body)
+  const title = b['title']
+  if (!isNonEmpty(title)) return badRequest('invalid_request', '요청 본문이 올바르지 않습니다', { issues: ['title 은 빈 문자열일 수 없습니다'] })
+  const device = b['device'] === 'mobile' ? 'mobile' : 'desktop'
+  const shellRaw = b['shell']
+  const shell = isNonEmpty(shellRaw) ? shellRaw.trim() : 'partner-page'
+  if (!/^[a-z][a-z0-9]*(?:-[a-z0-9]+)*-(?:page|popup)$/.test(shell)) {
+    return badRequest('invalid_request', '요청 본문이 올바르지 않습니다', { issues: ['shell 은 `<포털>-page` 또는 `<포털>-popup` 형식이어야 합니다'] })
+  }
+  const sampleFrom = b['sample_from']
+  const references = referencesFor(state, projectId)
+  const reference = isNonEmpty(sampleFrom) ? references.find((r) => r.id === sampleFrom) : undefined
+  if (isNonEmpty(sampleFrom) && !reference) return badRequest('reference_invalid', `참고 레퍼런스를 찾을 수 없습니다: ${sampleFrom}`)
+
+  const externalId = nextScreenExternalId(project.screens.map((s) => s.external_id))
+  const screen: Screen = {
+    id: nextId(state, 'screen'),
+    project_id: projectId,
+    external_id: externalId,
+    title: title.trim(),
+    shell,
+    device,
+    status: 'draft',
+    aliases: [],
+  }
+  const record: BrowserScreenRecord = { screen, dummy: sampleDummyFor(externalId, reference) }
+  registerBrowserScreen(state, record)
+  browserRuntime.store.addScreen(record)
+  return { status: 201, data: { screen, sample_fixtures: Object.keys(record.dummy) } }
+}
+
+/** PATCH /api/screens/:id — 제목만 바꾼다 (외부 ID·별칭은 그대로). */
+export function patchScreen(state: DemoState, screenId: string, body: unknown): DemoResponse {
+  const detail = screenDetail(state, screenId)
+  if (!detail) return notFound('화면')
+  const title = asRecord(body)['title']
+  if (!isNonEmpty(title)) return badRequest('invalid_request', '요청 본문이 올바르지 않습니다', { issues: ['title 은 빈 문자열일 수 없습니다'] })
+  applyStoredTitle(state, screenId, title.trim())
+  browserRuntime.store.setTitle(screenId, title.trim())
+  return { status: 200, data: detail.screen }
+}
+
 // ---------------------------------------------------------------- 라우팅
 
 /** 스냅샷 상태를 받아 요청 하나를 처리한다 (테스트에서 직접 쓴다). */
@@ -807,11 +977,15 @@ export function handleWith(state: DemoState, method: string, path: string, body?
     if (m) return revalidate(state, m[1] ?? '')
     m = /^\/api\/projects\/([^/]+)\/asis-analyses$/.exec(path)
     if (m) return createAsisAnalysis(state, m[1] ?? '', body)
+    m = /^\/api\/projects\/([^/]+)\/screens$/.exec(path)
+    if (m) return createScreen(state, m[1] ?? '', body)
   }
 
   if (method === 'PATCH') {
     let m = /^\/api\/comments\/([^/]+)$/.exec(path)
     if (m) return patchComment(state, m[1] ?? '', body)
+    m = /^\/api\/screens\/([^/]+)$/.exec(path)
+    if (m) return patchScreen(state, m[1] ?? '', body)
     m = /^\/api\/asis-analyses\/([^/]+)\/pain-points\/([^/]+)$/.exec(path)
     if (m) return patchPainPoint(state, m[1] ?? '', m[2] ?? '', body)
   }

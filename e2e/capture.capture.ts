@@ -18,8 +18,8 @@ test('세로 조각 화면 캡처', async ({ page, request }) => {
   const project = await loadSeedProject(request)
   const listScreen = screenByExternalId(project, 'SAMPLE-quote-list')
 
-  await page.goto('/#/')
-  await expect(page.getByTestId('screen-row')).toHaveCount(3)
+  await page.goto('/#/advanced')
+  await expect(page.getByTestId('screen-row')).not.toHaveCount(0)
   await shot('01-home')
 
   await page.goto('/#/references')

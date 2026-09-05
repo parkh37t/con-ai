@@ -1,11 +1,20 @@
 import { describe, expect, it } from 'vitest'
-import { hrefTo, hrefToAsisDetail, hrefToScreen, parseRoute, withQuery } from './router.js'
+import { hrefTo, hrefToAsisDetail, hrefToDesign, hrefToScreen, parseRoute, withQuery } from './router.js'
 
 describe('parseRoute — 해시 라우팅', () => {
   it('빈 해시·`#`·`#/` 는 홈이다', () => {
     expect(parseRoute('')).toEqual({ name: 'home', query: {} })
     expect(parseRoute('#')).toEqual({ name: 'home', query: {} })
     expect(parseRoute('#/')).toEqual({ name: 'home', query: {} })
+  })
+
+  it('설계서 결과(`#/d/:revisionId`)와 고급 화면(`#/advanced`)', () => {
+    expect(parseRoute('#/d/rev-1')).toEqual({ name: 'design', revisionId: 'rev-1', query: {} })
+    expect(parseRoute('#/d/rev%201?job=j1')).toEqual({ name: 'design', revisionId: 'rev 1', query: { job: 'j1' } })
+    expect(parseRoute('#/d/')).toEqual({ name: 'not_found', path: '/d/', query: {} })
+    expect(parseRoute('#/d/rev-1/extra')).toEqual({ name: 'not_found', path: '/d/rev-1/extra', query: {} })
+    expect(parseRoute('#/advanced')).toEqual({ name: 'advanced', query: {} })
+    expect(parseRoute('#/advanced?project=p1')).toEqual({ name: 'advanced', query: { project: 'p1' } })
   })
 
   it('레퍼런스 포트폴리오', () => {
@@ -51,6 +60,15 @@ describe('hrefTo / hrefToScreen / withQuery — 링크 생성', () => {
     expect(hrefTo('home')).toBe('#/')
     expect(hrefTo('references')).toBe('#/references')
     expect(hrefTo('home', { project: 'p1' })).toBe('#/?project=p1')
+  })
+
+  it('설계서·고급 링크는 다시 파싱하면 같은 라우트가 되고, withQuery 가 라우트를 유지한다', () => {
+    expect(hrefTo('advanced')).toBe('#/advanced')
+    expect(hrefToDesign('r 1')).toBe('#/d/r%201')
+    expect(parseRoute(hrefToDesign('x/y'))).toEqual({ name: 'design', revisionId: 'x/y', query: {} })
+    expect(withQuery(parseRoute('#/d/r1'), { job: 'j1' })).toBe('#/d/r1?job=j1')
+    expect(withQuery(parseRoute('#/d/r1?job=j1'), { job: '' })).toBe('#/d/r1')
+    expect(withQuery(parseRoute('#/advanced?project=p1'), { project: 'p2' })).toBe('#/advanced?project=p2')
   })
 
   it('AS-IS 분석 링크는 id 를 인코딩하고 다시 파싱하면 같은 라우트가 된다', () => {

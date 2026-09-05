@@ -1,5 +1,5 @@
 {
-  "artifact_hash": "003ce22e6d01db692ac46c33b9bb44de04a62d91194c1a9cd588771a45df9f36",
+  "artifact_hash": "6bfbf46a757c23f40af703c423781fceb76192404e7fed05e7e31320c66fa7a0",
   "summary": {
     "pass": 14,
     "fail": 0,
@@ -8,9 +8,9 @@
   },
   "results": [
     {
-      "id": "d38e7e64-d550-4fa9-8a30-728f6fdd7a09",
-      "validation_run_id": "5d62d9d7-1b7d-45e1-b4b8-30c1253ea02a",
-      "artifact_hash": "003ce22e6d01db692ac46c33b9bb44de04a62d91194c1a9cd588771a45df9f36",
+      "id": "8cd3f105-980d-4900-9caa-c4e7c81139ed",
+      "validation_run_id": "1d2b7ff1-3a80-4e5c-bca8-e2129cc4716c",
+      "artifact_hash": "6bfbf46a757c23f40af703c423781fceb76192404e7fed05e7e31320c66fa7a0",
       "check_id": "V1.schema",
       "stage": "V1",
       "status": "pass",
@@ -21,13 +21,13 @@
         "states=3"
       ],
       "checker_version": "con-ai-validators/0.1.0",
-      "executed_at": "2026-09-05T13:50:10.451Z",
+      "executed_at": "2026-09-05T15:17:45.862Z",
       "duration_ms": 1
     },
     {
-      "id": "abad9d0d-5607-4234-ada5-5d58f964d993",
-      "validation_run_id": "5d62d9d7-1b7d-45e1-b4b8-30c1253ea02a",
-      "artifact_hash": "003ce22e6d01db692ac46c33b9bb44de04a62d91194c1a9cd588771a45df9f36",
+      "id": "15732cb5-7a9f-4b05-be77-c61bb0bee083",
+      "validation_run_id": "1d2b7ff1-3a80-4e5c-bca8-e2129cc4716c",
+      "artifact_hash": "6bfbf46a757c23f40af703c423781fceb76192404e7fed05e7e31320c66fa7a0",
       "check_id": "V1.references",
       "stage": "V1",
       "status": "pass",
@@ -36,13 +36,13 @@
         "영역·요소·동작·CASE·메시지·데이터 매핑·잠금 참조가 모두 정의된 id 를 가리킨다"
       ],
       "checker_version": "con-ai-validators/0.1.0",
-      "executed_at": "2026-09-05T13:50:10.451Z",
+      "executed_at": "2026-09-05T15:17:45.862Z",
       "duration_ms": 1
     },
     {
-      "id": "e736268f-c091-40bd-a22c-886e817f260c",
-      "validation_run_id": "5d62d9d7-1b7d-45e1-b4b8-30c1253ea02a",
-      "artifact_hash": "003ce22e6d01db692ac46c33b9bb44de04a62d91194c1a9cd588771a45df9f36",
+      "id": "04e14580-6356-42fb-b66b-15c6af84f415",
+      "validation_run_id": "1d2b7ff1-3a80-4e5c-bca8-e2129cc4716c",
+      "artifact_hash": "6bfbf46a757c23f40af703c423781fceb76192404e7fed05e7e31320c66fa7a0",
       "check_id": "V1.required_cases",
       "stage": "V1",
       "status": "pass",
@@ -52,13 +52,13 @@
         "required=normal,empty,error"
       ],
       "checker_version": "con-ai-validators/0.1.0",
-      "executed_at": "2026-09-05T13:50:10.451Z",
+      "executed_at": "2026-09-05T15:17:45.862Z",
       "duration_ms": 1
     },
     {
-      "id": "4850086b-0680-42a3-b017-1ef8ebf9ac53",
-      "validation_run_id": "5d62d9d7-1b7d-45e1-b4b8-30c1253ea02a",
-      "artifact_hash": "003ce22e6d01db692ac46c33b9bb44de04a62d91194c1a9cd588771a45df9f36",
+      "id": "f31128ad-cba2-495f-b43d-af9105a45958",
+      "validation_run_id": "1d2b7ff1-3a80-4e5c-bca8-e2129cc4716c",
+      "artifact_hash": "6bfbf46a757c23f40af703c423781fceb76192404e7fed05e7e31320c66fa7a0",
       "check_id": "V1.criteria_linked",
       "stage": "V1",
       "status": "pass",
@@ -67,13 +67,13 @@
         "수용조건 2개 모두 요소·동작 trace 에 연결"
       ],
       "checker_version": "con-ai-validators/0.1.0",
-      "executed_at": "2026-09-05T13:50:10.451Z",
+      "executed_at": "2026-09-05T15:17:45.862Z",
       "duration_ms": 1
     },
     {
-      "id": "748039fd-a987-4d21-ad82-bbe3d5242d52",
-      "validation_run_id": "5d62d9d7-1b7d-45e1-b4b8-30c1253ea02a",
-      "artifact_hash": "003ce22e6d01db692ac46c33b9bb44de04a62d91194c1a9cd588771a45df9f36",
+      "id": "4c8b2152-c2e3-4fb8-a03e-ae34ea42264a",
+      "validation_run_id": "1d2b7ff1-3a80-4e5c-bca8-e2129cc4716c",
+      "artifact_hash": "6bfbf46a757c23f40af703c423781fceb76192404e7fed05e7e31320c66fa7a0",
       "check_id": "V2.shell",
       "stage": "V2",
       "status": "pass",
@@ -85,13 +85,13 @@
         "panel=right-panel"
       ],
       "checker_version": "con-ai-validators/0.1.0",
-      "executed_at": "2026-09-05T13:50:10.452Z",
+      "executed_at": "2026-09-05T15:17:45.863Z",
       "duration_ms": 1
     },
     {
-      "id": "0dd58f0d-a917-4a69-b8b1-7bd27b0d617c",
-      "validation_run_id": "5d62d9d7-1b7d-45e1-b4b8-30c1253ea02a",
-      "artifact_hash": "003ce22e6d01db692ac46c33b9bb44de04a62d91194c1a9cd588771a45df9f36",
+      "id": "d93a7bed-ace4-4797-883e-4c227e1ce302",
+      "validation_run_id": "1d2b7ff1-3a80-4e5c-bca8-e2129cc4716c",
+      "artifact_hash": "6bfbf46a757c23f40af703c423781fceb76192404e7fed05e7e31320c66fa7a0",
       "check_id": "V2.description_order",
       "stage": "V2",
       "status": "pass",
@@ -100,13 +100,13 @@
         "order=screen_id → overview → cases → flow → policy → data_mapping → sections → messages"
       ],
       "checker_version": "con-ai-validators/0.1.0",
-      "executed_at": "2026-09-05T13:50:10.452Z",
+      "executed_at": "2026-09-05T15:17:45.863Z",
       "duration_ms": 1
     },
     {
-      "id": "16366709-c42e-4c2a-8e2a-4ea393ee8a79",
-      "validation_run_id": "5d62d9d7-1b7d-45e1-b4b8-30c1253ea02a",
-      "artifact_hash": "003ce22e6d01db692ac46c33b9bb44de04a62d91194c1a9cd588771a45df9f36",
+      "id": "d9012b2d-174a-4553-9de5-6401b5f2e757",
+      "validation_run_id": "1d2b7ff1-3a80-4e5c-bca8-e2129cc4716c",
+      "artifact_hash": "6bfbf46a757c23f40af703c423781fceb76192404e7fed05e7e31320c66fa7a0",
       "check_id": "V2.element_ids",
       "stage": "V2",
       "status": "pass",
@@ -115,13 +115,13 @@
         "영역·요소 10개가 화면·설명 양쪽에 있다"
       ],
       "checker_version": "con-ai-validators/0.1.0",
-      "executed_at": "2026-09-05T13:50:10.452Z",
+      "executed_at": "2026-09-05T15:17:45.863Z",
       "duration_ms": 1
     },
     {
-      "id": "37a6bbbe-5a22-4583-8d64-f3eadfeb1f33",
-      "validation_run_id": "5d62d9d7-1b7d-45e1-b4b8-30c1253ea02a",
-      "artifact_hash": "003ce22e6d01db692ac46c33b9bb44de04a62d91194c1a9cd588771a45df9f36",
+      "id": "78257ac2-1b6b-4f43-9d08-d8842e74e4d7",
+      "validation_run_id": "1d2b7ff1-3a80-4e5c-bca8-e2129cc4716c",
+      "artifact_hash": "6bfbf46a757c23f40af703c423781fceb76192404e7fed05e7e31320c66fa7a0",
       "check_id": "V2.display_numbers",
       "stage": "V2",
       "status": "pass",
@@ -139,13 +139,13 @@
         "pager=d"
       ],
       "checker_version": "con-ai-validators/0.1.0",
-      "executed_at": "2026-09-05T13:50:10.452Z",
-      "duration_ms": 1
+      "executed_at": "2026-09-05T15:17:45.864Z",
+      "duration_ms": 2
     },
     {
-      "id": "136a4622-8d2a-4d56-acf3-85bcba2db4d5",
-      "validation_run_id": "5d62d9d7-1b7d-45e1-b4b8-30c1253ea02a",
-      "artifact_hash": "003ce22e6d01db692ac46c33b9bb44de04a62d91194c1a9cd588771a45df9f36",
+      "id": "6ae6f720-bc71-454b-9637-084a9514d182",
+      "validation_run_id": "1d2b7ff1-3a80-4e5c-bca8-e2129cc4716c",
+      "artifact_hash": "6bfbf46a757c23f40af703c423781fceb76192404e7fed05e7e31320c66fa7a0",
       "check_id": "V2.no_external_refs",
       "stage": "V2",
       "status": "pass",
@@ -154,13 +154,13 @@
         "src/href/action/url()/@import 에 외부 주소 없음"
       ],
       "checker_version": "con-ai-validators/0.1.0",
-      "executed_at": "2026-09-05T13:50:10.452Z",
-      "duration_ms": 1
+      "executed_at": "2026-09-05T15:17:45.864Z",
+      "duration_ms": 2
     },
     {
-      "id": "887f8564-e47a-4097-88d2-2164f2f6f6d4",
-      "validation_run_id": "5d62d9d7-1b7d-45e1-b4b8-30c1253ea02a",
-      "artifact_hash": "003ce22e6d01db692ac46c33b9bb44de04a62d91194c1a9cd588771a45df9f36",
+      "id": "113a1d23-3e8c-4907-a85c-932a1776d168",
+      "validation_run_id": "1d2b7ff1-3a80-4e5c-bca8-e2129cc4716c",
+      "artifact_hash": "6bfbf46a757c23f40af703c423781fceb76192404e7fed05e7e31320c66fa7a0",
       "check_id": "V3.console_errors",
       "stage": "V3",
       "status": "pass",
@@ -171,13 +171,13 @@
         "total errors=0"
       ],
       "checker_version": "con-ai-validators/0.1.0",
-      "executed_at": "2026-09-05T13:50:11.295Z",
-      "duration_ms": 843
+      "executed_at": "2026-09-05T15:17:46.798Z",
+      "duration_ms": 934
     },
     {
-      "id": "f3383895-d1c1-448d-9fb7-f96bc6f765d2",
-      "validation_run_id": "5d62d9d7-1b7d-45e1-b4b8-30c1253ea02a",
-      "artifact_hash": "003ce22e6d01db692ac46c33b9bb44de04a62d91194c1a9cd588771a45df9f36",
+      "id": "21a3f763-7595-48f1-824f-8c6b92f736d0",
+      "validation_run_id": "1d2b7ff1-3a80-4e5c-bca8-e2129cc4716c",
+      "artifact_hash": "6bfbf46a757c23f40af703c423781fceb76192404e7fed05e7e31320c66fa7a0",
       "check_id": "V3.case_switch",
       "stage": "V3",
       "status": "pass",
@@ -188,13 +188,13 @@
         "case normal: rows=5 messages=(없음) errors=0"
       ],
       "checker_version": "con-ai-validators/0.1.0",
-      "executed_at": "2026-09-05T13:50:10.996Z",
-      "duration_ms": 544
+      "executed_at": "2026-09-05T15:17:46.485Z",
+      "duration_ms": 621
     },
     {
-      "id": "f29f4401-0966-4186-818d-2c9874ef43b5",
-      "validation_run_id": "5d62d9d7-1b7d-45e1-b4b8-30c1253ea02a",
-      "artifact_hash": "003ce22e6d01db692ac46c33b9bb44de04a62d91194c1a9cd588771a45df9f36",
+      "id": "ef7d812d-83ff-4b5c-8393-928fd17ee335",
+      "validation_run_id": "1d2b7ff1-3a80-4e5c-bca8-e2129cc4716c",
+      "artifact_hash": "6bfbf46a757c23f40af703c423781fceb76192404e7fed05e7e31320c66fa7a0",
       "check_id": "V3.search_filter",
       "stage": "V3",
       "status": "pass",
@@ -204,13 +204,13 @@
         "value=\"__con-ai-no-match__\" rows 5 → 0 messages=msg-empty"
       ],
       "checker_version": "con-ai-validators/0.1.0",
-      "executed_at": "2026-09-05T13:50:11.243Z",
-      "duration_ms": 791
+      "executed_at": "2026-09-05T15:17:46.745Z",
+      "duration_ms": 881
     },
     {
-      "id": "0494f84d-0182-43b4-a298-e795a28f8cd1",
-      "validation_run_id": "5d62d9d7-1b7d-45e1-b4b8-30c1253ea02a",
-      "artifact_hash": "003ce22e6d01db692ac46c33b9bb44de04a62d91194c1a9cd588771a45df9f36",
+      "id": "81be5c4e-92be-4052-a87d-ea5684fbf3f8",
+      "validation_run_id": "1d2b7ff1-3a80-4e5c-bca8-e2129cc4716c",
+      "artifact_hash": "6bfbf46a757c23f40af703c423781fceb76192404e7fed05e7e31320c66fa7a0",
       "check_id": "V3.download",
       "stage": "V3",
       "status": "pass",
@@ -220,13 +220,13 @@
         "status: 다운로드(더미): 표 1개를 명세 컬럼 CSV 로 내려받음 — 실제 업무 파일 아님"
       ],
       "checker_version": "con-ai-validators/0.1.0",
-      "executed_at": "2026-09-05T13:50:11.295Z",
-      "duration_ms": 843
+      "executed_at": "2026-09-05T15:17:46.798Z",
+      "duration_ms": 934
     },
     {
-      "id": "5c6c2d09-b3b7-4cd9-8caa-cde179a83c1c",
-      "validation_run_id": "5d62d9d7-1b7d-45e1-b4b8-30c1253ea02a",
-      "artifact_hash": "003ce22e6d01db692ac46c33b9bb44de04a62d91194c1a9cd588771a45df9f36",
+      "id": "fbcbc486-b1e0-4c97-9d67-fcfb67de140b",
+      "validation_run_id": "1d2b7ff1-3a80-4e5c-bca8-e2129cc4716c",
+      "artifact_hash": "6bfbf46a757c23f40af703c423781fceb76192404e7fed05e7e31320c66fa7a0",
       "check_id": "V6.human_review",
       "stage": "V6",
       "status": "pass",
@@ -234,7 +234,7 @@
       "message": "기획자 데모 기획자 완료 확인",
       "evidence": [
         "approver:데모 기획자",
-        "approved_at:2026-09-05T13:50:12.499Z"
+        "approved_at:2026-09-05T15:17:48.414Z"
       ],
       "checker_version": "human-review-v0"
     }

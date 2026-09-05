@@ -82,6 +82,20 @@ export interface Screen {
   aliases: unknown[]
 }
 
+/** POST /api/projects/:id/screens — 한 줄 입력 흐름에서 새 화면을 만든다. 외부 ID 는 서버가 부여한다. */
+export interface ScreenCreateInput {
+  title: string
+  device?: Device
+  shell?: string
+  /** 예시 더미데이터를 복제해 올 레퍼런스 id (선택). */
+  sample_from?: string
+}
+export interface ScreenCreateResponse {
+  screen: Screen
+  /** 복제된 더미데이터 fixture id 목록 (없으면 빈 배열). */
+  sample_fixtures?: string[]
+}
+
 export interface ProjectDetail {
   project: Project
   requirements: Requirement[]

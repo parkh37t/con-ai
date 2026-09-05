@@ -29,7 +29,7 @@ export function HomePage({ project, projects, meta }: { project: Project; projec
             {projects.length > 1 && (
               <label className="inline">
                 프로젝트
-                <select value={project.id} onChange={(e) => navigate(hrefTo('home', { project: e.target.value }))}>
+                <select value={project.id} onChange={(e) => navigate(hrefTo('advanced', { project: e.target.value }))}>
                   {projects.map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.name}

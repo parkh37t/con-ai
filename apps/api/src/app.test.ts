@@ -523,4 +523,60 @@ describe('API 통합 — 생성 → 검토 → 수정 → 완료·내보내기',
     const untouched = (await (await h.get('/api/jobs/e0000000-0000-4000-8000-000000000003')).json()) as JobDocument
     expect(untouched.status).toBe('succeeded')
   })
+  it('화면 만들기 — 외부 ID 자동 부여·레퍼런스 더미데이터 복제·제목 수정, 잘못된 본문은 400', async () => {
+    const h = harness()
+    const res = await h.post(`/api/projects/${SEED.project_id}/screens`, { title: '파트너 견적 요청 목록', device: 'desktop', sample_from: SEED.references['REF-quote-list'] })
+    expect(res.status, await res.clone().text()).toBe(201)
+    const created = (await res.json()) as { screen: { id: string; external_id: string; shell: string; title: string; status: string; device: string }; sample_fixtures: string[] }
+    expect(created.screen.external_id).toBe('SCREEN-001')
+    expect(created.screen.shell).toBe('partner-page')
+    expect(created.screen.status).toBe('draft')
+    // 시드 화면 ID 는 그대로여야 한다 (기존 ID 를 새 번호로 바꾸지 않는다)
+    const detail = (await (await h.get(`/api/projects/${SEED.project_id}`)).json()) as { screens: Array<{ id: string; external_id: string }> }
+    expect(detail.screens.map((s) => s.external_id).sort()).toEqual(['SAMPLE-quote-create-popup', 'SAMPLE-quote-detail', 'SAMPLE-quote-list', 'SCREEN-001'])
+    // 레퍼런스 더미데이터가 새 화면 이름으로 복제된다 (열 구성 동일)
+    expect(created.sample_fixtures).toContain('SCREEN-001-normal')
+    const copied = h.store.get<{ rows: Array<Record<string, unknown>>; screen_external_id: string }>('dummy_data', 'SCREEN-001-normal')
+    const source = h.store.get<{ rows: Array<Record<string, unknown>> }>('dummy_data', 'REF-quote-list-normal')
+    expect(copied?.data.screen_external_id).toBe('SCREEN-001')
+    expect(copied?.data.rows).toEqual(source?.data.rows)
+
+    // 두 번째 화면은 SCREEN-002, 팝업 낱말이 있으면 popup shell
+    const second = (await (await h.post(`/api/projects/${SEED.project_id}/screens`, { title: '견적 등록 팝업' })).json()) as { screen: { external_id: string; shell: string } }
+    expect(second.screen.external_id).toBe('SCREEN-002')
+    expect(second.screen.shell).toBe('partner-popup')
+
+    // 제목만 수정 — 외부 ID 는 그대로
+    const patched = (await (await h.patch(`/api/screens/${created.screen.id}`, { title: '견적 요청 목록(수정)' })).json()) as { external_id: string; title: string }
+    expect(patched).toMatchObject({ external_id: 'SCREEN-001', title: '견적 요청 목록(수정)' })
+
+    expect((await h.post(`/api/projects/${SEED.project_id}/screens`, { title: '   ' })).status).toBe(400)
+    expect((await h.post(`/api/projects/${SEED.project_id}/screens`, { title: 'x', shell: 'nope' })).status).toBe(400)
+    expect((await h.post(`/api/projects/${SEED.project_id}/screens`, { title: 'x', sample_from: 'no-such-reference' })).status).toBe(400)
+    expect((await h.post('/api/projects/no-such-project/screens', { title: 'x' })).status).toBe(404)
+    expect((await h.patch('/api/screens/no-such-screen', { title: 'x' })).status).toBe(404)
+  })
+
+  it('만든 화면으로 생성 작업을 실행하면 복제한 더미데이터를 쓴다', async () => {
+    const h = harness()
+    const created = (await (await h.post(`/api/projects/${SEED.project_id}/screens`, { title: '견적 목록(자동)', sample_from: SEED.references['REF-quote-list'] })).json()) as { screen: { id: string } }
+    const job = await h.runJob(`/api/screens/${created.screen.id}/generation-jobs`, {
+      task_type: 'create',
+      purpose: '파트너가 견적 요청 목록을 조회한다',
+      requirement_ids: [],
+      criterion_ids: [],
+      reference_ids: [SEED.references['REF-quote-list']],
+      cases: ['normal', 'empty', 'error'],
+      keep_conditions: [],
+      roles: [],
+      device: 'desktop',
+    })
+    expect(job.status, JSON.stringify(job.failure)).toBe('succeeded')
+    const revision = (await (await h.get(`/api/revisions/${job.result?.revision_id}`)).json()) as { spec: { screen_id: string; states: Array<{ fixture_id: string }> }; artifact: { id: string } }
+    expect(revision.spec.screen_id).toBe('SCREEN-001')
+    expect(revision.spec.states.map((s) => s.fixture_id)).toContain('SCREEN-001-normal')
+    const html = await (await h.get(`/api/artifacts/${revision.artifact.id}/html`)).text()
+    // 가짜 렌더러가 fixture 별 행 수를 적는다 — 복제한 더미데이터(5행)가 실제로 전달됐는지 확인
+    expect(html).toContain('SCREEN-001-normal=5')
+  })
 })

@@ -8,7 +8,7 @@
  * - 자격 증명 값은 여기에 절대 넣지 않는다 (browser-run/credential.ts 가 따로 보관한다).
  * - 저장 데이터는 이 브라우저 밖으로 나가지 않는다 — 다른 사람과 공유되지 않는다.
  */
-import type { Artifact, Comment, ElementIndexEntry, ScreenRevision, ScreenSpecLike, ValidationResult } from '../types.js'
+import type { Artifact, Comment, ElementIndexEntry, Screen, ScreenRevision, ScreenSpecLike, ValidationResult } from '../types.js'
 import type { StorageLike } from './credential.js'
 
 export { browserArtifactUrl, registerArtifactHtml, releaseArtifactUrls } from './artifact-urls.js'
@@ -42,9 +42,20 @@ export interface BrowserApprovalRecord {
   version: string
 }
 
+/** 브라우저에서 만든 화면 하나 (한 줄 입력 흐름). 스냅샷에 없는 화면이라 이 브라우저에만 있다. */
+export interface BrowserScreenRecord {
+  screen: Screen
+  /** 이 화면에 붙인 예시 더미데이터 (fixture_id → 행). 레퍼런스의 열 구성을 따른다. */
+  dummy: Record<string, unknown[]>
+}
+
 export interface BrowserStoreData {
   version: number
   revisions: BrowserRevisionRecord[]
+  /** 브라우저에서 만든 화면 (스냅샷 화면은 여기 없다). */
+  screens: BrowserScreenRecord[]
+  /** 화면 id → 사용자가 고친 제목 (스냅샷 화면도 덮어쓴다). */
+  titles: Record<string, string>
   /** revision id → 코멘트 목록 (스냅샷 revision 의 코멘트도 여기서 덮어쓴다). */
   comments: Record<string, Comment[]>
   /** 화면 id → 완료 기록. */
@@ -52,7 +63,7 @@ export interface BrowserStoreData {
 }
 
 export function emptyStoreData(): BrowserStoreData {
-  return { version: BROWSER_STORE_VERSION, revisions: [], comments: {}, approvals: {} }
+  return { version: BROWSER_STORE_VERSION, revisions: [], screens: [], titles: {}, comments: {}, approvals: {} }
 }
 
 function localStorageOrNull(): StorageLike | null {
@@ -110,6 +121,19 @@ export class BrowserStore {
     }
   }
 
+  addScreen(record: BrowserScreenRecord): boolean {
+    const data = this.load()
+    const screens = [...data.screens.filter((s) => s.screen.id !== record.screen.id), record]
+    return this.save({ ...data, screens })
+  }
+
+  /** 제목만 바꾼다 (외부 ID·별칭은 그대로). */
+  setTitle(screenId: string, title: string): boolean {
+    const data = this.load()
+    const screens = data.screens.map((s) => (s.screen.id === screenId ? { ...s, screen: { ...s.screen, title } } : s))
+    return this.save({ ...data, screens, titles: { ...data.titles, [screenId]: title } })
+  }
+
   addRevision(record: BrowserRevisionRecord): boolean {
     const data = this.load()
     const revisions = [...data.revisions.filter((r) => r.revision.id !== record.revision.id), record]
@@ -141,7 +165,7 @@ export class BrowserStore {
 
   isEmpty(): boolean {
     const d = this.load()
-    return d.revisions.length === 0 && Object.keys(d.comments).length === 0 && Object.keys(d.approvals).length === 0
+    return d.revisions.length === 0 && d.screens.length === 0 && Object.keys(d.titles).length === 0 && Object.keys(d.comments).length === 0 && Object.keys(d.approvals).length === 0
   }
 
   /** 대략적인 저장 용량 (바이트) — 화면에 안내용으로 보여준다. */
@@ -173,12 +197,23 @@ export function parseStoreData(raw: string | null): BrowserStoreData {
     const rec = parsed as Record<string, unknown>
     if (rec['version'] !== BROWSER_STORE_VERSION) return emptyStoreData()
     const revisions = Array.isArray(rec['revisions']) ? (rec['revisions'] as BrowserRevisionRecord[]).filter(isRevisionRecord) : []
+    // screens·titles 는 나중에 추가된 항목이라 예전 저장 데이터에는 없다 (없으면 빈 값으로 시작한다).
+    const screens = Array.isArray(rec['screens']) ? (rec['screens'] as BrowserScreenRecord[]).filter(isScreenRecord) : []
+    const titles = typeof rec['titles'] === 'object' && rec['titles'] !== null ? (rec['titles'] as Record<string, string>) : {}
     const comments = typeof rec['comments'] === 'object' && rec['comments'] !== null ? (rec['comments'] as Record<string, Comment[]>) : {}
     const approvals = typeof rec['approvals'] === 'object' && rec['approvals'] !== null ? (rec['approvals'] as Record<string, BrowserApprovalRecord>) : {}
-    return { version: BROWSER_STORE_VERSION, revisions, comments, approvals }
+    return { version: BROWSER_STORE_VERSION, revisions, screens, titles, comments, approvals }
   } catch {
     return emptyStoreData()
   }
+}
+
+function isScreenRecord(v: unknown): v is BrowserScreenRecord {
+  if (typeof v !== 'object' || v === null) return false
+  const screen = (v as Record<string, unknown>)['screen']
+  if (typeof screen !== 'object' || screen === null) return false
+  const s = screen as Record<string, unknown>
+  return typeof s['id'] === 'string' && typeof s['project_id'] === 'string' && typeof s['external_id'] === 'string'
 }
 
 function isRevisionRecord(v: unknown): v is BrowserRevisionRecord {

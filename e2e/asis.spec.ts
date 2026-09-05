@@ -21,7 +21,8 @@ test('AS-IS 분석: 데모 대상 실행 → succeeded → 상세 확인 → 페
 
   // ---------------------------------------------------------------- (1) 진입 — 홈 링크·상단 내비
   await test.step('홈·상단 내비의 "AS-IS 분석" 링크로 목록에 진입', async () => {
-    await page.goto('/#/')
+    // 기본 화면은 "만들기" 로 바뀌었고, 프로젝트 홈(요구사항·IA·화면 목록)은 `#/advanced` 다.
+    await page.goto('/#/advanced')
     await expect(page.getByTestId('project-name')).toHaveText(project.name)
     await expect(page.getByTestId('link-asis')).toBeVisible()
     await page.locator('.topbar-nav').getByRole('link', { name: 'AS-IS 분석' }).click()

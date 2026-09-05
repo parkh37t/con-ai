@@ -1,42 +1,42 @@
 {
   "screen_id": "a4000000-0000-4000-8000-000000000001",
-  "revision_id": "fc872b18-4a0f-41a1-9967-9d36a2c8d6a1",
+  "revision_id": "bf7f2be2-7963-4667-89db-ae6f46667d98",
   "approver": "데모 기획자",
   "response": {
     "approval": {
-      "id": "2f84fd4f-3e66-4216-a7a0-713838b8806f",
-      "artifact_id": "ba327f8f-7d00-43d8-84eb-7ccde9f459fc",
-      "artifact_hash": "003ce22e6d01db692ac46c33b9bb44de04a62d91194c1a9cd588771a45df9f36",
+      "id": "85f86a96-0ae3-4b16-a5c7-c810aa2cd9a2",
+      "artifact_id": "2adb64d8-a741-4031-8385-f38a1fc0e3a3",
+      "artifact_hash": "6bfbf46a757c23f40af703c423781fceb76192404e7fed05e7e31320c66fa7a0",
       "baseline_id": "baseline-wyliy-partner-quote-sample-1",
-      "validation_run_id": "5d62d9d7-1b7d-45e1-b4b8-30c1253ea02a",
+      "validation_run_id": "1d2b7ff1-3a80-4e5c-bca8-e2129cc4716c",
       "approved_by": "데모 기획자",
-      "approved_at": "2026-09-05T13:50:12.499Z",
+      "approved_at": "2026-09-05T15:17:48.414Z",
       "version": "1.0",
       "export_path": "wyliy-partner-quote-sample/SAMPLE-quote-list/v1.0",
       "files": [
         {
           "path": "index.html",
-          "sha256": "003ce22e6d01db692ac46c33b9bb44de04a62d91194c1a9cd588771a45df9f36"
+          "sha256": "6bfbf46a757c23f40af703c423781fceb76192404e7fed05e7e31320c66fa7a0"
         },
         {
           "path": "spec.json",
-          "sha256": "4ced2543d243430935de6533cb27c4ff971aff2f7d6efcb0b4679bfc7a384249"
+          "sha256": "6756a5899d7ef879783c43aea6e0ab927c064545c6f0c1e30e0eea69da833068"
         },
         {
           "path": "trace.json",
-          "sha256": "38b69b207e9065612096a0f1d5f27133ac4c9784a535499f0b1f763d796f8ce6"
+          "sha256": "4e77865a7ba40964f66c2b04b315731e552fc17d24763e5831ee255c236a2a27"
         },
         {
           "path": "validation.json",
-          "sha256": "0ced6afe9f40ffdc7ee2a1794437a38a166ba9f166e92a16cb25ac0d2fa55887"
+          "sha256": "f3d9b1e3a5ba300f54ac905571248838efd3ed60080e2cef31d7b96b5b06df63"
         },
         {
           "path": "comments.json",
-          "sha256": "82d81acb2ac33754c83002ec317edab192e149c2f33912ca3d2c1aa08397f12f"
+          "sha256": "910e2256577a7f706e03c4d07834585dc74f8a812c3e46a1fd7f7934f39fbc3a"
         },
         {
           "path": "manifest.json",
-          "sha256": "7ebb077d2aeafaadfaf79bcff33ecf89f60eeb40bba0907ac3d417341a3ad8d4"
+          "sha256": "f55a9a4952f00481cb82255458f8a05f3a7e53ece46eea0c9402bc77fe8a87f9"
         }
       ]
     },
@@ -46,27 +46,27 @@
     "files": [
       {
         "path": "index.html",
-        "sha256": "003ce22e6d01db692ac46c33b9bb44de04a62d91194c1a9cd588771a45df9f36"
+        "sha256": "6bfbf46a757c23f40af703c423781fceb76192404e7fed05e7e31320c66fa7a0"
       },
       {
         "path": "spec.json",
-        "sha256": "4ced2543d243430935de6533cb27c4ff971aff2f7d6efcb0b4679bfc7a384249"
+        "sha256": "6756a5899d7ef879783c43aea6e0ab927c064545c6f0c1e30e0eea69da833068"
       },
       {
         "path": "trace.json",
-        "sha256": "38b69b207e9065612096a0f1d5f27133ac4c9784a535499f0b1f763d796f8ce6"
+        "sha256": "4e77865a7ba40964f66c2b04b315731e552fc17d24763e5831ee255c236a2a27"
       },
       {
         "path": "validation.json",
-        "sha256": "0ced6afe9f40ffdc7ee2a1794437a38a166ba9f166e92a16cb25ac0d2fa55887"
+        "sha256": "f3d9b1e3a5ba300f54ac905571248838efd3ed60080e2cef31d7b96b5b06df63"
       },
       {
         "path": "comments.json",
-        "sha256": "82d81acb2ac33754c83002ec317edab192e149c2f33912ca3d2c1aa08397f12f"
+        "sha256": "910e2256577a7f706e03c4d07834585dc74f8a812c3e46a1fd7f7934f39fbc3a"
       },
       {
         "path": "manifest.json",
-        "sha256": "7ebb077d2aeafaadfaf79bcff33ecf89f60eeb40bba0907ac3d417341a3ad8d4"
+        "sha256": "f55a9a4952f00481cb82255458f8a05f3a7e53ece46eea0c9402bc77fe8a87f9"
       }
     ],
     "manifest": {
@@ -77,10 +77,10 @@
       },
       "screen_external_id": "SAMPLE-quote-list",
       "version": "1.0",
-      "artifact_hash": "003ce22e6d01db692ac46c33b9bb44de04a62d91194c1a9cd588771a45df9f36",
-      "spec_hash": "66155fcdabf4164e5d08b60630f85a155e85c9b0290579ccc9d4c3c29e39efeb",
+      "artifact_hash": "6bfbf46a757c23f40af703c423781fceb76192404e7fed05e7e31320c66fa7a0",
+      "spec_hash": "40daa0f9043295e0744874fc699e28938679111573529733fe8c21030ee36369",
       "approved_by": "데모 기획자",
-      "approved_at": "2026-09-05T13:50:12.499Z",
+      "approved_at": "2026-09-05T15:17:48.414Z",
       "adapter": "fixture",
       "model": "fixture",
       "validation_summary": {
@@ -90,8 +90,8 @@
         "not_run": 0
       },
       "design_handoff": {
-        "screen_revision_id": "fc872b18-4a0f-41a1-9967-9d36a2c8d6a1",
-        "design_input_spec_hash": "66155fcdabf4164e5d08b60630f85a155e85c9b0290579ccc9d4c3c29e39efeb",
+        "screen_revision_id": "bf7f2be2-7963-4667-89db-ae6f46667d98",
+        "design_input_spec_hash": "40daa0f9043295e0744874fc699e28938679111573529733fe8c21030ee36369",
         "locked_elements": [],
         "locked_actions": [],
         "allowed_tokens": [
@@ -103,23 +103,23 @@
       "files": [
         {
           "path": "index.html",
-          "sha256": "003ce22e6d01db692ac46c33b9bb44de04a62d91194c1a9cd588771a45df9f36"
+          "sha256": "6bfbf46a757c23f40af703c423781fceb76192404e7fed05e7e31320c66fa7a0"
         },
         {
           "path": "spec.json",
-          "sha256": "4ced2543d243430935de6533cb27c4ff971aff2f7d6efcb0b4679bfc7a384249"
+          "sha256": "6756a5899d7ef879783c43aea6e0ab927c064545c6f0c1e30e0eea69da833068"
         },
         {
           "path": "trace.json",
-          "sha256": "38b69b207e9065612096a0f1d5f27133ac4c9784a535499f0b1f763d796f8ce6"
+          "sha256": "4e77865a7ba40964f66c2b04b315731e552fc17d24763e5831ee255c236a2a27"
         },
         {
           "path": "validation.json",
-          "sha256": "0ced6afe9f40ffdc7ee2a1794437a38a166ba9f166e92a16cb25ac0d2fa55887"
+          "sha256": "f3d9b1e3a5ba300f54ac905571248838efd3ed60080e2cef31d7b96b5b06df63"
         },
         {
           "path": "comments.json",
-          "sha256": "82d81acb2ac33754c83002ec317edab192e149c2f33912ca3d2c1aa08397f12f"
+          "sha256": "910e2256577a7f706e03c4d07834585dc74f8a812c3e46a1fd7f7934f39fbc3a"
         }
       ]
     }

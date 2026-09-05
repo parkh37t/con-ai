@@ -26,7 +26,7 @@ export function ApprovePage({ screenId, route }: { screenId: string; route: Rout
   return (
     <div className="page">
       <nav className="breadcrumb" aria-label="경로">
-        <a href={hrefTo('home')}>프로젝트 홈</a> › <code>{s.external_id}</code> › 완료·내보내기
+        <a href={hrefTo('advanced')}>프로젝트 홈</a> › <code>{s.external_id}</code> › 완료·내보내기
       </nav>
       <section className="card">
         <div className="card-head">

@@ -9,10 +9,12 @@ import { useAsync, useHashRoute } from './hooks.js'
 import { ApprovePage } from './pages/ApprovePage.js'
 import { AsisDetailPage } from './pages/AsisDetailPage.js'
 import { AsisListPage } from './pages/AsisListPage.js'
+import { DesignPage } from './pages/DesignPage.js'
 import { GeneratePage } from './pages/GeneratePage.js'
 import { HomePage } from './pages/HomePage.js'
 import { ReferencesPage } from './pages/ReferencesPage.js'
 import { ReviewPage } from './pages/ReviewPage.js'
+import { SimpleHomePage } from './pages/SimpleHomePage.js'
 import { hrefTo } from './router.js'
 
 export function App() {
@@ -24,8 +26,11 @@ export function App() {
   const projectList = projects.data ?? []
   const project = (requestedProject ? projectList.find((p) => p.id === requestedProject) : undefined) ?? projectList[0] ?? null
 
+  // 기본 화면(만들기)과 설계서 결과는 상단 바·자격 증명 패널 없이 화면만 보여준다 (UI 를 단순하게 유지).
+  const simpleShell = route.name === 'home' || route.name === 'design'
+
   const current =
-    route.name === 'home'
+    route.name === 'advanced'
       ? 'home'
       : route.name === 'references'
         ? 'references'
@@ -38,6 +43,8 @@ export function App() {
   let body: ReactNode
   if (projects.error) {
     body = <ErrorBox error={projects.error} title="프로젝트 목록을 읽지 못했습니다" />
+  } else if (route.name === 'design') {
+    body = <DesignPage key={route.revisionId} revisionId={route.revisionId} route={route} />
   } else if (route.name === 'generate') {
     body = <GeneratePage key={route.screenId} screenId={route.screenId} route={route} />
   } else if (route.name === 'review') {
@@ -51,6 +58,8 @@ export function App() {
   } else if (!project) {
     body = <div className="empty">프로젝트가 없습니다. API 의 시드 데이터(계약 §10)가 만들어졌는지 확인하세요.</div>
   } else if (route.name === 'home') {
+    body = <SimpleHomePage key={project.id} project={project} meta={meta.data} route={route} />
+  } else if (route.name === 'advanced') {
     body = <HomePage key={project.id} project={project} projects={projectList} meta={meta.data} />
   } else if (route.name === 'references') {
     body = <ReferencesPage key={project.id} projectId={project.id} />
@@ -59,7 +68,16 @@ export function App() {
   } else {
     body = (
       <div className="empty">
-        알 수 없는 경로입니다: <code>{route.path}</code> · <a href={hrefTo('home')}>프로젝트 홈으로</a>
+        알 수 없는 경로입니다: <code>{route.path}</code> · <a href={hrefTo('home')}>만들기 화면으로</a>
+      </div>
+    )
+  }
+
+  if (simpleShell) {
+    return (
+      <div className="app app-simple">
+        <DemoBanner />
+        <main className="main main-simple">{body}</main>
       </div>
     )
   }

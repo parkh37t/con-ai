@@ -19,17 +19,19 @@ test('세로 조각: 생성 → 검토·코멘트 → 수정 → 완료(v1.0) �
   page.on('pageerror', (err) => consoleErrors.push(`pageerror: ${err.message}`))
 
   // ---------------------------------------------------------------- (1) 홈
-  await test.step('홈 — 프로젝트명·fixture 배지·화면 3개', async () => {
-    await page.goto('/#/')
+  await test.step('홈(고급) — 프로젝트명·fixture 배지·시드 화면 3개', async () => {
+    // 기본 화면(`#/`)은 "만들기" 이고, 프로젝트 전체 목록은 `#/advanced` 다.
+    await page.goto('/#/advanced')
     await expect(page.getByTestId('project-name')).toHaveText(project.name)
     await expect(page.getByTestId('adapter-badge')).toContainText('fixture')
     await expect(page.getByTestId('adapter-badge')).toContainText('더미')
     await expect(page.getByTestId('fixture-hint')).toContainText('MODEL_ADAPTER=anthropic')
-    await expect(page.getByTestId('screen-row')).toHaveCount(3)
+    // 표는 프로젝트의 모든 화면을 보여준다 (다른 e2e 가 만든 화면이 있을 수 있어 API 목록과 맞춘다).
+    await expect(page.getByTestId('screen-row')).toHaveCount(project.screens.length)
     for (const id of ['SAMPLE-quote-list', 'SAMPLE-quote-detail', 'SAMPLE-quote-create-popup']) {
       await expect(page.locator(`[data-testid="screen-row"][data-external-id="${id}"]`)).toHaveCount(1)
     }
-    expect(project.screens).toHaveLength(3)
+    expect(project.screens.filter((s) => s.external_id.startsWith('SAMPLE-'))).toHaveLength(3)
   })
 
   // ---------------------------------------------------------------- (2) 레퍼런스 포트폴리오
@@ -43,7 +45,7 @@ test('세로 조각: 생성 → 검토·코멘트 → 수정 → 완료(v1.0) �
   let firstJobId = ''
   let firstRevisionId = ''
   await test.step('생성 작업대 — 폼 → 프롬프트 미리보기(7구역) → 생성 실행 → succeeded → 새로고침 후 유지', async () => {
-    await page.goto('/#/')
+    await page.goto('/#/advanced')
     await page.locator(`[data-testid="screen-row"][data-external-id="SAMPLE-quote-list"]`).getByTestId('link-generate').click()
     await expect(page).toHaveURL(new RegExp(`#/screens/${listScreen.id}/generate`))
     await expect(page.getByRole('heading', { level: 2 })).toContainText('SAMPLE-quote-list')
@@ -227,7 +229,7 @@ test('세로 조각: 생성 → 검토·코멘트 → 수정 → 완료(v1.0) �
     expect(listExportFiles(exportPath)).toEqual(EXPORT_FILES)
 
     // 홈 목록에 완료·v1.0 이 반영된다
-    await page.goto('/#/')
+    await page.goto('/#/advanced')
     const row = page.locator('[data-testid="screen-row"][data-external-id="SAMPLE-quote-list"]')
     await expect(row).toContainText('완료')
     await expect(row).toContainText('1.0')
