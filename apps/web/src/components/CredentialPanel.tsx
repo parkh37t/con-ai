@@ -10,6 +10,7 @@ import { CREDENTIAL_KIND_LABELS, credentialStore, type CredentialInfo, type Cred
 import { releaseArtifactUrls } from '../browser-run/artifact-urls.js'
 import { browserStore } from '../browser-run/store.js'
 import { CREDENTIAL_EVENT } from '../hooks.js'
+import { hrefTo } from '../router.js'
 import { Badge } from './common.js'
 
 export const CREDENTIAL_NOTICE = '토큰은 이 브라우저에만 저장되고 api.anthropic.com 으로만 전송됩니다. 이 페이지는 정적 파일이며 서버가 없습니다. 공용 PC 에서는 저장하지 마세요.'
@@ -118,7 +119,12 @@ export function CredentialPanel({ onChanged }: { onChanged: () => void }) {
               {error}
             </div>
           )}
-          <p className="muted small cred-notice">{CREDENTIAL_NOTICE}</p>
+          <p className="muted small cred-notice">
+            {CREDENTIAL_NOTICE}{' '}
+            <a data-testid="cred-key-help" href={hrefTo('main', { help: 'key' })}>
+              Claude API 키 받는 법
+            </a>
+          </p>
         </div>
       )}
       {storeError && (

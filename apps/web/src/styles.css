@@ -1123,3 +1123,357 @@ textarea {
   border-radius: 8px;
   background: var(--card);
 }
+
+/* ================================================================
+   메인 (랜딩, #/)
+   시각 언어는 화면설계서(packages/renderer/src/styles.ts)와 같은 것을 쓴다:
+   흰 바탕·검정 텍스트, 얇은 테두리 카드, 카드에 걸친 검은 사각 번호 배지,
+   강조는 요소 배지와 같은 파랑(#1d6ef5). 그림자·그라데이션은 쓰지 않는다.
+   ================================================================ */
+.app-main,
+.app-main .main-simple {
+  background: #ffffff;
+}
+.main-page {
+  --doc-ink: #111;
+  --doc-text: #222;
+  --doc-line: #333;
+  --doc-line-soft: #ddd;
+  --doc-muted: #666;
+  --doc-accent: #1d6ef5;
+  --doc-accent-soft: #eef4ff;
+  font-family: 'Pretendard', 'Malgun Gothic', 'Apple SD Gothic Neo', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;
+  color: var(--doc-text);
+  background: #ffffff;
+  min-height: 100vh;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 28px 88px;
+}
+.main-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 14px 0 12px;
+  border-bottom: 1.5px solid var(--doc-text);
+}
+.main-brand {
+  font-size: 14.5px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  color: var(--doc-ink);
+}
+.main-top-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.main-top .chip {
+  border-radius: 3px;
+  font-size: 11.5px;
+  font-weight: 700;
+}
+.main-advanced {
+  color: var(--doc-muted);
+  font-size: 12.5px;
+  text-decoration: none;
+  border-bottom: 1px dotted #aaa;
+}
+.main-advanced:hover {
+  color: var(--doc-ink);
+  border-bottom-color: var(--doc-ink);
+}
+
+/* ── 히어로 ── */
+.main-hero {
+  padding: 60px 0 36px;
+}
+.main-hero h1 {
+  margin: 0;
+  font-size: clamp(28px, 4.6vw, 46px);
+  font-weight: 800;
+  line-height: 1.24;
+  letter-spacing: -0.025em;
+  color: var(--doc-ink);
+}
+.main-sub {
+  margin: 18px 0 0;
+  max-width: 66ch;
+  font-size: clamp(14px, 1.5vw, 16px);
+  line-height: 1.7;
+  color: #444444;
+}
+.main-cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 30px;
+}
+.main-btn {
+  display: inline-block;
+  padding: 13px 26px;
+  border: 1.5px solid var(--doc-text);
+  border-radius: 6px;
+  background: #ffffff;
+  color: var(--doc-ink);
+  font-size: 14.5px;
+  font-weight: 700;
+  text-decoration: none;
+  line-height: 1.2;
+}
+.main-btn:hover {
+  background: #f4f6f8;
+}
+.main-btn-primary {
+  background: var(--doc-text);
+  color: #ffffff;
+}
+.main-btn-primary:hover {
+  background: #000000;
+  border-color: #000000;
+}
+.main-btn.is-disabled {
+  color: #999999;
+  border-color: #cccccc;
+  background: #ffffff;
+  cursor: default;
+}
+
+/* ── 절 ── */
+.main-section {
+  margin-top: 54px;
+}
+.main-section-title {
+  margin: 0 0 24px;
+  padding-bottom: 10px;
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--doc-ink);
+  border-bottom: 2px solid var(--doc-ink);
+}
+.main-note {
+  margin: 0 0 14px;
+  max-width: 66ch;
+  font-size: 13.5px;
+  line-height: 1.7;
+  color: #555555;
+}
+
+/* ── 4단계 카드 (설계서의 영역 카드 + 걸친 검은 사각 배지) ── */
+.main-steps {
+  list-style: none;
+  margin: 0;
+  padding: 18px 0 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 30px 24px;
+}
+.main-step {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  height: 100%;
+  padding: 22px 18px 16px;
+  border: 1.5px solid var(--doc-line);
+  border-radius: 10px;
+  background: #ffffff;
+  text-decoration: none;
+  color: inherit;
+}
+.main-step:hover {
+  border-color: var(--doc-ink);
+  background: #fafbfc;
+}
+.main-step h3 {
+  margin: 0;
+  font-size: 15.5px;
+  font-weight: 800;
+  color: var(--doc-ink);
+}
+.main-step p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.65;
+  color: #444444;
+}
+.badge-square {
+  position: absolute;
+  top: -14px;
+  left: -14px;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 7px;
+  background: var(--doc-ink);
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 800;
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 0 1.5px var(--doc-ink);
+}
+.badge-inline {
+  position: static;
+  width: 24px;
+  height: 24px;
+  flex: none;
+  border: 0;
+  box-shadow: none;
+  border-radius: 6px;
+  font-size: 13px;
+}
+.step-flag {
+  margin-top: auto;
+  align-self: flex-start;
+  padding: 1px 7px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 700;
+}
+.step-flag-now {
+  color: #123f7b;
+  background: var(--doc-accent-soft);
+  border: 1px solid #c9dbf7;
+}
+.step-flag-server_required {
+  color: #555555;
+  background: #f1f3f5;
+  border: 1px solid #d7dce1;
+}
+
+/* ── 최근 설계서·예시 카드 ── */
+.main-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(232px, 1fr));
+  gap: 14px;
+}
+.main-card {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-height: 104px;
+  padding: 16px 16px 14px;
+  border: 1px solid var(--doc-line-soft);
+  border-radius: 8px;
+  background: #ffffff;
+  text-decoration: none;
+  color: var(--doc-ink);
+}
+.main-card:hover {
+  border-color: var(--doc-ink);
+}
+.main-card strong {
+  font-size: 14.5px;
+  font-weight: 800;
+}
+.main-card-sub {
+  font-size: 12px;
+  color: var(--doc-muted);
+}
+.main-recent-card .main-card-sub,
+.main-card[data-external-id] .main-card-sub {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+.main-card-foot {
+  margin-top: auto;
+  font-size: 12px;
+  color: var(--doc-muted);
+}
+
+/* ── 시작하려면 ── */
+.main-start {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 18px;
+}
+.main-start > li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.main-start strong {
+  display: block;
+  font-size: 14.5px;
+  font-weight: 800;
+  color: var(--doc-ink);
+}
+.main-start .main-note {
+  margin: 5px 0 0;
+}
+
+/* API 키 안내 — 설계서의 정책 상자(파란 왼쪽 막대)와 같은 표시 */
+.main-help {
+  margin-top: 9px;
+  max-width: 72ch;
+  padding: 8px 14px 6px;
+  border-left: 4px solid var(--doc-accent);
+  border-radius: 0 8px 8px 0;
+  background: var(--doc-accent-soft);
+  font-size: 13px;
+}
+.main-help > summary {
+  cursor: pointer;
+  font-weight: 700;
+  color: #123f7b;
+}
+.main-help ul {
+  margin: 8px 0 2px;
+  padding: 0;
+  list-style: none;
+}
+.main-help li {
+  padding: 8px 0;
+  border-bottom: 1px solid #d7e3f7;
+  line-height: 1.7;
+  color: #222222;
+}
+.main-help li:last-child {
+  border-bottom: 0;
+}
+.main-help code {
+  background: #ffffff;
+  border: 1px solid #d7e3f7;
+}
+.main-help a {
+  color: #123f7b;
+}
+/* 안내 문장 안의 강조는 줄바꿈하지 않는다 (.main-start strong 의 블록 표시를 되돌린다) */
+.main-help strong {
+  display: inline;
+}
+
+/* ── 반응형: 900px 이하 2열, 좁은 폭 1열 ── */
+@media (max-width: 900px) {
+  .main-page {
+    padding: 0 20px 64px;
+  }
+  .main-hero {
+    padding: 44px 0 40px;
+  }
+  .main-steps {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 560px) {
+  .main-page {
+    padding: 0 20px 56px;
+  }
+  .main-steps {
+    grid-template-columns: 1fr;
+  }
+  .main-cta {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .main-btn {
+    text-align: center;
+  }
+  .main-section {
+    margin-top: 42px;
+  }
+}

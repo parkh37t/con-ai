@@ -9,13 +9,16 @@ export function TopBar({ meta, metaError, projectName, current }: { meta: Meta |
   return (
     <header className="topbar">
       <div className="topbar-left">
-        <a className="brand" href={hrefTo('home')}>
+        <a className="brand" href={hrefTo('main')}>
           con-ai 기획 작업대
         </a>
         <span className="project-name" data-testid="project-name">{projectName ?? '프로젝트를 불러오는 중…'}</span>
       </div>
       <nav className="topbar-nav" aria-label="주요 화면">
-        <a href={hrefTo('home')} data-testid="nav-simple">
+        <a href={hrefTo('main')} data-testid="nav-main">
+          메인
+        </a>
+        <a href={hrefTo('create')} data-testid="nav-simple">
           만들기
         </a>
         <a href={hrefTo('advanced')} className={current === 'home' ? 'active' : ''}>

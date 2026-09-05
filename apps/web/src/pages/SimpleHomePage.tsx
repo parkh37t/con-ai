@@ -1,5 +1,5 @@
 /**
- * 만들기 (기본 화면, `#/`) — 문장 하나 + 버튼 하나로 화면설계서 HTML 을 만든다.
+ * 만들기 (`#/new`) — 문장 하나 + 버튼 하나로 화면설계서 HTML 을 만든다. 메인(`#/`)의 «설계서 만들기» 가 여기로 온다.
  *
  * 여기서는 기술 용어를 쓰지 않는다(revision → 버전, 작업 ID·단계 이름·CASE·검증은 숨긴다).
  * 자동으로 채운 값은 simple-flow.ts 가 정하고, 근거는 "무엇을 자동으로 채웠나" 로 펼쳐 볼 수 있게 남긴다.
@@ -7,6 +7,7 @@
 import { useState } from 'react'
 import { api } from '../api.js'
 import { credentialStore } from '../browser-run/credential.js'
+import { AdapterChip } from '../components/AdapterChip.js'
 import { ErrorBox } from '../components/common.js'
 import { IS_DEMO } from '../demo-mode.js'
 import { CREDENTIAL_EVENT, navigate, useAsync, useCredentialTick, useJobPolling } from '../hooks.js'
@@ -86,9 +87,11 @@ export function SimpleHomePage({ project, meta, route }: { project: Project; met
   return (
     <div className="simple-page">
       <header className="simple-top">
-        <span className="simple-brand">con-ai 화면설계</span>
+        <a className="simple-brand" data-testid="simple-home" href={hrefTo('main')}>
+          ← con-ai 화면설계
+        </a>
         <span className="simple-top-right">
-          <AdapterChip meta={meta} credential={credential !== null} />
+          <AdapterChip meta={meta} credential={credential !== null} testId="simple-adapter" />
           {IS_DEMO && (
             <button type="button" className="btn btn-small" data-testid="simple-credential-toggle" onClick={() => setAskCredential((v) => !v)}>
               {credential ? `내 토큰 ····${credential.last4}` : 'Claude 토큰 넣기'}
@@ -184,30 +187,6 @@ export function SimpleHomePage({ project, meta, route }: { project: Project; met
         )}
       </section>
     </div>
-  )
-}
-
-/** 지금 무엇이 화면을 만드는지 한 눈에 (더미 어댑터인지 실제 모델인지 숨기지 않는다). */
-function AdapterChip({ meta, credential }: { meta: Meta | null; credential: boolean }) {
-  if (!meta) return <span className="muted small">연결 확인 중…</span>
-  if (IS_DEMO && !credential) {
-    return (
-      <span className="chip chip-amber" data-testid="simple-adapter">
-        저장된 예시 보기 전용
-      </span>
-    )
-  }
-  if (meta.adapter === 'fixture') {
-    return (
-      <span className="chip chip-amber" data-testid="simple-adapter" title="모델을 호출하지 않고 규칙으로 만드는 더미 어댑터입니다">
-        더미 어댑터 (모델 호출 없음)
-      </span>
-    )
-  }
-  return (
-    <span className="chip chip-green" data-testid="simple-adapter" title={`어댑터 anthropic · 모델 ${meta.model}`}>
-      AI {meta.model}
-    </span>
   )
 }
 

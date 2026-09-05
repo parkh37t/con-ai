@@ -1,14 +1,15 @@
 /**
  * 해시 라우팅 — 라우터 라이브러리 없이 `#/…` 경로를 파싱한다 (순수 함수, 테스트 가능).
  *
- * 경로: `#/`(만들기), `#/d/:revisionId`(설계서 결과), `#/advanced`(프로젝트 전체), `#/references`, `#/asis`, `#/asis/:id`,
+ * 경로: `#/`(메인), `#/new`(만들기), `#/d/:revisionId`(설계서 결과), `#/advanced`(프로젝트 전체), `#/references`, `#/asis`, `#/asis/:id`,
  *       `#/screens/:id/generate`, `#/screens/:id/review`, `#/screens/:id/approve`.
  * 쿼리(`?rev=…&job=…`)는 해시 뒤에 붙는다.
  */
 export type Query = Record<string, string>
 
 export type Route =
-  | { name: 'home'; query: Query }
+  | { name: 'main'; query: Query }
+  | { name: 'create'; query: Query }
   | { name: 'design'; revisionId: string; query: Query }
   | { name: 'advanced'; query: Query }
   | { name: 'references'; query: Query }
@@ -43,7 +44,8 @@ export function parseRoute(hash: string): Route {
   const query = parseQuery(qIndex === -1 ? '' : rest.slice(qIndex + 1))
   const segments = path.split('/').filter((s) => s.length > 0)
 
-  if (segments.length === 0) return { name: 'home', query }
+  if (segments.length === 0) return { name: 'main', query }
+  if (segments.length === 1 && segments[0] === 'new') return { name: 'create', query }
   if (segments.length === 1 && segments[0] === 'advanced') return { name: 'advanced', query }
   if (segments.length === 2 && segments[0] === 'd') {
     const revisionId = decodeURIComponent(segments[1] ?? '')
@@ -73,10 +75,19 @@ function encodeQuery(query: Query | undefined): string {
   return parts.length === 0 ? '' : `?${parts.join('&')}`
 }
 
-/** 만들기·고급(프로젝트 전체)·포트폴리오·AS-IS 분석 목록 링크. */
-export function hrefTo(name: 'home' | 'advanced' | 'references' | 'asis', query?: Query): string {
-  const base = name === 'home' ? '#/' : name === 'advanced' ? '#/advanced' : name === 'references' ? '#/references' : '#/asis'
-  return `${base}${encodeQuery(query)}`
+/** 메인·만들기·고급(프로젝트 전체)·포트폴리오·AS-IS 분석 목록 링크. */
+export type FlatRouteName = 'main' | 'create' | 'advanced' | 'references' | 'asis'
+
+const FLAT_ROUTE_PATHS: Readonly<Record<FlatRouteName, string>> = {
+  main: '#/',
+  create: '#/new',
+  advanced: '#/advanced',
+  references: '#/references',
+  asis: '#/asis',
+}
+
+export function hrefTo(name: FlatRouteName, query?: Query): string {
+  return `${FLAT_ROUTE_PATHS[name]}${encodeQuery(query)}`
 }
 
 /** 설계서 결과 화면 링크 (`#/d/:revisionId`). */
@@ -102,8 +113,10 @@ export function withQuery(route: Route, patch: Query): string {
     else query[k] = v
   }
   switch (route.name) {
-    case 'home':
-      return hrefTo('home', query)
+    case 'main':
+      return hrefTo('main', query)
+    case 'create':
+      return hrefTo('create', query)
     case 'design':
       return hrefToDesign(route.revisionId, query)
     case 'advanced':

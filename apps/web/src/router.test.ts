@@ -2,10 +2,17 @@ import { describe, expect, it } from 'vitest'
 import { hrefTo, hrefToAsisDetail, hrefToDesign, hrefToScreen, parseRoute, withQuery } from './router.js'
 
 describe('parseRoute — 해시 라우팅', () => {
-  it('빈 해시·`#`·`#/` 는 홈이다', () => {
-    expect(parseRoute('')).toEqual({ name: 'home', query: {} })
-    expect(parseRoute('#')).toEqual({ name: 'home', query: {} })
-    expect(parseRoute('#/')).toEqual({ name: 'home', query: {} })
+  it('빈 해시·`#`·`#/` 는 메인 화면이다', () => {
+    expect(parseRoute('')).toEqual({ name: 'main', query: {} })
+    expect(parseRoute('#')).toEqual({ name: 'main', query: {} })
+    expect(parseRoute('#/')).toEqual({ name: 'main', query: {} })
+  })
+
+  it('`#/new` 는 만들기 화면이다 (메인과 구분한다)', () => {
+    expect(parseRoute('#/new')).toEqual({ name: 'create', query: {} })
+    expect(parseRoute('#/new/')).toEqual({ name: 'create', query: {} })
+    expect(parseRoute('#/new?job=j1')).toEqual({ name: 'create', query: { job: 'j1' } })
+    expect(parseRoute('#/new/extra')).toEqual({ name: 'not_found', path: '/new/extra', query: {} })
   })
 
   it('설계서 결과(`#/d/:revisionId`)와 고급 화면(`#/advanced`)', () => {
@@ -39,7 +46,7 @@ describe('parseRoute — 해시 라우팅', () => {
 
   it('쿼리는 해시 뒤의 `?` 로 읽고 URL 디코딩한다', () => {
     expect(parseRoute('#/screens/s1/review?rev=r-2&job=j%2F9')).toEqual({ name: 'review', screenId: 's1', query: { rev: 'r-2', job: 'j/9' } })
-    expect(parseRoute('#/?project=p1')).toEqual({ name: 'home', query: { project: 'p1' } })
+    expect(parseRoute('#/?project=p1')).toEqual({ name: 'main', query: { project: 'p1' } })
     expect(parseRoute('#/screens/s1/generate?job=')).toEqual({ name: 'generate', screenId: 's1', query: { job: '' } })
   })
 
@@ -56,10 +63,14 @@ describe('parseRoute — 해시 라우팅', () => {
 })
 
 describe('hrefTo / hrefToScreen / withQuery — 링크 생성', () => {
-  it('홈·포트폴리오 링크', () => {
-    expect(hrefTo('home')).toBe('#/')
+  it('메인·만들기·포트폴리오 링크', () => {
+    expect(hrefTo('main')).toBe('#/')
+    expect(hrefTo('create')).toBe('#/new')
     expect(hrefTo('references')).toBe('#/references')
-    expect(hrefTo('home', { project: 'p1' })).toBe('#/?project=p1')
+    expect(hrefTo('main', { project: 'p1' })).toBe('#/?project=p1')
+    expect(hrefTo('main', { help: 'key' })).toBe('#/?help=key')
+    expect(hrefTo('create', { job: 'j1' })).toBe('#/new?job=j1')
+    expect(parseRoute(hrefTo('create', { job: 'j1' }))).toEqual({ name: 'create', query: { job: 'j1' } })
   })
 
   it('설계서·고급 링크는 다시 파싱하면 같은 라우트가 되고, withQuery 가 라우트를 유지한다', () => {
@@ -95,6 +106,8 @@ describe('hrefTo / hrefToScreen / withQuery — 링크 생성', () => {
     expect(withQuery(route, { job: '' })).toBe('#/screens/s1/review?rev=r1')
     expect(withQuery(route, { rev: 'r2' })).toBe('#/screens/s1/review?rev=r2&job=j1')
     expect(withQuery(parseRoute('#/'), { project: 'p2' })).toBe('#/?project=p2')
+    expect(withQuery(parseRoute('#/new?job=j1'), { job: '' })).toBe('#/new')
+    expect(withQuery(parseRoute('#/new'), { job: 'j2', screen: 's1' })).toBe('#/new?job=j2&screen=s1')
     expect(withQuery(parseRoute('#/nowhere?a=1'), { b: '2' })).toBe('#/nowhere?a=1&b=2')
   })
 })

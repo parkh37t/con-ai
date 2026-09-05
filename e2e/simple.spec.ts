@@ -1,5 +1,5 @@
 /**
- * 만들기 흐름 e2e (fixture 어댑터): 기본 화면(`#/`)에서 문장 한 줄 → «설계서 만들기» → 결과 화면의 iframe 에 설계서 HTML,
+ * 만들기 흐름 e2e (fixture 어댑터): 만들기 화면(`#/new`)에서 문장 한 줄 → «설계서 만들기» → 결과 화면의 iframe 에 설계서 HTML,
  * → 한 줄 수정 → v2 → HTML 다운로드 링크 → 최근 카드로 다시 열기.
  *
  * 이 흐름은 화면을 새로 만들기 때문에(외부 ID `SCREEN-00N`) 시드 화면 3개와 별개다.
@@ -19,16 +19,17 @@ test('만들기: 한 줄 입력 → 설계서 HTML → 한 줄 수정 → v2 →
   const before = project.screens.length
 
   // ---------------------------------------------------------------- (1) 기본 화면
-  await test.step('기본 화면 — 입력·기기 토글·만들기 버튼만 보인다', async () => {
-    await page.goto('/#/')
+  await test.step('만들기 화면 — 입력·기기 토글·만들기 버튼만 보인다', async () => {
+    await page.goto('/#/new')
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('어떤 화면을 만들까요?')
     await expect(page.getByTestId('simple-input')).toBeVisible()
     await expect(page.getByTestId('simple-create')).toBeVisible()
     await expect(page.getByTestId('simple-device-desktop')).toHaveClass(/active/)
     // 어댑터 표시(더미/실제)는 기본 화면에서도 숨기지 않는다
     await expect(page.getByTestId('simple-adapter')).toContainText('더미')
-    // 고급 화면 링크는 남아 있다
+    // 고급 화면 링크와 메인으로 돌아가는 링크는 남아 있다
     await expect(page.getByTestId('link-advanced')).toHaveAttribute('href', '#/advanced')
+    await expect(page.getByTestId('simple-home')).toHaveAttribute('href', '#/')
     // 생성 작업대의 항목(요구사항 체크·CASE·프롬프트 미리보기)은 기본 화면에 없다
     await expect(page.getByTestId('case-normal')).toHaveCount(0)
     await expect(page.getByTestId('preview-button')).toHaveCount(0)
@@ -107,9 +108,9 @@ test('만들기: 한 줄 입력 → 설계서 HTML → 한 줄 수정 → v2 →
   })
 
   // ---------------------------------------------------------------- (6) 최근 카드
-  await test.step('기본 화면의 최근 카드로 방금 만든 설계서를 다시 연다', async () => {
+  await test.step('만들기 화면의 최근 카드로 방금 만든 설계서를 다시 연다', async () => {
     await page.getByTestId('design-back').click()
-    await expect(page).toHaveURL(/#\/$/)
+    await expect(page).toHaveURL(/#\/new$/)
     const card = page.locator('[data-testid="simple-recent-card"]').first()
     await expect(card).toBeVisible()
     await card.click()

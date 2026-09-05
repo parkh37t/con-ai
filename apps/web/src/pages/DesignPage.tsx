@@ -65,8 +65,11 @@ export function DesignPage({ revisionId, route }: { revisionId: string; route: R
   return (
     <div className="design-page">
       <header className="design-top">
-        <a className="btn btn-small" data-testid="design-back" href={hrefTo('home')}>
+        <a className="btn btn-small" data-testid="design-back" href={hrefTo('create')}>
           ← 새로 만들기
+        </a>
+        <a className="btn btn-small" data-testid="design-main" href={hrefTo('main')}>
+          메인
         </a>
         <TitleField screenId={screenId} title={screen.data?.screen.title ?? ''} onSaved={() => screen.reload()} />
         <span className="design-versions" role="group" aria-label="버전">

@@ -12,6 +12,7 @@ import { AsisListPage } from './pages/AsisListPage.js'
 import { DesignPage } from './pages/DesignPage.js'
 import { GeneratePage } from './pages/GeneratePage.js'
 import { HomePage } from './pages/HomePage.js'
+import { MainPage } from './pages/MainPage.js'
 import { ReferencesPage } from './pages/ReferencesPage.js'
 import { ReviewPage } from './pages/ReviewPage.js'
 import { SimpleHomePage } from './pages/SimpleHomePage.js'
@@ -26,8 +27,8 @@ export function App() {
   const projectList = projects.data ?? []
   const project = (requestedProject ? projectList.find((p) => p.id === requestedProject) : undefined) ?? projectList[0] ?? null
 
-  // 기본 화면(만들기)과 설계서 결과는 상단 바·자격 증명 패널 없이 화면만 보여준다 (UI 를 단순하게 유지).
-  const simpleShell = route.name === 'home' || route.name === 'design'
+  // 메인·만들기·설계서 결과는 자체 상단 바를 가진다 — 앱 상단 바·자격 증명 패널 없이 화면만 보여준다 (UI 를 단순하게 유지).
+  const simpleShell = route.name === 'main' || route.name === 'create' || route.name === 'design'
 
   const current =
     route.name === 'advanced'
@@ -53,11 +54,14 @@ export function App() {
     body = <ApprovePage key={route.screenId} screenId={route.screenId} route={route} />
   } else if (route.name === 'asis_detail') {
     body = <AsisDetailPage key={route.analysisId} analysisId={route.analysisId} />
+  } else if (route.name === 'main') {
+    // 메인은 프로젝트를 아직 못 읽었어도 그린다 (히어로·프로세스·안내는 데이터가 없어도 맞는 말이다).
+    body = <MainPage key={project?.id ?? 'no-project'} project={project} meta={meta.data} route={route} />
   } else if (!projects.data) {
     body = <Loading text="프로젝트를 불러오는 중…" />
   } else if (!project) {
     body = <div className="empty">프로젝트가 없습니다. API 의 시드 데이터(계약 §10)가 만들어졌는지 확인하세요.</div>
-  } else if (route.name === 'home') {
+  } else if (route.name === 'create') {
     body = <SimpleHomePage key={project.id} project={project} meta={meta.data} route={route} />
   } else if (route.name === 'advanced') {
     body = <HomePage key={project.id} project={project} projects={projectList} meta={meta.data} />
@@ -68,14 +72,14 @@ export function App() {
   } else {
     body = (
       <div className="empty">
-        알 수 없는 경로입니다: <code>{route.path}</code> · <a href={hrefTo('home')}>만들기 화면으로</a>
+        알 수 없는 경로입니다: <code>{route.path}</code> · <a href={hrefTo('main')}>메인 화면으로</a>
       </div>
     )
   }
 
   if (simpleShell) {
     return (
-      <div className="app app-simple">
+      <div className={`app app-simple${route.name === 'main' ? ' app-main' : ''}`}>
         <DemoBanner />
         <main className="main main-simple">{body}</main>
       </div>
