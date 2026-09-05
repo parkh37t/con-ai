@@ -1,0 +1,44 @@
+{
+  "screen_external_id": "SAMPLE-quote-list",
+  "baseline_id": "baseline-wyliy-partner-quote-sample-1",
+  "spec_hash": "abe8d6a2259f2e49e195844ed2666d3d7c93644b39d8464ffb37f3805b2e4ab0",
+  "requirements": [
+    {
+      "id": "REQ-QT-001",
+      "title": "견적 목록 조회",
+      "criteria": [
+        {
+          "id": "AC-QT-001-01",
+          "text": "견적번호·요청 기간·견적 상태로 목록을 검색한다",
+          "kind": "ui",
+          "elements": [
+            {
+              "section_id": "search",
+              "element_id": "quote_no",
+              "label": "견적번호",
+              "display_no": "1-a"
+            }
+          ],
+          "actions": [],
+          "cases": []
+        },
+        {
+          "id": "AC-QT-001-02",
+          "text": "검색 결과를 요청일 내림차순 표로 표시하고 컬럼 정렬을 지원한다",
+          "kind": "ui",
+          "elements": [
+            {
+              "section_id": "search",
+              "element_id": "period",
+              "label": "요청 기간",
+              "display_no": "1-b"
+            }
+          ],
+          "actions": [],
+          "cases": []
+        }
+      ]
+    }
+  ],
+  "unlinked_criterion_ids": []
+}

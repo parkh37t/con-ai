@@ -24,6 +24,8 @@ import type {
   SliceGenerationRequest,
   ValidationResult,
 } from './types.js'
+import { handle as demoHandle } from './demo-api.js'
+import { DEMO_BASE, IS_DEMO } from './demo-mode.js'
 import { exportFileUrl } from './export-paths.js'
 
 export class ApiError extends Error {
@@ -82,6 +84,21 @@ async function readBody(res: Response): Promise<unknown> {
 }
 
 async function request<T>(method: 'GET' | 'POST' | 'PATCH', path: string, body?: unknown): Promise<T> {
+  // 정적 데모 빌드(VITE_DEMO=1)에서는 서버 대신 스냅샷 기반 인메모리 핸들러가 응답한다.
+  // 오류 형태·ApiError 는 아래 실제 호출 경로와 똑같이 유지한다. 일반 빌드에서는 이 분기가 통째로 제거된다.
+  if (IS_DEMO) {
+    let result: { status: number; data: unknown }
+    try {
+      result = await demoHandle(method, path, body)
+    } catch (e) {
+      throw new ApiError(path, 0, `정적 데모 데이터를 읽을 수 없습니다 (${path}). ${e instanceof Error ? e.message : ''}`.trim())
+    }
+    if (result.status < 200 || result.status >= 300) {
+      const { message, reasons } = extractError(result.status, result.data, `${method} ${path} 요청이 실패했습니다`)
+      throw new ApiError(path, result.status, message, reasons)
+    }
+    return result.data as T
+  }
   const init: RequestInit = { method, headers: { Accept: 'application/json' } }
   if (body !== undefined) {
     init.headers = { Accept: 'application/json', 'Content-Type': 'application/json' }
@@ -111,7 +128,8 @@ export const api = {
   job: (id: string) => request<Job>('GET', `/api/jobs/${encodeURIComponent(id)}`),
   screen: (id: string) => request<ScreenDetail>('GET', `/api/screens/${encodeURIComponent(id)}`),
   revision: (id: string) => request<RevisionDetail>('GET', `/api/revisions/${encodeURIComponent(id)}`),
-  artifactHtmlUrl: (artifactId: string) => `/api/artifacts/${encodeURIComponent(artifactId)}/html`,
+  /** 격리 iframe 이 읽는 산출물 HTML. 데모에서는 스냅샷이 떠 둔 정적 파일(`<base>demo/artifacts/…`)을 가리킨다. */
+  artifactHtmlUrl: (artifactId: string) => (IS_DEMO ? `${DEMO_BASE}artifacts/${encodeURIComponent(artifactId)}.html` : `/api/artifacts/${encodeURIComponent(artifactId)}/html`),
   revalidate: (artifactId: string) => request<ValidationResult[] | { validation_results: ValidationResult[] }>('POST', `/api/artifacts/${encodeURIComponent(artifactId)}/validations`),
   createComment: (revisionId: string, input: CommentInput) => request<Comment>('POST', `/api/revisions/${encodeURIComponent(revisionId)}/comments`, input),
   patchComment: (id: string, body: { status: CommentStatus; revision: number }) => request<Comment>('PATCH', `/api/comments/${encodeURIComponent(id)}`, body),
@@ -131,8 +149,8 @@ export const api = {
   /** 페인포인트 채택/거부 — 갱신된 문서를 돌려받는다. revision 은 낙관적 잠금. */
   patchAsisPainPoint: (analysisId: string, painPointId: string, body: { status: PainPointStatus; revision: number }) =>
     request<AsisAnalysis>('PATCH', `/api/asis-analyses/${encodeURIComponent(analysisId)}/pain-points/${encodeURIComponent(painPointId)}`, body),
-  /** 스크린샷 PNG URL (image/png). */
-  asisAssetUrl: (assetId: string) => `/api/asis-assets/${encodeURIComponent(assetId)}`,
+  /** 스크린샷 PNG URL (image/png). 데모에서는 스냅샷이 떠 둔 정적 파일(`<base>demo/asis/…`)을 가리킨다. */
+  asisAssetUrl: (assetId: string) => (IS_DEMO ? `${DEMO_BASE}asis/${encodeURIComponent(assetId)}.png` : `/api/asis-assets/${encodeURIComponent(assetId)}`),
 }
 
 /** 화면 표시용 오류 문자열. */

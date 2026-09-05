@@ -1,0 +1,10 @@
+{
+  "prompt": "다음 검토 코멘트를 반영해 화면 SAMPLE-quote-list(견적 목록) 명세를 수정한다.\n\n[디자이너 코멘트]\n- 요소 quote_no(견적번호, 영역 search), CASE normal: \"검색 영역 a번 항목(quote_no)을 필수 입력으로 표시해 주세요\" (데모 디자이너)\n\n[퍼블리셔 코멘트]\n- 대상 미지정(description): \"빈값 CASE 의 안내 문구를 설명에도 같은 문장으로 적어 주세요\" (데모 퍼블리셔)\n\n제약:\n- 잠긴 요소·동작은 변경하지 않는다.\n- 코멘트와 무관한 요소·동작·CASE 는 바꾸지 않는다.\n- 외부 ID·baseline·요구사항 연결은 유지한다.\n- change_summary 에 바꾼 id 를 모두 적고, 반영하지 못한 코멘트는 unresolved 에 질문으로 남긴다.",
+  "rationale": "[더미 어댑터] 코멘트 2건을 역할 2개(디자이너 1, 퍼블리셔 1)로 묶었다. 요소 지정 1건, CASE 지정 1건, 대상 미지정 1건. 잠긴 요소를 가리키는 코멘트 0건은 변경 대상에서 제외하고 확인 요청으로 남겼다.",
+  "adapter": "fixture",
+  "model": "fixture",
+  "comment_ids": [
+    "4109c735-d643-41a4-b9fe-2cd8815f0df3",
+    "e75a48b2-195c-4808-8dfb-2ed94ea6cc1c"
+  ]
+}

@@ -14,6 +14,7 @@ coverage/
 data/review/*.csv
 data/review/원본파일_인벤토리.json
 # 완료(v1.0) 내보내기 산출물과 e2e 결과는 실행 시 생성된다
-exports/
+# 루트의 내보내기 산출물만 제외한다(apps/web/public/demo/exports 는 데모 배포에 필요해 커밋한다).
+/exports/
 test-results/
 playwright-report/

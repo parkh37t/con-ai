@@ -61,6 +61,8 @@ describe('sandbox="allow-scripts" iframe 안의 목업 (계약 §4 postMessage)'
       await frame.waitForSelector('.is-highlighted')
       await frame.click('[data-element-id="search-button"] button')
 
+      // postMessage 는 비동기다. 부모가 클릭 3건을 다 받은 뒤에 내용을 비교한다(부하가 걸리면 마지막 1건이 늦게 도착한다).
+      await page.waitForFunction(() => (window as unknown as { __msgs: unknown[] }).__msgs.length === 3)
       const msgs = await page.evaluate(() => (window as unknown as { __msgs: unknown[] }).__msgs)
       expect(msgs).toEqual([
         { type: 'con-ai:element-click', element_id: 'period', section_id: 'search', case_id: 'normal', target: 'screen', display_no: 'b' },

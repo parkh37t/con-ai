@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="con-ai-renderer" content="s2b-learned-v1">
+<title>SAMPLE-quote-list — 견적 목록</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",sans-serif;font-size:14px;line-height:1.45;color:#1f2933;background:#f4f6f8}
+button,input,select,textarea{font:inherit;color:inherit}
+.con-ai-toolbar{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;padding:6px 12px;background:#1f2933;color:#e4e7eb;font-size:12px;position:sticky;top:0;z-index:20}
+.con-ai-toolbar[hidden]{display:none}
+.con-ai-toolbar .tb-group{display:inline-flex;gap:4px;align-items:center}
+.con-ai-toolbar .tb-label{opacity:.7;margin-right:2px}
+.con-ai-toolbar button{background:#3e4c59;color:#fff;border:1px solid #52606d;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:12px}
+.con-ai-toolbar button.is-active{background:#2f80ed;border-color:#2f80ed}
+.con-ai-toolbar .tb-status{margin-left:auto;opacity:.9;max-width:60%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.root-shell,.popup-shell{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:16px;padding:16px;align-items:start}
+.root-shell[data-device="mobile"] .screen-wrap,.popup-shell[data-device="mobile"] .popup-wrap{max-width:420px;margin:0 auto}
+.screen-wrap,.popup-wrap{background:#fff;border:1px solid #d9dee3;border-radius:6px;min-width:0;overflow:hidden}
+.popup-wrap{max-width:760px;margin:0 auto;box-shadow:0 8px 24px rgba(0,0,0,.12)}
+#right-panel,.spec-side{background:#fff;border:1px solid #d9dee3;border-radius:6px;padding:12px 14px;font-size:12px;position:sticky;top:44px;max-height:calc(100vh - 60px);overflow:auto;min-width:0}
+body.is-embedded #right-panel,body.is-embedded .spec-side{top:0;max-height:100vh}
+@media (max-width:960px){.root-shell,.popup-shell{grid-template-columns:1fr}#right-panel,.spec-side{position:static;max-height:none}}
+.gnb{display:flex;gap:16px;align-items:center;padding:8px 16px;background:#243b53;color:#fff;font-size:13px}
+.gnb .portal{font-weight:700}
+.gnb .gnb-menu{opacity:.75}
+.breadcrumb{padding:6px 16px;font-size:12px;color:#616e7c;background:#f8fafc;border-bottom:1px solid #eceff1}
+.screen-title,.popup-title{margin:0;padding:12px 16px 4px;font-size:18px}
+.screen-title small,.popup-title small{font-size:12px;font-weight:400;color:#7b8794;margin-left:8px}
+.popup-head{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #d9dee3;background:#f8fafc}
+.popup-head .popup-close{margin-right:12px;border:1px solid #cbd2d9;background:#fff;border-radius:4px;padding:4px 10px;cursor:pointer}
+.screen-messages{padding:8px 16px 0}
+.screen-messages[hidden]{display:none}
+.msg{padding:8px 12px;border-radius:4px;border:1px solid;font-size:13px;margin-bottom:6px}
+.msg-info{background:#eef5ff;border-color:#b6d4fe;color:#1d4f91}
+.msg-success{background:#edf9f0;border-color:#b7e4c7;color:#1e6b3a}
+.msg-warning{background:#fff8e6;border-color:#f7d774;color:#8a5a00}
+.msg-error{background:#fdecec;border-color:#f5b5b5;color:#9b1c1c}
+.msg-confirm{background:#f3f0ff;border-color:#cdc1ff;color:#4b3a9a}
+.area{padding:12px 16px 14px;border-bottom:1px solid #eceff1}
+.area:last-of-type{border-bottom:0}
+.area-title{margin:0 0 10px;font-size:15px;display:flex;align-items:center}
+.area-body{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:flex-end}
+.badge{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:#2f80ed;color:#fff;font-size:11px;font-weight:700;margin-right:6px;flex:none}
+.badge-section{background:#e03131}
+.field{display:flex;flex-direction:column;gap:4px;min-width:180px;padding:2px;border-radius:4px}
+.field-table,.field-pagination,.field-text,.field-textarea{flex-basis:100%}
+.field-button{min-width:0}
+.field-label{display:flex;align-items:center;font-size:12px;color:#3e4c59}
+.field-label .req{color:#e03131;margin-left:2px}
+.field-label .lock{margin-left:6px;font-size:11px;color:#7b8794;border:1px solid #cbd2d9;border-radius:3px;padding:0 4px}
+.control input[type="text"],.control input[type="number"],.control input[type="date"],.control select,.control textarea{width:100%;padding:6px 8px;border:1px solid #cbd2d9;border-radius:4px;background:#fff}
+.control textarea{min-height:72px;resize:vertical}
+.control.range{display:flex;align-items:center;gap:6px}
+.control.range input{width:auto;flex:1}
+.control.choices{display:flex;flex-wrap:wrap;gap:6px 12px}
+.control.choices label{display:inline-flex;align-items:center;gap:4px}
+.btn{padding:6px 14px;border:1px solid #2f80ed;background:#2f80ed;color:#fff;border-radius:4px;cursor:pointer}
+.btn.btn-secondary{background:#fff;color:#2f80ed}
+.static-text{margin:0;color:#3e4c59}
+a.link{color:#2f80ed;text-decoration:underline}
+.table-tools{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#616e7c;margin-bottom:4px}
+.table-scroll{overflow-x:auto}
+table.grid{width:100%;border-collapse:collapse;font-size:13px}
+table.grid th,table.grid td{border:1px solid #d9dee3;padding:6px 8px;text-align:left;white-space:nowrap}
+table.grid th{background:#f0f4f8;font-weight:600}
+table.grid th button{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:4px}
+table.grid th[aria-sort="ascending"] .sort-ind::after{content:"▲";font-size:10px}
+table.grid th[aria-sort="descending"] .sort-ind::after{content:"▼";font-size:10px}
+table.grid th[aria-sort="none"] .sort-ind::after{content:"↕";font-size:10px;opacity:.5}
+table.grid td.fmt-number,table.grid td.fmt-currency{text-align:right}
+table.grid tr.clickable{cursor:pointer}
+table.grid tr.clickable:hover{background:#f8fafc}
+table.grid tr.empty-row td{text-align:center;color:#7b8794;padding:16px}
+.pager{display:flex;gap:4px;justify-content:center;align-items:center}
+.pager button{border:1px solid #cbd2d9;background:#fff;border-radius:3px;padding:2px 8px;cursor:pointer}
+.pager button.is-current{background:#2f80ed;color:#fff;border-color:#2f80ed}
+.screen-status{padding:6px 16px;font-size:11px;color:#616e7c;background:#f8fafc;border-top:1px solid #eceff1;min-height:24px}
+.field.is-selected,.desc-item.is-selected,.area.is-selected{outline:2px solid #f2994a;outline-offset:2px}
+.is-highlighted{outline:3px solid #f2c94c!important;outline-offset:2px;background:#fffbe6}
+.panel-head{margin-bottom:10px}
+.panel-head .desc-screen-id{margin:0;font-size:15px;font-family:ui-monospace,Menlo,Consolas,monospace}
+.panel-head .panel-meta{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:11px;color:#616e7c;margin-top:4px}
+.panel-meta .tag{border:1px solid #cbd2d9;border-radius:3px;padding:0 5px;background:#f8fafc}
+.desc-section{margin-bottom:14px}
+.desc-title{font-size:13px;margin:0 0 6px;padding-bottom:4px;border-bottom:2px solid #243b53;display:flex;align-items:center;gap:6px}
+.desc-title .desc-no{color:#7b8794;font-weight:400;font-size:11px}
+.desc-item{display:grid;grid-template-columns:120px minmax(0,1fr);gap:6px;padding:4px 2px;border-bottom:1px dashed #eceff1;cursor:pointer;border-radius:3px}
+.desc-item:hover{background:#f8fafc}
+.desc-item.is-active{background:#eef5ff}
+.desc-item.is-section{background:#f0f4f8;font-weight:600}
+.desc-label{font-weight:600;color:#3e4c59;word-break:break-all}
+.desc-text{color:#1f2933;word-break:break-word;white-space:pre-wrap}
+.desc-text .trace{display:inline-block;margin-left:4px;font-size:10px;color:#1d4f91;background:#eef5ff;border-radius:3px;padding:0 4px}
+table.desc-table{width:100%;border-collapse:collapse;font-size:12px}
+table.desc-table th,table.desc-table td{border:1px solid #d9dee3;padding:4px 6px;text-align:left;vertical-align:top}
+table.desc-table th{background:#f0f4f8}
+table.desc-table tr.desc-item{display:table-row;cursor:pointer}
+table.desc-table tr.is-active td{background:#eef5ff}
+.con-ai-modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:30}
+.con-ai-modal[hidden]{display:none}
+.modal-card{background:#fff;border-radius:6px;min-width:320px;max-width:min(90vw,560px);padding:16px 18px;box-shadow:0 12px 32px rgba(0,0,0,.25)}
+.modal-card h2{margin:0 0 8px;font-size:16px}
+.modal-card .modal-body p{margin:4px 0;font-size:13px}
+.modal-card .modal-foot{margin-top:12px;text-align:right}
+</style>
+</head>
+<body data-screen-id="SAMPLE-quote-list" data-shell="partner-page" data-shell-kind="page" data-case="normal" data-profile="s2b-learned-v1" data-action-types="filter-fixture sort-fixture download-fixture navigate open-popup set-state">
+<div class="con-ai-toolbar" data-toolbar role="toolbar" aria-label="미리보기 도구"><span class="tb-group"><span class="tb-label">CASE</span><button type="button" data-case="normal" title="더미데이터 행이 기본 정렬로 표시된다" class="is-active">normal <small>(정상)</small></button><button type="button" data-case="empty" title="조회 결과 없음 안내가 표시되고 표는 비어 있다">empty <small>(빈값)</small></button><button type="button" data-case="error" title="조회 오류 메시지가 표시되고 표는 비어 있다">error <small>(오류)</small></button></span><span class="tb-group"><span class="tb-label">폭</span><button type="button" data-device-toggle="desktop">PC</button><button type="button" data-device-toggle="mobile">모바일</button></span><span class="tb-group"><span class="tb-label">생성</span><span data-generated-by-toolbar>fixture:fixture</span> · <span>r2</span></span><span class="tb-status" data-status></span></div>
+<div class="root-shell" data-shell-root data-device="desktop">
+<div class="screen-wrap" data-region="screen"><header class="screen-head"><nav class="gnb" aria-label="GNB"><span class="portal">partner 포털</span><span class="gnb-menu">GNB · LNB 자리 (프로파일 규칙)</span></nav><div class="breadcrumb" aria-label="breadcrumb">partner 포털 › 견적 목록</div><h1 class="screen-title">견적 목록<small>SAMPLE-quote-list</small></h1></header><div class="screen-messages" data-messages hidden></div><section class="area" data-element-id="search" data-section-id="search" data-display-no="1" data-kind="section"><h2 class="area-title"><span class="badge badge-section" data-badge-for="search">1</span>검색 조건</h2><div class="area-body"><div class="field field-text-input" data-element-id="quote_no" data-section-id="search" data-display-no="a" data-kind="element" data-element-type="text-input" data-criterion-ids="AC-QT-001-01"><div class="field-label"><span class="badge badge-element" data-badge-for="quote_no">a</span><span class="label-text">견적번호</span><span class="req" aria-hidden="true">*</span></div><div class="control"><input type="text" id="el-quote_no" data-input-for="quote_no" data-input-type="text-input" name="quote_no" placeholder="견적번호 입력" maxlength="20" required aria-required="true"></div></div><div class="field field-date-range" data-element-id="period" data-section-id="search" data-display-no="b" data-kind="element" data-element-type="date-range" data-criterion-ids="AC-QT-001-02"><div class="field-label"><span class="badge badge-element" data-badge-for="period">b</span><span class="label-text">요청 기간</span></div><div class="control range"><input type="date" id="el-period" data-input-for="period" data-input-type="date-range" name="period" data-range="from" aria-label="시작일"><span class="range-sep">~</span><input type="date" data-input-for="period" data-input-type="date-range" name="period" data-range="to" aria-label="종료일"></div></div><div class="field field-select" data-element-id="status-filter" data-section-id="search" data-display-no="c" data-kind="element" data-element-type="select"><div class="field-label"><span class="badge badge-element" data-badge-for="status-filter">c</span><span class="label-text">견적 상태</span></div><div class="control"><select id="el-status-filter" data-input-for="status-filter" data-input-type="select" name="status-filter"><option value="">전체</option><option value="QT_REQUESTED">요청</option><option value="QT_REVIEWING">검토중</option><option value="QT_APPROVED">승인</option><option value="QT_REJECTED">반려</option></select></div></div><div class="field field-button" data-element-id="search-button" data-section-id="search" data-display-no="d" data-kind="element" data-element-type="button"><div class="field-label"><span class="badge badge-element" data-badge-for="search-button">d</span></div><div class="control"><button type="button" class="btn" id="el-search-button" data-action-trigger="search-button" data-action-id="search-submit" data-action-type="filter-fixture">검색</button></div></div></div></section><section class="area" data-element-id="results" data-section-id="results" data-display-no="2" data-kind="section"><h2 class="area-title"><span class="badge badge-section" data-badge-for="results">2</span>견적 목록</h2><div class="area-body"><div class="field field-table" data-element-id="quote-table" data-section-id="results" data-display-no="a" data-kind="element" data-element-type="table"><div class="field-label"><span class="badge badge-element" data-badge-for="quote-table">a</span><span class="label-text">견적 목록 표</span></div><div class="table-tools"><span data-row-count-for="quote-table">총 5건</span><span class="table-note">더미데이터 · 실제 API 미연결</span></div><div class="table-scroll"><table class="grid" data-table-id="quote-table" data-row-action="open-quote-detail"><thead><tr><th data-column-id="quote_no" data-sortable="true" aria-sort="none"><button type="button" class="sort-btn" title="정렬(더미)">견적번호<span class="sort-ind"></span></button></th><th data-column-id="requested_at" data-sortable="true" aria-sort="descending"><button type="button" class="sort-btn" title="정렬(더미)">요청일<span class="sort-ind"></span></button></th><th data-column-id="partner_name">파트너</th><th data-column-id="item_count">품목 수</th><th data-column-id="amount" data-sortable="true" aria-sort="none"><button type="button" class="sort-btn" title="정렬(더미)">견적 금액<span class="sort-ind"></span></button></th><th data-column-id="status">상태</th></tr></thead><tbody data-tbody-for="quote-table"><tr data-row="0" class="clickable" tabindex="0"><td data-column-id="quote_no" class="fmt-link">QT-2026-0005</td><td data-column-id="requested_at" class="fmt-date">2026-09-03</td><td data-column-id="partner_name" class="fmt-text">예시파트너A</td><td data-column-id="item_count" class="fmt-number">3</td><td data-column-id="amount" class="fmt-currency">1,250,000</td><td data-column-id="status" class="fmt-status">QT_REQUESTED</td></tr><tr data-row="1" class="clickable" tabindex="0"><td data-column-id="quote_no" class="fmt-link">QT-2026-0004</td><td data-column-id="requested_at" class="fmt-date">2026-09-02</td><td data-column-id="partner_name" class="fmt-text">예시파트너B</td><td data-column-id="item_count" class="fmt-number">1</td><td data-column-id="amount" class="fmt-currency">380,000</td><td data-column-id="status" class="fmt-status">QT_REVIEWING</td></tr><tr data-row="2" class="clickable" tabindex="0"><td data-column-id="quote_no" class="fmt-link">QT-2026-0003</td><td data-column-id="requested_at" class="fmt-date">2026-09-01</td><td data-column-id="partner_name" class="fmt-text">예시파트너A</td><td data-column-id="item_count" class="fmt-number">5</td><td data-column-id="amount" class="fmt-currency">2,140,000</td><td data-column-id="status" class="fmt-status">QT_APPROVED</td></tr><tr data-row="3" class="clickable" tabindex="0"><td data-column-id="quote_no" class="fmt-link">QT-2026-0002</td><td data-column-id="requested_at" class="fmt-date">2026-08-29</td><td data-column-id="partner_name" class="fmt-text">예시파트너C</td><td data-column-id="item_count" class="fmt-number">2</td><td data-column-id="amount" class="fmt-currency">99,000</td><td data-column-id="status" class="fmt-status">QT_REJECTED</td></tr><tr data-row="4" class="clickable" tabindex="0"><td data-column-id="quote_no" class="fmt-link">QT-2026-0001</td><td data-column-id="requested_at" class="fmt-date">2026-08-27</td><td data-column-id="partner_name" class="fmt-text">예시파트너B</td><td data-column-id="item_count" class="fmt-number">4</td><td data-column-id="amount" class="fmt-currency">760,000</td><td data-column-id="status" class="fmt-status">QT_APPROVED</td></tr></tbody></table></div></div><div class="field field-button" data-element-id="download-button" data-section-id="results" data-display-no="b" data-kind="element" data-element-type="button"><div class="field-label"><span class="badge badge-element" data-badge-for="download-button">b</span></div><div class="control"><button type="button" class="btn btn-secondary" id="el-download-button" data-action-trigger="download-button" data-action-id="download-quotes" data-action-type="download-fixture">목록 다운로드</button></div></div><div class="field field-button" data-element-id="create-button" data-section-id="results" data-display-no="c" data-kind="element" data-element-type="button"><div class="field-label"><span class="badge badge-element" data-badge-for="create-button">c</span></div><div class="control"><button type="button" class="btn" id="el-create-button" data-action-trigger="create-button" data-action-id="open-quote-create" data-action-type="open-popup">견적 등록</button></div></div><div class="field field-pagination" data-element-id="pager" data-section-id="results" data-display-no="d" data-kind="element" data-element-type="pagination"><div class="field-label"><span class="badge badge-element" data-badge-for="pager">d</span><span class="label-text">페이지</span></div><nav class="pager" aria-label="페이지"><button type="button" data-pager="prev" aria-label="이전">‹</button><button type="button" class="is-current" data-pager="1">1</button><button type="button" data-pager="next" aria-label="다음">›</button></nav></div></div></section><div class="screen-status" data-screen-status><span data-status></span></div></div>
+<aside id="right-panel" class="right-panel" data-region="description" aria-label="화면 설명"><section class="desc-section panel-head" data-desc-key="screen_id"><h2 class="desc-screen-id">SAMPLE-quote-list</h2><div class="panel-meta"><span class="tag" data-revision-label>r2</span><span class="tag" data-generated-by>생성: fixture:fixture</span><span class="tag">기준 baseline-wyliy-partner-quote-sample-1</span><span class="tag">partner-page · PC</span></div><div class="desc-items"><div class="desc-item" data-target="description"><span class="desc-label">화면 ID</span><span class="desc-text">SAMPLE-quote-list</span></div><div class="desc-item" data-target="description"><span class="desc-label">revision</span><span class="desc-text">r2</span></div><div class="desc-item" data-target="description"><span class="desc-label">생성</span><span class="desc-text">fixture:fixture</span></div><div class="desc-item" data-target="description"><span class="desc-label">기준 버전</span><span class="desc-text">baseline-wyliy-partner-quote-sample-1</span></div><div class="desc-item" data-target="description"><span class="desc-label">shell · 기기</span><span class="desc-text">partner-page (페이지) · PC</span></div></div></section><section class="desc-section" data-desc-key="overview"><h3 class="desc-title"><span class="desc-no">2</span>화면명·목적·REQ</h3><div class="desc-items"><div class="desc-item" data-target="description"><span class="desc-label">화면명</span><span class="desc-text">견적 목록</span></div><div class="desc-item" data-target="description"><span class="desc-label">목적</span><span class="desc-text">견적 목록 — 파트너가 견적 요청 목록을 조회하고 상태·기간으로 검색한다 (정적 데모 스냅샷)</span></div><div class="desc-item" data-target="description"><span class="desc-label">역할</span><span class="desc-text">planner, designer, publisher</span></div><div class="desc-item" data-target="description"><span class="desc-label">REQ-QT-001</span><span class="desc-text">견적 목록 조회 — 수용조건:<span class="trace" data-criterion-id="AC-QT-001-01">AC-QT-001-01</span><span class="trace" data-criterion-id="AC-QT-001-02">AC-QT-001-02</span></span></div></div></section><section class="desc-section" data-desc-key="cases"><h3 class="desc-title"><span class="desc-no">3</span>CASE</h3><table class="desc-table"><thead><tr><th>CASE</th><th>종류</th><th>기대 결과</th></tr></thead><tbody><tr class="desc-item" data-target="description" data-case-id="normal"><td class="desc-label">normal</td><td>정상</td><td class="desc-text">[정상] 더미데이터 행이 기본 정렬로 표시된다 · fixture: SAMPLE-quote-list-normal</td></tr><tr class="desc-item" data-target="description" data-case-id="empty"><td class="desc-label">empty</td><td>빈값</td><td class="desc-text">[빈값] 조회 결과 없음 안내가 표시되고 표는 비어 있다 · fixture: SAMPLE-quote-list-empty · 메시지: msg-empty</td></tr><tr class="desc-item" data-target="description" data-case-id="error"><td class="desc-label">error</td><td>오류</td><td class="desc-text">[오류] 조회 오류 메시지가 표시되고 표는 비어 있다 · fixture: SAMPLE-quote-list-error · 메시지: msg-error</td></tr></tbody></table></section><section class="desc-section" data-desc-key="flow"><h3 class="desc-title"><span class="desc-no">4</span>처리 흐름</h3><div class="desc-items"><div class="desc-item" data-target="description" data-element-id="search-button" data-section-id="search" data-display-no="d"><span class="desc-label">검색</span><span class="desc-text">검색(더미데이터 필터) · 실행: 검색(search-button) · 대상: 견적 목록(results) — 검색 조건으로 fixture 행을 거른다. 0건이면 empty CASE 로 전이</span></div><div class="desc-item" data-target="description" data-element-id="quote-table" data-section-id="results" data-display-no="a"><span class="desc-label">정렬</span><span class="desc-text">정렬(명세 기본 정렬) · 대상: 견적 목록 표(quote-table)</span></div><div class="desc-item" data-target="description" data-element-id="download-button" data-section-id="results" data-display-no="b"><span class="desc-label">목록 다운로드</span><span class="desc-text">다운로드(명세 컬럼 CSV 예제 파일) · 실행: 목록 다운로드(download-button) · 대상: 견적 목록 표(quote-table) — 표 컬럼 그대로 현재 검색 결과를 예제 파일로 만든다</span></div><div class="desc-item" data-target="description" data-element-id="quote-table" data-section-id="results" data-display-no="a"><span class="desc-label">견적 상세 이동</span><span class="desc-text">화면 이동(더미, 실제 이동 없음) · 대상: 견적 목록 표(quote-table) · 대상 화면: REF-quote-detail</span></div><div class="desc-item" data-target="description" data-element-id="create-button" data-section-id="results" data-display-no="c"><span class="desc-label">견적 등록 팝업</span><span class="desc-text">팝업 열기(간단 모달) · 실행: 견적 등록(create-button) · 대상 화면: REF-quote-create-popup</span></div><div class="desc-item" data-target="description"><span class="desc-label">empty CASE 전환</span><span class="desc-text">CASE 전이 · 전이 CASE: empty</span></div><div class="desc-item" data-target="description"><span class="desc-label">error CASE 전환</span><span class="desc-text">CASE 전이 · 전이 CASE: error</span></div></div></section><section class="desc-section" data-desc-key="policy"><h3 class="desc-title"><span class="desc-no">5</span>정책</h3><div class="desc-items"><div class="desc-item" data-target="description" data-element-id="quote_no" data-section-id="search" data-display-no="a"><span class="desc-label">a. 견적번호</span><span class="desc-text">필수 입력; 최대 글자수=20 → msg-quote-no-too-long</span></div><div class="desc-item" data-target="description"><span class="desc-label">미확정(근거 없음)</span><span class="desc-text">참고 명세 a5000000-0000-4000-8000-000000000001의 데이터 매핑 근거(anchor)가 이 문맥에 없어 data_mapping 을 비웠다. 근거를 확인해 다시 연결해야 한다 · 관련: quote-table, quote-table, quote-table</span></div><div class="desc-item" data-target="description"><span class="desc-label">미확정(질문)</span><span class="desc-text">코멘트 e75a48b2-195c-4808-8dfb-2ed94ea6cc1c (퍼블리셔 데모 퍼블리셔): &quot;빈값 CASE 의 안내 문구를 설명에도 같은 문장으로 적어 주세요&quot; — 바꿀 메시지 문구를 따옴표로 지정하지 않았다</span></div></div></section><section class="desc-section" data-desc-key="data_mapping"><h3 class="desc-title"><span class="desc-no">6</span>데이터 매핑(근거)</h3><div class="desc-items"><div class="desc-item" data-target="description"><span class="desc-label">데이터 매핑</span><span class="desc-text">근거가 있는 데이터 매핑이 없다 (빠진 근거는 정책 절의 미확정 참조)</span></div></div></section><section class="desc-section" data-desc-key="sections"><h3 class="desc-title"><span class="desc-no">7</span>영역·필드 설명</h3><div class="desc-items"><div class="desc-item is-section" data-target="description" data-element-id="search" data-section-id="search" data-display-no="1"><span class="desc-label">1. 검색 조건</span><span class="desc-text">영역 · 요소 4개</span></div><div class="desc-item" data-target="description" data-element-id="quote_no" data-section-id="search" data-display-no="a"><span class="desc-label">a. 견적번호</span><span class="desc-text">텍스트 입력 · 필수 입력 · placeholder: 견적번호 입력 · 최대 20자 · 수용조건:<span class="trace" data-criterion-id="AC-QT-001-01">AC-QT-001-01</span>— 견적번호 부분 일치 검색. 검색 초기화 버튼은 두지 않는다(학습 규격)</span></div><div class="desc-item" data-target="description" data-element-id="period" data-section-id="search" data-display-no="b"><span class="desc-label">b. 요청 기간</span><span class="desc-text">기간 입력 · 수용조건:<span class="trace" data-criterion-id="AC-QT-001-02">AC-QT-001-02</span>— 요청일 기준. 시작일이 종료일보다 늦으면 입력 불가</span></div><div class="desc-item" data-target="description" data-element-id="status-filter" data-section-id="search" data-display-no="c"><span class="desc-label">c. 견적 상태</span><span class="desc-text">선택 목록 · 선택지: 전체 / 요청 / 검토중 / 승인 / 반려 — 상태값은 합성 값. 정본은 unresolved 참조</span></div><div class="desc-item" data-target="description" data-element-id="search-button" data-section-id="search" data-display-no="d"><span class="desc-label">d. 검색</span><span class="desc-text">버튼 — 검색 조건으로 더미데이터를 거른다</span></div><div class="desc-item is-section" data-target="description" data-element-id="results" data-section-id="results" data-display-no="2"><span class="desc-label">2. 견적 목록</span><span class="desc-text">영역 · 요소 4개</span></div><div class="desc-item" data-target="description" data-element-id="quote-table" data-section-id="results" data-display-no="a"><span class="desc-label">a. 견적 목록 표</span><span class="desc-text">표 · 컬럼: 견적번호(정렬), 요청일(정렬), 파트너, 품목 수, 견적 금액(정렬), 상태 · 기본 정렬: 요청일 내림차순 — 견적번호를 누르면 견적 상세로 이동(open-quote-detail)</span></div><div class="desc-item" data-target="description" data-element-id="download-button" data-section-id="results" data-display-no="b"><span class="desc-label">b. 목록 다운로드</span><span class="desc-text">버튼</span></div><div class="desc-item" data-target="description" data-element-id="create-button" data-section-id="results" data-display-no="c"><span class="desc-label">c. 견적 등록</span><span class="desc-text">버튼 — 등록 권한이 없으면 비활성화하고 권한 안내 메시지를 표시</span></div><div class="desc-item" data-target="description" data-element-id="pager" data-section-id="results" data-display-no="d"><span class="desc-label">d. 페이지</span><span class="desc-text">페이지 이동 — 10건 단위</span></div></div></section><section class="desc-section" data-desc-key="messages"><h3 class="desc-title"><span class="desc-no">8</span>메시지</h3><table class="desc-table"><thead><tr><th>메시지 ID</th><th>종류</th><th>문구·조건</th></tr></thead><tbody><tr class="desc-item" data-target="description" data-message-id="msg-empty"><td class="desc-label">msg-empty</td><td>info</td><td class="desc-text">[안내] 조회 결과가 없습니다. · 조건: 검색 결과 0건</td></tr><tr class="desc-item" data-target="description" data-message-id="msg-error"><td class="desc-label">msg-error</td><td>error</td><td class="desc-text">[오류] 견적 목록을 불러오지 못했습니다. 잠시 후 다시 시도하세요. · 조건: 조회 오류</td></tr><tr class="desc-item" data-target="description" data-message-id="msg-no-permission"><td class="desc-label">msg-no-permission</td><td>warning</td><td class="desc-text">[경고] 견적 등록 권한이 없습니다. 담당자에게 권한을 요청하세요. · 조건: 등록 권한 없는 파트너</td></tr><tr class="desc-item" data-target="description" data-message-id="msg-quote-no-too-long"><td class="desc-label">msg-quote-no-too-long</td><td>warning</td><td class="desc-text">[경고] 견적번호는 20자 이내로 입력하세요. · 조건: 검색어 글자수 초과</td></tr></tbody></table></section></aside>
+</div>
+<div class="con-ai-modal" data-modal hidden role="dialog" aria-modal="true" aria-labelledby="con-ai-modal-title"><div class="modal-card"><h2 id="con-ai-modal-title" data-modal-title>팝업</h2><div class="modal-body" data-modal-body></div><div class="modal-foot"><button type="button" class="btn" data-modal-close="1">닫기</button></div></div></div>
+<script id="con-ai-data" type="application/json">{"screen_id":"SAMPLE-quote-list","device":"desktop","initial_case":"normal","states":[{"id":"normal","fixture_id":"SAMPLE-quote-list-normal","expected":"더미데이터 행이 기본 정렬로 표시된다","case_kind":"normal","message_ids":[]},{"id":"empty","fixture_id":"SAMPLE-quote-list-empty","expected":"조회 결과 없음 안내가 표시되고 표는 비어 있다","case_kind":"empty","message_ids":["msg-empty"]},{"id":"error","fixture_id":"SAMPLE-quote-list-error","expected":"조회 오류 메시지가 표시되고 표는 비어 있다","case_kind":"error","message_ids":["msg-error"]}],"messages":[{"id":"msg-empty","kind":"info","text":"조회 결과가 없습니다."},{"id":"msg-error","kind":"error","text":"견적 목록을 불러오지 못했습니다. 잠시 후 다시 시도하세요."},{"id":"msg-no-permission","kind":"warning","text":"견적 등록 권한이 없습니다. 담당자에게 권한을 요청하세요."},{"id":"msg-quote-no-too-long","kind":"warning","text":"견적번호는 20자 이내로 입력하세요."}],"tables":[{"element_id":"quote-table","section_id":"results","columns":[{"id":"quote_no","label":"견적번호","sortable":true,"downloadable":true,"format":"link"},{"id":"requested_at","label":"요청일","sortable":true,"downloadable":true,"format":"date"},{"id":"partner_name","label":"파트너","sortable":false,"downloadable":true,"format":"text"},{"id":"item_count","label":"품목 수","sortable":false,"downloadable":true,"format":"number"},{"id":"amount","label":"견적 금액","sortable":true,"downloadable":true,"format":"currency"},{"id":"status","label":"상태","sortable":false,"downloadable":true,"format":"status"}],"default_sort":{"column_id":"requested_at","direction":"desc"},"row_action":"open-quote-detail"}],"actions":[{"id":"search-submit","type":"filter-fixture","inputs":["quote_no","period","status-filter"],"tables":["quote-table"],"label":"검색","trigger":"search-button","target":"results"},{"id":"sort-quotes","type":"sort-fixture","inputs":[],"tables":["quote-table"],"label":"정렬","target":"quote-table"},{"id":"download-quotes","type":"download-fixture","inputs":[],"tables":["quote-table"],"label":"목록 다운로드","trigger":"download-button","target":"quote-table"},{"id":"open-quote-detail","type":"navigate","inputs":[],"tables":["quote-table"],"label":"견적 상세 이동","target":"quote-table","target_screen_id":"REF-quote-detail"},{"id":"open-quote-create","type":"open-popup","inputs":[],"tables":["quote-table"],"label":"견적 등록 팝업","trigger":"create-button","target_screen_id":"REF-quote-create-popup"},{"id":"show-empty","type":"set-state","inputs":[],"tables":["quote-table"],"label":"empty CASE 전환","target_state_id":"empty"},{"id":"show-error","type":"set-state","inputs":[],"tables":["quote-table"],"label":"error CASE 전환","target_state_id":"error"}],"dummy":{"SAMPLE-quote-list-normal":[{"quote_no":"QT-2026-0005","requested_at":"2026-09-03","partner_name":"예시파트너A","item_count":3,"amount":1250000,"status":"QT_REQUESTED"},{"quote_no":"QT-2026-0004","requested_at":"2026-09-02","partner_name":"예시파트너B","item_count":1,"amount":380000,"status":"QT_REVIEWING"},{"quote_no":"QT-2026-0003","requested_at":"2026-09-01","partner_name":"예시파트너A","item_count":5,"amount":2140000,"status":"QT_APPROVED"},{"quote_no":"QT-2026-0002","requested_at":"2026-08-29","partner_name":"예시파트너C","item_count":2,"amount":99000,"status":"QT_REJECTED"},{"quote_no":"QT-2026-0001","requested_at":"2026-08-27","partner_name":"예시파트너B","item_count":4,"amount":760000,"status":"QT_APPROVED"}],"SAMPLE-quote-list-empty":[],"SAMPLE-quote-list-error":[]}}</script>
+<script>
+(function () {
+  'use strict';
+  var dataEl = document.getElementById('con-ai-data');
+  if (!dataEl) return;
+  var D;
+  try { D = JSON.parse(dataEl.textContent || '{}'); } catch (e) { return; }
+  if (!D || !Array.isArray(D.states)) return;
+
+  var embedded = window.parent !== window;
+  var body = document.body;
+  var root = document.querySelector('[data-shell-root]');
+  var toolbar = document.querySelector('[data-toolbar]');
+  var modal = document.querySelector('[data-modal]');
+  var screenRegion = document.querySelector('[data-region="screen"]');
+  var panelRegion = document.querySelector('[data-region="description"]');
+
+  var stateById = {};
+  D.states.forEach(function (s) { stateById[s.id] = s; });
+  var msgById = {};
+  (D.messages || []).forEach(function (m) { msgById[m.id] = m; });
+  var tableById = {};
+  var current = { caseId: D.initial_case, filtered: {}, sort: {} };
+  (D.tables || []).forEach(function (t) {
+    tableById[t.element_id] = t;
+    current.sort[t.element_id] = t.default_sort ? { column_id: t.default_sort.column_id, direction: t.default_sort.direction } : null;
+  });
+  var actionsById = {};
+  (D.actions || []).forEach(function (a) { actionsById[a.id] = a; });
+
+  function each(list, fn) { Array.prototype.forEach.call(list, fn); }
+  function q(sel, scope) { return (scope || document).querySelector(sel); }
+  function qa(sel, scope) { return (scope || document).querySelectorAll(sel); }
+  function cssId(v) { return String(v).replace(/["\\]/g, '\\$&'); }
+
+  function setStatus(text) {
+    each(qa('[data-status]'), function (el) { el.textContent = text; });
+  }
+  function currentState() { return stateById[current.caseId]; }
+  function baseRows() {
+    var st = currentState();
+    if (!st) return [];
+    var rows = D.dummy ? D.dummy[st.fixture_id] : null;
+    return Array.isArray(rows) ? rows : [];
+  }
+  function isRecord(row) { return row !== null && typeof row === 'object' && !Array.isArray(row); }
+  function cellValue(row, colId) {
+    if (!isRecord(row)) return '';
+    var v = row[colId];
+    return v === undefined || v === null ? '' : v;
+  }
+  function rowCells(row) {
+    if (isRecord(row)) return Object.keys(row).map(function (k) { return row[k]; });
+    return [row];
+  }
+  function formatCell(value, format) {
+    if (value === '' || value === null || value === undefined) return '';
+    if ((format === 'number' || format === 'currency') && typeof value === 'number') return value.toLocaleString('ko-KR');
+    return String(value);
+  }
+  function compareCells(a, b) {
+    if (typeof a === 'number' && typeof b === 'number') return a - b;
+    var sa = String(a), sb = String(b);
+    if (sa === '' && sb !== '') return 1;
+    if (sb === '' && sa !== '') return -1;
+    return sa.localeCompare(sb, 'ko');
+  }
+  function sortRows(rows, sort) {
+    if (!sort) return rows.slice();
+    var dir = sort.direction === 'desc' ? -1 : 1;
+    return rows.slice().sort(function (a, b) { return compareCells(cellValue(a, sort.column_id), cellValue(b, sort.column_id)) * dir; });
+  }
+  function visibleRows(tableId) {
+    var rows = current.filtered[tableId] || baseRows();
+    return sortRows(rows, current.sort[tableId]);
+  }
+
+  function renderTable(tableId) {
+    var t = tableById[tableId];
+    if (!t) return 0;
+    var tbody = q('[data-tbody-for="' + cssId(tableId) + '"]');
+    if (!tbody) return 0;
+    var rows = visibleRows(tableId);
+    while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
+    if (rows.length === 0) {
+      var etr = document.createElement('tr');
+      etr.className = 'empty-row';
+      var etd = document.createElement('td');
+      etd.colSpan = t.columns.length || 1;
+      etd.textContent = '표시할 행이 없습니다';
+      etr.appendChild(etd);
+      tbody.appendChild(etr);
+    }
+    rows.forEach(function (row, i) {
+      var tr = document.createElement('tr');
+      tr.setAttribute('data-row', String(i));
+      if (t.row_action) { tr.className = 'clickable'; tr.tabIndex = 0; }
+      t.columns.forEach(function (c) {
+        var td = document.createElement('td');
+        td.setAttribute('data-column-id', c.id);
+        td.className = 'fmt-' + (c.format || 'text');
+        td.textContent = formatCell(cellValue(row, c.id), c.format);
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+    var sort = current.sort[tableId];
+    each(qa('[data-table-id="' + cssId(tableId) + '"] th[data-column-id]'), function (th) {
+      var active = sort && th.getAttribute('data-column-id') === sort.column_id;
+      th.setAttribute('aria-sort', active ? (sort.direction === 'desc' ? 'descending' : 'ascending') : 'none');
+    });
+    var counter = q('[data-row-count-for="' + cssId(tableId) + '"]');
+    if (counter) counter.textContent = '총 ' + rows.length + '건';
+    return rows.length;
+  }
+  function renderAllTables() {
+    var total = 0;
+    (D.tables || []).forEach(function (t) { total += renderTable(t.element_id); });
+    return total;
+  }
+
+  function renderMessages(ids) {
+    var box = q('[data-messages]');
+    if (!box) return;
+    while (box.firstChild) box.removeChild(box.firstChild);
+    (ids || []).forEach(function (id) {
+      var m = msgById[id];
+      if (!m) return;
+      var div = document.createElement('div');
+      div.className = 'msg msg-' + m.kind;
+      div.setAttribute('data-message-id', m.id);
+      div.setAttribute('role', m.kind === 'error' ? 'alert' : 'status');
+      div.textContent = m.text;
+      box.appendChild(div);
+    });
+    box.hidden = box.childNodes.length === 0;
+  }
+
+  function setCase(id) {
+    var st = stateById[id];
+    if (!st) { setStatus('알 수 없는 CASE: ' + id); return false; }
+    current.caseId = id;
+    current.filtered = {};
+    body.setAttribute('data-case', id);
+    body.setAttribute('data-case-kind', st.case_kind || 'normal');
+    var total = renderAllTables();
+    renderMessages(st.message_ids || []);
+    each(qa('button[data-case]'), function (b) { b.classList.toggle('is-active', b.getAttribute('data-case') === id); });
+    each(qa('[data-case-id]'), function (el) { el.classList.toggle('is-active', el.getAttribute('data-case-id') === id); });
+    setStatus('CASE ' + id + ' (' + (st.case_kind || 'normal') + ') · 표 ' + total + '행 — ' + st.expected);
+    return true;
+  }
+
+  function isDateLike(v) { return typeof v === 'string' && /^\d{4}-\d{2}-\d{2}/.test(v); }
+  function readCriteria(ids) {
+    var criteria = [];
+    (ids || []).forEach(function (id) {
+      var inputs = qa('[data-input-for="' + cssId(id) + '"]');
+      if (!inputs.length) return;
+      var type = inputs[0].getAttribute('data-input-type') || 'text-input';
+      if (type === 'date-range') {
+        var from = '', to = '';
+        each(inputs, function (inp) {
+          if (inp.getAttribute('data-range') === 'from') from = inp.value;
+          if (inp.getAttribute('data-range') === 'to') to = inp.value;
+        });
+        if (from || to) criteria.push({ kind: 'date-range', from: from, to: to, id: id });
+      } else if (type === 'checkbox' || type === 'radio') {
+        var values = [];
+        each(inputs, function (inp) { if (inp.checked && inp.value !== '' && inp.value !== 'on') values.push(inp.value); });
+        if (values.length) criteria.push({ kind: 'any-of', values: values, id: id });
+      } else if (type === 'select') {
+        var sv = inputs[0].value;
+        if (sv !== '') criteria.push({ kind: 'equals', value: sv, id: id });
+      } else if (type === 'date-input') {
+        var dv = inputs[0].value;
+        if (dv !== '') criteria.push({ kind: 'date-prefix', value: dv, id: id });
+      } else {
+        var tv = String(inputs[0].value || '').trim();
+        if (tv !== '') criteria.push({ kind: 'text', value: tv.toLowerCase(), id: id });
+      }
+    });
+    return criteria;
+  }
+  function rowMatches(row, c) {
+    var cells = rowCells(row);
+    if (c.kind === 'text') return cells.some(function (v) { return String(v).toLowerCase().indexOf(c.value) >= 0; });
+    if (c.kind === 'equals') return cells.some(function (v) { return String(v) === c.value; });
+    if (c.kind === 'any-of') return cells.some(function (v) { return c.values.indexOf(String(v)) >= 0; });
+    if (c.kind === 'date-prefix') return cells.some(function (v) { return isDateLike(v) && v.indexOf(c.value) === 0; });
+    if (c.kind === 'date-range') return cells.some(function (v) { return isDateLike(v) && (!c.from || v >= c.from) && (!c.to || v <= c.to); });
+    return true;
+  }
+  function runFilter(action) {
+    var criteria = readCriteria(action.inputs);
+    var base = baseRows();
+    var rows = criteria.length ? base.filter(function (r) { return criteria.every(function (c) { return rowMatches(r, c); }); }) : base;
+    var total = 0;
+    (action.tables || []).forEach(function (tid) {
+      current.filtered[tid] = rows;
+      total += renderTable(tid);
+    });
+    var st = currentState();
+    var emptyState = null;
+    D.states.forEach(function (s) { if (!emptyState && s.case_kind === 'empty') emptyState = s; });
+    if (total === 0 && emptyState && st && st.case_kind !== 'error') {
+      renderMessages(emptyState.message_ids || []);
+      setStatus('검색(더미 필터): 0건 · 조건 ' + criteria.length + '개 → 빈값 CASE 메시지 표시');
+    } else {
+      renderMessages(st ? st.message_ids || [] : []);
+      setStatus('검색(더미 필터): ' + total + '건 · 조건 ' + criteria.length + '개');
+    }
+  }
+  function toggleSort(tableId, columnId) {
+    var cur = current.sort[tableId];
+    if (cur && cur.column_id === columnId) current.sort[tableId] = { column_id: columnId, direction: cur.direction === 'asc' ? 'desc' : 'asc' };
+    else current.sort[tableId] = { column_id: columnId, direction: 'asc' };
+    renderTable(tableId);
+    var s = current.sort[tableId];
+    setStatus('정렬: ' + tableId + '.' + s.column_id + ' ' + (s.direction === 'desc' ? '내림차순' : '오름차순'));
+  }
+  function resetSort(tableId) {
+    var t = tableById[tableId];
+    if (!t) return;
+    current.sort[tableId] = t.default_sort ? { column_id: t.default_sort.column_id, direction: t.default_sort.direction } : null;
+    renderTable(tableId);
+    setStatus('정렬: 명세 기본 정렬로 되돌림 (' + tableId + ')');
+  }
+
+  function csvField(v) {
+    var s = v === null || v === undefined ? '' : String(v);
+    return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  }
+  function buildCsv(tableId) {
+    var t = tableById[tableId];
+    if (!t) return '';
+    var cols = t.columns.filter(function (c) { return c.downloadable !== false; });
+    var lines = [cols.map(function (c) { return csvField(c.label); }).join(',')];
+    visibleRows(tableId).forEach(function (row) {
+      lines.push(cols.map(function (c) { return csvField(cellValue(row, c.id)); }).join(','));
+    });
+    return '\uFEFF' + lines.join('\r\n') + '\r\n';
+  }
+  function downloadCsv(action) {
+    var tables = action.tables && action.tables.length ? action.tables : Object.keys(tableById);
+    var count = 0;
+    tables.forEach(function (tid) {
+      var csv = buildCsv(tid);
+      if (!csv) return;
+      count++;
+      try {
+        var blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = D.screen_id + '_' + tid + '.csv';
+        a.rel = 'noopener';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+      } catch (e) {
+        setStatus('다운로드(더미): 이 환경에서는 파일 저장이 막혀 있다 — CSV 는 명세 컬럼으로 만들어졌다');
+        return;
+      }
+    });
+    setStatus('다운로드(더미): 표 ' + count + '개를 명세 컬럼 CSV 로 내려받음 — 실제 업무 파일 아님');
+  }
+
+  function openModal(title, lines) {
+    if (!modal) return;
+    var t = q('[data-modal-title]', modal);
+    var b = q('[data-modal-body]', modal);
+    if (t) t.textContent = title;
+    if (b) {
+      while (b.firstChild) b.removeChild(b.firstChild);
+      lines.forEach(function (line) {
+        var p = document.createElement('p');
+        p.textContent = line;
+        b.appendChild(p);
+      });
+    }
+    modal.hidden = false;
+    var closeBtn = q('[data-modal-close]', modal);
+    if (closeBtn) closeBtn.focus();
+  }
+  function closeModal() {
+    if (modal) modal.hidden = true;
+  }
+
+  function runAction(action, row) {
+    if (!action) return;
+    if (action.type === 'filter-fixture') { runFilter(action); return; }
+    if (action.type === 'sort-fixture') { (action.tables || []).forEach(resetSort); return; }
+    if (action.type === 'open-popup') {
+      var lines = ['대상 화면: ' + (action.target_screen_id || '(미지정)') + ' — 더미 전이. 실제 화면 이동·API 호출 없음'];
+      if (isRecord(row)) Object.keys(row).forEach(function (k) { lines.push(k + ': ' + formatCell(row[k])); });
+      openModal('팝업 ' + (action.target_screen_id || action.id), lines);
+      setStatus('팝업 열기(더미): ' + (action.target_screen_id || action.id));
+      return;
+    }
+    if (action.type === 'close-popup') { closeModal(); setStatus('팝업 닫기(더미)'); return; }
+    if (action.type === 'download-fixture') { downloadCsv(action); return; }
+    if (action.type === 'navigate') { setStatus('화면 이동(더미): ' + (action.target_screen_id || '(미지정)') + ' — 실제 이동 없음'); return; }
+    if (action.type === 'set-state') { setCase(action.target_state_id); return; }
+  }
+  function runActionsFor(elementId, row) {
+    var ran = 0;
+    (D.actions || []).forEach(function (a) {
+      if (a.trigger === elementId) { runAction(a, row); ran++; }
+    });
+    if (!ran) setStatus('동작 없음(더미): ' + elementId + ' 에 연결된 동작이 명세에 없다');
+  }
+
+  function post(msg) {
+    if (!embedded) return;
+    try { window.parent.postMessage(msg, '*'); } catch (e) { /* 부모가 없거나 막힘 */ }
+  }
+  function regionOf(el) {
+    if (panelRegion && panelRegion.contains(el)) return 'description';
+    if (screenRegion && screenRegion.contains(el)) return 'screen';
+    return null;
+  }
+  function select(elementId) {
+    each(qa('.is-selected'), function (el) { el.classList.remove('is-selected'); });
+    each(qa('[data-element-id="' + cssId(elementId) + '"]'), function (el) { el.classList.add('is-selected'); });
+  }
+  function highlight(elementId) {
+    each(qa('.is-highlighted'), function (el) { el.classList.remove('is-highlighted'); });
+    var first = null;
+    each(qa('[data-element-id="' + cssId(elementId) + '"]'), function (el) {
+      el.classList.add('is-highlighted');
+      if (!first && screenRegion && screenRegion.contains(el)) first = el;
+    });
+    if (first && typeof first.scrollIntoView === 'function') first.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    setStatus('강조: ' + elementId);
+  }
+  function notifyClick(el) {
+    var target = regionOf(el);
+    if (!target) return;
+    var elementId = el.getAttribute('data-element-id');
+    select(elementId);
+    post({
+      type: 'con-ai:element-click',
+      element_id: elementId,
+      section_id: el.getAttribute('data-section-id'),
+      case_id: current.caseId,
+      target: target,
+      display_no: el.getAttribute('data-display-no'),
+    });
+  }
+
+  document.addEventListener('click', function (ev) {
+    var t = ev.target;
+    if (!(t instanceof Element)) return;
+    var caseBtn = t.closest('button[data-case]');
+    if (caseBtn) { setCase(caseBtn.getAttribute('data-case')); return; }
+    var devBtn = t.closest('[data-device-toggle]');
+    if (devBtn && root) {
+      root.setAttribute('data-device', devBtn.getAttribute('data-device-toggle'));
+      each(qa('[data-device-toggle]'), function (b) { b.classList.toggle('is-active', b === devBtn); });
+      setStatus('기기 폭: ' + (devBtn.getAttribute('data-device-toggle') === 'mobile' ? '모바일(420px)' : 'PC'));
+      return;
+    }
+    if (t.closest('[data-modal-close]') || (modal && t === modal)) { closeModal(); return; }
+    var link = t.closest('a[data-link]');
+    if (link) ev.preventDefault();
+    var sortBtn = t.closest('th[data-sortable="true"] button');
+    if (sortBtn) {
+      var th = sortBtn.closest('th');
+      var table = sortBtn.closest('[data-table-id]');
+      if (th && table) toggleSort(table.getAttribute('data-table-id'), th.getAttribute('data-column-id'));
+    } else {
+      var pager = t.closest('[data-pager]');
+      if (pager) setStatus('페이지 이동(더미): ' + pager.getAttribute('data-pager') + ' — 더미데이터는 한 페이지다');
+      var trigger = t.closest('[data-action-trigger]');
+      if (trigger) runActionsFor(trigger.getAttribute('data-action-trigger'), null);
+      var tr = t.closest('tr[data-row]');
+      if (tr && !trigger) {
+        var tbl = tr.closest('[data-table-id]');
+        var tinfo = tbl ? tableById[tbl.getAttribute('data-table-id')] : null;
+        if (tinfo && tinfo.row_action) {
+          var rows = visibleRows(tinfo.element_id);
+          runAction(actionsById[tinfo.row_action], rows[Number(tr.getAttribute('data-row'))] || null);
+        }
+      }
+    }
+    var el = t.closest('[data-element-id]');
+    if (el) notifyClick(el);
+  });
+
+  document.addEventListener('keydown', function (ev) {
+    var t = ev.target;
+    if (!(t instanceof Element)) return;
+    if (ev.key === 'Escape' && modal && !modal.hidden) { closeModal(); return; }
+    if (ev.key !== 'Enter') return;
+    var inputFor = t.getAttribute('data-input-for');
+    if (inputFor && t.tagName !== 'TEXTAREA') {
+      var ran = false;
+      (D.actions || []).forEach(function (a) {
+        if (a.type === 'filter-fixture' && a.inputs && a.inputs.indexOf(inputFor) >= 0) { runFilter(a); ran = true; }
+      });
+      if (ran) ev.preventDefault();
+      return;
+    }
+    if (t.matches('tr[data-row]')) { t.click(); }
+  });
+
+  window.addEventListener('message', function (ev) {
+    if (embedded && ev.source !== window.parent) return;
+    var m = ev.data;
+    if (!m || typeof m !== 'object' || typeof m.type !== 'string') return;
+    if (m.type === 'con-ai:set-case') setCase(String(m.case_id));
+    else if (m.type === 'con-ai:highlight') highlight(String(m.element_id));
+  });
+
+  if (embedded) {
+    body.classList.add('is-embedded');
+    if (toolbar) toolbar.hidden = true;
+  }
+  if (root && !root.getAttribute('data-device')) root.setAttribute('data-device', D.device || 'desktop');
+  each(qa('[data-device-toggle]'), function (b) { b.classList.toggle('is-active', b.getAttribute('data-device-toggle') === (root ? root.getAttribute('data-device') : D.device)); });
+  setCase(D.initial_case);
+})();
+</script>
+</body>
+</html>

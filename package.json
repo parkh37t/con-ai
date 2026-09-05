@@ -10,6 +10,8 @@
   "scripts": {
     "bootstrap": "bash scripts/setup.sh",
     "check": "pnpm typecheck && pnpm test",
+    "demo:build": "VITE_DEMO=1 VITE_BASE=/con-ai/ pnpm --filter @con-ai/web build",
+    "demo:snapshot": "node scripts/build-demo-snapshot.mjs",
     "dev": "pnpm -r --parallel --filter @con-ai/api --filter @con-ai/web run dev",
     "e2e": "playwright test",
     "test": "vitest run",

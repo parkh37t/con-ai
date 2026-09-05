@@ -1,0 +1,66 @@
+# GitHub Pages 배포 — main 에 push 하면 정적 데모를 빌드해 올린다.
+# 데모는 서버 없이 동작한다: apps/web/public/demo/ 의 스냅샷(실제 실행 결과)을 읽어 UI 를 그대로 보여준다.
+# 스냅샷 갱신은 로컬에서 `pnpm demo:snapshot` 으로 하고 커밋한다(브라우저·서버가 필요해 CI 에서는 돌리지 않는다).
+name: Deploy demo to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 진행 중인 배포를 취소하지 않고 순서대로 처리한다.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: 의존성 설치
+        run: pnpm install --frozen-lockfile
+
+      - name: 타입 검사·테스트
+        run: pnpm check
+
+      - name: 데모 빌드
+        run: pnpm demo:build
+
+      - name: 스냅샷 포함 확인
+        run: |
+          test -f apps/web/dist/index.html || { echo "index.html 이 없다"; exit 1; }
+          test -f apps/web/dist/demo/snapshot.json || { echo "demo/snapshot.json 이 없다 — pnpm demo:snapshot 결과를 커밋했는지 확인"; exit 1; }
+          du -sh apps/web/dist
+
+      # enablement: 저장소에 Pages 가 꺼져 있으면 워크플로가 켠다(수동 설정 불필요).
+      - uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: apps/web/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

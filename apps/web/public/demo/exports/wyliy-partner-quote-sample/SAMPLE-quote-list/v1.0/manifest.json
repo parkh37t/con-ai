@@ -1,0 +1,54 @@
+{
+  "project": {
+    "id": "a1000000-0000-4000-8000-000000000001",
+    "name": "와일리 컨버전스 샘플 — 파트너 견적 포털",
+    "slug": "wyliy-partner-quote-sample"
+  },
+  "screen_external_id": "SAMPLE-quote-list",
+  "version": "1.0",
+  "artifact_hash": "ec353fe0cbc1a11da3b03f23ec73a45cb31be77a21a31fda294bb7e280376864",
+  "spec_hash": "abe8d6a2259f2e49e195844ed2666d3d7c93644b39d8464ffb37f3805b2e4ab0",
+  "approved_by": "데모 기획자",
+  "approved_at": "2026-09-05T09:38:57.946Z",
+  "adapter": "fixture",
+  "model": "fixture",
+  "validation_summary": {
+    "pass": 14,
+    "fail": 0,
+    "error": 0,
+    "not_run": 0
+  },
+  "design_handoff": {
+    "screen_revision_id": "d27cbab2-936c-45fd-b93e-7bd6ce18e12d",
+    "design_input_spec_hash": "abe8d6a2259f2e49e195844ed2666d3d7c93644b39d8464ffb37f3805b2e4ab0",
+    "locked_elements": [],
+    "locked_actions": [],
+    "allowed_tokens": [
+      "color",
+      "font",
+      "spacing"
+    ]
+  },
+  "files": [
+    {
+      "path": "index.html",
+      "sha256": "ec353fe0cbc1a11da3b03f23ec73a45cb31be77a21a31fda294bb7e280376864"
+    },
+    {
+      "path": "spec.json",
+      "sha256": "c5411a36dab62e581cb36655f63f9d33c288c08fcb85331cb3283fdd83d23f72"
+    },
+    {
+      "path": "trace.json",
+      "sha256": "6769dd56e4559dda01490877f5eaa5e7f77fcaebc2a88cb1274b792b01a12443"
+    },
+    {
+      "path": "validation.json",
+      "sha256": "e704878a09b81e5309444bae0c25d25ba322f4e7d33a3f11b7914136cda74cf9"
+    },
+    {
+      "path": "comments.json",
+      "sha256": "614da2ddfc95e44e7a630403d515ee7fc384c2b07d0d4ff5e641a0e98c83d8f1"
+    }
+  ]
+}

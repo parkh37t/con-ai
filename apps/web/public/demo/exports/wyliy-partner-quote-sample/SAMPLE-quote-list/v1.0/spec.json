@@ -1,0 +1,291 @@
+{
+  "schema_version": "1.0",
+  "screen_id": "SAMPLE-quote-list",
+  "baseline_id": "baseline-wyliy-partner-quote-sample-1",
+  "purpose": "견적 목록 — 파트너가 견적 요청 목록을 조회하고 상태·기간으로 검색한다 (정적 데모 스냅샷)",
+  "shell": "partner-page",
+  "device": "desktop",
+  "roles": [
+    "planner",
+    "designer",
+    "publisher"
+  ],
+  "requirements": [
+    {
+      "id": "REQ-QT-001",
+      "criterion_ids": [
+        "AC-QT-001-01",
+        "AC-QT-001-02"
+      ]
+    }
+  ],
+  "sections": [
+    {
+      "id": "search",
+      "title": "검색 조건",
+      "display_no": "1",
+      "elements": [
+        {
+          "id": "quote_no",
+          "type": "text-input",
+          "label": "견적번호",
+          "required": true,
+          "display_no": "a",
+          "placeholder": "견적번호 입력",
+          "max_length": 20,
+          "validations": [
+            {
+              "rule": "max_length",
+              "value": 20,
+              "message_id": "msg-quote-no-too-long"
+            }
+          ],
+          "trace": [
+            "AC-QT-001-01"
+          ],
+          "note": "견적번호 부분 일치 검색. 검색 초기화 버튼은 두지 않는다(학습 규격)"
+        },
+        {
+          "id": "period",
+          "type": "date-range",
+          "label": "요청 기간",
+          "display_no": "b",
+          "trace": [
+            "AC-QT-001-02"
+          ],
+          "note": "요청일 기준. 시작일이 종료일보다 늦으면 입력 불가"
+        },
+        {
+          "id": "status-filter",
+          "type": "select",
+          "label": "견적 상태",
+          "display_no": "c",
+          "options": [
+            {
+              "value": "",
+              "label": "전체"
+            },
+            {
+              "value": "QT_REQUESTED",
+              "label": "요청"
+            },
+            {
+              "value": "QT_REVIEWING",
+              "label": "검토중"
+            },
+            {
+              "value": "QT_APPROVED",
+              "label": "승인"
+            },
+            {
+              "value": "QT_REJECTED",
+              "label": "반려"
+            }
+          ],
+          "note": "상태값은 합성 값. 정본은 unresolved 참조"
+        },
+        {
+          "id": "search-button",
+          "type": "button",
+          "label": "검색",
+          "display_no": "d",
+          "note": "검색 조건으로 더미데이터를 거른다"
+        }
+      ]
+    },
+    {
+      "id": "results",
+      "title": "견적 목록",
+      "display_no": "2",
+      "elements": [
+        {
+          "id": "quote-table",
+          "type": "table",
+          "label": "견적 목록 표",
+          "display_no": "a",
+          "columns": [
+            {
+              "id": "quote_no",
+              "label": "견적번호",
+              "sortable": true,
+              "format": "link"
+            },
+            {
+              "id": "requested_at",
+              "label": "요청일",
+              "sortable": true,
+              "format": "date"
+            },
+            {
+              "id": "partner_name",
+              "label": "파트너",
+              "format": "text"
+            },
+            {
+              "id": "item_count",
+              "label": "품목 수",
+              "format": "number"
+            },
+            {
+              "id": "amount",
+              "label": "견적 금액",
+              "sortable": true,
+              "format": "currency"
+            },
+            {
+              "id": "status",
+              "label": "상태",
+              "format": "status"
+            }
+          ],
+          "default_sort": {
+            "column_id": "requested_at",
+            "direction": "desc"
+          },
+          "note": "견적번호를 누르면 견적 상세로 이동(open-quote-detail)"
+        },
+        {
+          "id": "download-button",
+          "type": "button",
+          "label": "목록 다운로드",
+          "display_no": "b"
+        },
+        {
+          "id": "create-button",
+          "type": "button",
+          "label": "견적 등록",
+          "display_no": "c",
+          "note": "등록 권한이 없으면 비활성화하고 권한 안내 메시지를 표시"
+        },
+        {
+          "id": "pager",
+          "type": "pagination",
+          "label": "페이지",
+          "display_no": "d",
+          "note": "10건 단위"
+        }
+      ]
+    }
+  ],
+  "actions": [
+    {
+      "id": "search-submit",
+      "type": "filter-fixture",
+      "label": "검색",
+      "trigger": "search-button",
+      "target": "results",
+      "note": "검색 조건으로 fixture 행을 거른다. 0건이면 empty CASE 로 전이"
+    },
+    {
+      "id": "sort-quotes",
+      "type": "sort-fixture",
+      "label": "정렬",
+      "target": "quote-table"
+    },
+    {
+      "id": "download-quotes",
+      "type": "download-fixture",
+      "label": "목록 다운로드",
+      "trigger": "download-button",
+      "target": "quote-table",
+      "note": "표 컬럼 그대로 현재 검색 결과를 예제 파일로 만든다"
+    },
+    {
+      "id": "open-quote-detail",
+      "type": "navigate",
+      "label": "견적 상세 이동",
+      "target": "quote-table",
+      "target_screen_id": "REF-quote-detail"
+    },
+    {
+      "id": "open-quote-create",
+      "type": "open-popup",
+      "label": "견적 등록 팝업",
+      "trigger": "create-button",
+      "target_screen_id": "REF-quote-create-popup"
+    },
+    {
+      "id": "show-empty",
+      "type": "set-state",
+      "label": "empty CASE 전환",
+      "target_state_id": "empty"
+    },
+    {
+      "id": "show-error",
+      "type": "set-state",
+      "label": "error CASE 전환",
+      "target_state_id": "error"
+    }
+  ],
+  "states": [
+    {
+      "id": "normal",
+      "fixture_id": "SAMPLE-quote-list-normal",
+      "expected": "더미데이터 행이 기본 정렬로 표시된다",
+      "case_kind": "normal"
+    },
+    {
+      "id": "empty",
+      "fixture_id": "SAMPLE-quote-list-empty",
+      "expected": "조회 결과 없음 안내가 표시되고 표는 비어 있다",
+      "case_kind": "empty",
+      "message_ids": [
+        "msg-empty"
+      ]
+    },
+    {
+      "id": "error",
+      "fixture_id": "SAMPLE-quote-list-error",
+      "expected": "조회 오류 메시지가 표시되고 표는 비어 있다",
+      "case_kind": "error",
+      "message_ids": [
+        "msg-error"
+      ]
+    }
+  ],
+  "messages": [
+    {
+      "id": "msg-empty",
+      "kind": "info",
+      "text": "조회 결과가 없습니다.",
+      "when": "검색 결과 0건"
+    },
+    {
+      "id": "msg-error",
+      "kind": "error",
+      "text": "견적 목록을 불러오지 못했습니다. 잠시 후 다시 시도하세요.",
+      "when": "조회 오류"
+    },
+    {
+      "id": "msg-no-permission",
+      "kind": "warning",
+      "text": "견적 등록 권한이 없습니다. 담당자에게 권한을 요청하세요.",
+      "when": "등록 권한 없는 파트너"
+    },
+    {
+      "id": "msg-quote-no-too-long",
+      "kind": "warning",
+      "text": "견적번호는 20자 이내로 입력하세요.",
+      "when": "검색어 글자수 초과"
+    }
+  ],
+  "data_mapping": [],
+  "locked_elements": [],
+  "locked_actions": [],
+  "unresolved": [
+    {
+      "kind": "missing_evidence",
+      "text": "참고 명세 a5000000-0000-4000-8000-000000000001의 데이터 매핑 근거(anchor)가 이 문맥에 없어 data_mapping 을 비웠다. 근거를 확인해 다시 연결해야 한다",
+      "related_ids": [
+        "quote-table",
+        "quote-table",
+        "quote-table"
+      ]
+    },
+    {
+      "kind": "question",
+      "text": "코멘트 e75a48b2-195c-4808-8dfb-2ed94ea6cc1c (퍼블리셔 데모 퍼블리셔): \"빈값 CASE 의 안내 문구를 설명에도 같은 문장으로 적어 주세요\" — 바꿀 메시지 문구를 따옴표로 지정하지 않았다",
+      "related_ids": []
+    }
+  ]
+}

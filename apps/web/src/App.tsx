@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import { api } from './api.js'
 import { ErrorBox, Loading } from './components/common.js'
 import { TopBar } from './components/TopBar.js'
+import { DEMO_BANNER_TEXT, DEMO_REPO_URL, IS_DEMO } from './demo-mode.js'
 import { useAsync, useHashRoute } from './hooks.js'
 import { ApprovePage } from './pages/ApprovePage.js'
 import { AsisDetailPage } from './pages/AsisDetailPage.js'
@@ -64,8 +65,22 @@ export function App() {
 
   return (
     <div className="app">
+      <DemoBanner />
       <TopBar meta={meta.data} metaError={meta.error} projectName={project?.name ?? null} current={current} />
       <main className="main">{body}</main>
+    </div>
+  )
+}
+
+/** 정적 데모(GitHub Pages) 배너 — 데모 빌드가 아니면 아무것도 그리지 않는다. */
+function DemoBanner() {
+  if (!IS_DEMO) return null
+  return (
+    <div className="demo-banner" data-testid="demo-banner" role="note">
+      <span>{DEMO_BANNER_TEXT}</span>
+      <a href={DEMO_REPO_URL} target="_blank" rel="noreferrer noopener">
+        저장소 parkh37t/con-ai
+      </a>
     </div>
   )
 }

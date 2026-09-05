@@ -78,6 +78,21 @@ ul {
   display: flex;
   flex-direction: column;
 }
+/* 정적 데모(GitHub Pages) 안내 배너 — 데모 빌드에서만 렌더된다 */
+.demo-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 6px 20px;
+  background: var(--amber-bg);
+  color: var(--amber);
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.demo-banner a {
+  color: var(--amber);
+}
 .topbar {
   display: flex;
   align-items: center;
