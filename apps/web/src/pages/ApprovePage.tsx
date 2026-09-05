@@ -4,6 +4,7 @@
  */
 import { useEffect, useState } from 'react'
 import { api } from '../api.js'
+import { BrowserExportPanel, browserRecordOf } from '../components/BrowserExportPanel.js'
 import { ArtifactStatusBadge, Badge, Empty, ErrorBox, Loading, ValidationSummaryBadges, formatDateTime, shortHash } from '../components/common.js'
 import { exportDirUrl, exportFileUrl, fileBasename } from '../export-paths.js'
 import { useAsync, useStoredValue } from '../hooks.js'
@@ -54,8 +55,17 @@ export function ApprovePage({ screenId, route }: { screenId: string; route: Rout
       {revision.error ? <ErrorBox error={revision.error} title="revision 을 읽지 못했습니다" /> : null}
       {selectedRevId && !revision.data && !revision.error && <Loading text="revision 을 불러오는 중…" />}
       {revision.data && <ApprovalWorkbench key={revision.data.revision.id} screen={screen.data} detail={revision.data} onApproved={() => screen.reload()} />}
+      {revision.data && <BrowserExportSection screen={screen.data} detail={revision.data} />}
     </div>
   )
+}
+
+/** 브라우저에서 만든 revision 일 때만 파일 다운로드 패널을 붙인다 (서버 내보내기 폴더 대체). */
+function BrowserExportSection({ screen, detail }: { screen: ScreenDetail; detail: RevisionDetail }) {
+  const isBrowser = browserRecordOf(detail.revision.id) !== null
+  const project = useAsync(() => (isBrowser ? api.project(screen.screen.project_id) : null), [isBrowser, screen.screen.project_id])
+  if (!isBrowser) return null
+  return <BrowserExportPanel revisionId={detail.revision.id} project={project.data?.project ?? null} requirements={project.data?.requirements ?? []} comments={detail.comments} />
 }
 
 function ApprovalWorkbench({ screen, detail, onApproved }: { screen: ScreenDetail; detail: RevisionDetail; onApproved: () => void }) {

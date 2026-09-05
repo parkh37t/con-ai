@@ -219,7 +219,7 @@ describe('AS-IS 분석 — 새 URL 은 성공으로 위장하지 않는다', () 
     clock.ms = DEMO_ASIS_RUNNING_MS
     const failed = handleWith(state, 'GET', `/api/asis-analyses/${id}`).data as AsisAnalysis
     expect(failed.status).toBe('failed')
-    expect(failed.failure?.message).toContain('정적 데모에서는 새 URL 을 분석할 수 없습니다')
+    expect(failed.failure?.message).toContain('브라우저에서는 다른 사이트를 캡처할 수 없습니다')
     expect(failed.pain_points).toEqual([])
 
     // 목록 요약에도 같은 상태가 반영된다

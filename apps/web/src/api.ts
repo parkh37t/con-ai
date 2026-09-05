@@ -24,7 +24,7 @@ import type {
   SliceGenerationRequest,
   ValidationResult,
 } from './types.js'
-import { handle as demoHandle } from './demo-api.js'
+import { browserArtifactUrl } from './browser-run/artifact-urls.js'
 import { DEMO_BASE, IS_DEMO } from './demo-mode.js'
 import { exportFileUrl } from './export-paths.js'
 
@@ -89,6 +89,8 @@ async function request<T>(method: 'GET' | 'POST' | 'PATCH', path: string, body?:
   if (IS_DEMO) {
     let result: { status: number; data: unknown }
     try {
+      // 동적 import — 일반 빌드(서버 모드)에는 데모·브라우저 모드 코드가 들어가지 않는다.
+      const { handle: demoHandle } = await import('./demo-api.js')
       result = await demoHandle(method, path, body)
     } catch (e) {
       throw new ApiError(path, 0, `정적 데모 데이터를 읽을 수 없습니다 (${path}). ${e instanceof Error ? e.message : ''}`.trim())
@@ -128,8 +130,14 @@ export const api = {
   job: (id: string) => request<Job>('GET', `/api/jobs/${encodeURIComponent(id)}`),
   screen: (id: string) => request<ScreenDetail>('GET', `/api/screens/${encodeURIComponent(id)}`),
   revision: (id: string) => request<RevisionDetail>('GET', `/api/revisions/${encodeURIComponent(id)}`),
-  /** 격리 iframe 이 읽는 산출물 HTML. 데모에서는 스냅샷이 떠 둔 정적 파일(`<base>demo/artifacts/…`)을 가리킨다. */
-  artifactHtmlUrl: (artifactId: string) => (IS_DEMO ? `${DEMO_BASE}artifacts/${encodeURIComponent(artifactId)}.html` : `/api/artifacts/${encodeURIComponent(artifactId)}/html`),
+  /**
+   * 격리 iframe 이 읽는 산출물 HTML.
+   * 브라우저 모드에서 방금 만든 산출물은 서버 파일이 없어 Blob URL 을 쓰고, 그 밖의 데모 산출물은 스냅샷 정적 파일(`<base>demo/artifacts/…`)을 가리킨다.
+   */
+  artifactHtmlUrl: (artifactId: string) => {
+    if (!IS_DEMO) return `/api/artifacts/${encodeURIComponent(artifactId)}/html`
+    return browserArtifactUrl(artifactId) ?? `${DEMO_BASE}artifacts/${encodeURIComponent(artifactId)}.html`
+  },
   revalidate: (artifactId: string) => request<ValidationResult[] | { validation_results: ValidationResult[] }>('POST', `/api/artifacts/${encodeURIComponent(artifactId)}/validations`),
   createComment: (revisionId: string, input: CommentInput) => request<Comment>('POST', `/api/revisions/${encodeURIComponent(revisionId)}/comments`, input),
   patchComment: (id: string, body: { status: CommentStatus; revision: number }) => request<Comment>('PATCH', `/api/comments/${encodeURIComponent(id)}`, body),

@@ -8,7 +8,8 @@ import { Badge, Collapsible, Empty, ErrorBox, Loading, formatDateTime } from '..
 import { JobStatusPanel } from '../components/JobStatusPanel.js'
 import { ReferenceCard } from '../components/ReferenceCard.js'
 import { ALL_CASES, TASK_TYPE_LABELS, buildRequest, initialFormState, toggleIn, validateForm, type GenerationFormState } from '../generation-form.js'
-import { navigate, useAsync, useJobPolling } from '../hooks.js'
+import { IS_DEMO } from '../demo-mode.js'
+import { navigate, useAsync, useCredentialTick, useJobPolling } from '../hooks.js'
 import { hrefTo, hrefToScreen, withQuery, type Route } from '../router.js'
 import { CASE_LABELS } from '../summary.js'
 import type { PromptPreviewResponse, Requirement, SliceTaskType } from '../types.js'
@@ -37,6 +38,10 @@ export function GeneratePage({ screenId, route }: { screenId: string; route: Rou
 
   const jobId = route.query['job'] ?? null
   const poll = useJobPolling(jobId, () => screen.reload())
+  // 정적 배포에서 자격 증명이 없으면 실제 생성이 아니라 스냅샷 동작임을 알린다 (meta.adapter 로 판단).
+  const credentialTick = useCredentialTick()
+  const meta = useAsync(() => api.meta(), [credentialTick])
+  const hasCredential = meta.data?.adapter === 'anthropic'
 
   const update = (patch: Partial<GenerationFormState>) => setForm((f) => ({ ...f, ...patch }))
 
@@ -106,6 +111,12 @@ export function GeneratePage({ screenId, route }: { screenId: string; route: Rou
           <button type="button" className="btn" onClick={() => navigate(withQuery(route, { job: '' }), { replace: true })}>
             작업 표시 지우기
           </button>
+        </div>
+      )}
+
+      {IS_DEMO && !hasCredential && (
+        <div className="notice notice-amber" data-testid="browser-mode-hint">
+          지금은 스냅샷 데모입니다 — 생성 실행은 저장된 결과를 보여줄 뿐입니다. <strong>위 자격 증명 패널에 토큰을 넣으면 실제로 생성됩니다</strong> (이 브라우저가 api.anthropic.com 을 직접 호출).
         </div>
       )}
 

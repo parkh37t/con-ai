@@ -1,5 +1,6 @@
 /** 상단 바 — 프로젝트명, 어댑터 배지(실제/더미 + 인증 방식), Playwright 가능 여부, 주요 링크. */
 import { adapterBadgeText } from '../adapter-badge.js'
+import { IS_DEMO } from '../demo-mode.js'
 import { hrefTo } from '../router.js'
 import type { Meta } from '../types.js'
 import { Badge } from './common.js'
@@ -27,12 +28,16 @@ export function TopBar({ meta, metaError, projectName, current }: { meta: Meta |
       <div className="topbar-right">
         {meta ? (
           <>
-            <Badge testId="adapter-badge" tone={meta.adapter === 'anthropic' ? 'green' : 'amber'} title={`어댑터: ${meta.adapter}, 모델: ${meta.model}${meta.auth ? `, 인증: ${meta.auth}` : ''}`}>
-              {meta.adapter === 'anthropic' ? '실제 호출 · ' : ''}
-              {adapterBadgeText(meta)}
+            <Badge
+              testId="adapter-badge"
+              tone={meta.adapter === 'anthropic' ? 'green' : 'amber'}
+              title={IS_DEMO && meta.adapter === 'anthropic' ? '이 브라우저가 내 자격 증명으로 api.anthropic.com 을 직접 호출합니다 (서버 없음)' : `어댑터: ${meta.adapter}, 모델: ${meta.model}${meta.auth ? `, 인증: ${meta.auth}` : ''}`}
+            >
+              {meta.adapter === 'anthropic' && !IS_DEMO ? '실제 호출 · ' : ''}
+              {IS_DEMO && meta.adapter === 'fixture' ? '스냅샷 데모' : adapterBadgeText(meta, { browser: IS_DEMO })}
             </Badge>
             <Badge testId="playwright-badge" tone={meta.playwright ? 'blue' : 'gray'} title="V3 실행 검사(Playwright) 가능 여부">
-              Playwright {meta.playwright ? '가능' : '불가 (V3 는 error 로 기록)'}
+              Playwright {meta.playwright ? '가능' : IS_DEMO ? '불가 (브라우저 — V3 는 not_run)' : '불가 (V3 는 error 로 기록)'}
             </Badge>
             <span className="muted small">API v{meta.version}</span>
           </>

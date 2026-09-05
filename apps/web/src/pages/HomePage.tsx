@@ -2,6 +2,7 @@
 import { realModelHint } from '../adapter-badge.js'
 import { api } from '../api.js'
 import { Badge, Collapsible, Empty, ErrorBox, Loading, ScreenStatusBadge } from '../components/common.js'
+import { IS_DEMO } from '../demo-mode.js'
 import { useAsync, navigate } from '../hooks.js'
 import { hrefTo, hrefToScreen } from '../router.js'
 import { buildIATree, type IATreeNode } from '../summary.js'
@@ -9,7 +10,7 @@ import type { Meta, Project, Requirement, ScreenSummary } from '../types.js'
 
 export function HomePage({ project, projects, meta }: { project: Project; projects: Project[]; meta: Meta | null }) {
   const detail = useAsync(() => api.project(project.id), [project.id])
-  const hint = realModelHint(meta)
+  const hint = realModelHint(meta, { demo: IS_DEMO })
 
   return (
     <div className="page">

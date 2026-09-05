@@ -2,6 +2,7 @@
 import type { ReactNode } from 'react'
 import { api } from './api.js'
 import { ErrorBox, Loading } from './components/common.js'
+import { CredentialPanel } from './components/CredentialPanel.js'
 import { TopBar } from './components/TopBar.js'
 import { DEMO_BANNER_TEXT, DEMO_REPO_URL, IS_DEMO } from './demo-mode.js'
 import { useAsync, useHashRoute } from './hooks.js'
@@ -66,6 +67,8 @@ export function App() {
   return (
     <div className="app">
       <DemoBanner />
+      {/* 정적 배포에서만 자격 증명 패널을 보여준다. 서버 모드에서는 모델 호출이 서버 어댑터의 몫이라 화면에 인증정보를 두지 않는다. */}
+      {IS_DEMO && <CredentialPanel onChanged={() => meta.reload()} />}
       <TopBar meta={meta.data} metaError={meta.error} projectName={project?.name ?? null} current={current} />
       <main className="main">{body}</main>
     </div>

@@ -1,7 +1,9 @@
 /**
  * 결과 생성 보조 — 모든 검사가 같은 형태의 ValidationResult 를 만든다 (설계 §10: pass/fail/error/not_run, fail·error 는 원인 필수).
+ *
+ * id 는 전역 `crypto.randomUUID()` 로 만든다 (Node 22 와 브라우저 보안 컨텍스트 모두 제공).
+ * 이 파일은 V1·V2 와 함께 브라우저 번들(apps/web/src/browser-run)에서도 쓰이므로 node: 모듈을 import 하지 않는다.
  */
-import { randomUUID } from 'node:crypto'
 import type { ValidationStage } from '@con-ai/schemas'
 import type { CheckResult, CheckStatus } from './types.js'
 
@@ -24,13 +26,13 @@ export interface MakeResultArgs {
 }
 
 export function newRunId(): string {
-  return randomUUID()
+  return crypto.randomUUID()
 }
 
 export function makeResult(base: ResultFactoryInput, args: MakeResultArgs): CheckResult {
   const now = Date.now()
   const out: CheckResult = {
-    id: randomUUID(),
+    id: crypto.randomUUID(),
     validation_run_id: base.validation_run_id,
     artifact_hash: base.artifact_hash,
     check_id: args.check_id,

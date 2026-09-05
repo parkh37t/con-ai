@@ -236,6 +236,11 @@ function RevisionWorkbench({ screen, detail, route, onChanged }: { screen: Scree
           </span>
         </div>
         {foreign > 0 && <div className="notice notice-amber">검증 결과 {foreign}건은 다른 artifact hash 의 것이라 요약에서 제외했습니다.</div>}
+        {validation_results.some((r) => r.stage === 'V3' && r.status === 'not_run') && (
+          <div className="notice" data-testid="v3-not-run-note">
+            V3(실행 검사)가 <strong>미실행(not_run)</strong> 인 것은 정상입니다 — 브라우저에서는 Playwright 로 화면을 실제로 띄워 볼 수 없습니다. 미실행은 통과가 아니므로 완료(v1.0) 승인은 막히며, 실행 검사는 서버 실행(<code>pnpm serve</code>)에서 동작합니다.
+          </div>
+        )}
         <ValidationTable results={validation_results} artifactHash={artifact.content_hash} />
       </section>
 

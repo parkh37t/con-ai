@@ -93,6 +93,37 @@ ul {
 .demo-banner a {
   color: var(--amber);
 }
+/* 자격 증명 패널 (정적 배포 전용) — 내 토큰으로 실제 호출하기 위한 입력. 값은 화면에 다시 표시하지 않는다. */
+.cred-panel {
+  padding: 8px 20px;
+  background: #ffffff;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.cred-panel[data-active='true'] {
+  background: var(--green-bg, #f2fbf5);
+}
+.cred-head,
+.cred-fields,
+.cred-foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.cred-body {
+  margin-top: 8px;
+}
+.cred-input {
+  min-width: 260px;
+  flex: 1 1 260px;
+}
+.cred-notice {
+  margin: 6px 0 0;
+}
+.cred-foot {
+  margin-top: 6px;
+}
 .topbar {
   display: flex;
   align-items: center;

@@ -139,6 +139,20 @@ export function useJobPolling(jobId: string | null, onTerminal?: (job: Job) => v
   return { job, error, polling }
 }
 
+/** 자격 증명 패널이 값을 저장·삭제했을 때 알리는 이벤트 (브라우저 모드 전환). */
+export const CREDENTIAL_EVENT = 'con-ai:credential'
+
+/** 자격 증명이 바뀔 때마다 1씩 늘어난다 — useAsync 의 의존값으로 쓴다. */
+export function useCredentialTick(): number {
+  const [tick, setTick] = useState(0)
+  useEffect(() => {
+    const onChange = () => setTick((t) => t + 1)
+    window.addEventListener(CREDENTIAL_EVENT, onChange)
+    return () => window.removeEventListener(CREDENTIAL_EVENT, onChange)
+  }, [])
+  return tick
+}
+
 /** localStorage 의 작은 편의값 (작성자 이름 등). 실패해도 화면은 동작한다. */
 export function useStoredValue(key: string, initial: string): [string, (v: string) => void] {
   const [value, setValue] = useState<string>(() => {

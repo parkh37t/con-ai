@@ -14,6 +14,10 @@
  *   approval.json        POST /api/screens/:id/approvals 응답 예시 (대상 화면·revision 포함)
  *   artifacts/·asis/·exports/  정적 파일 (api.ts 가 URL 을 직접 가리킨다)
  */
+import { assemblePrompt, assembleRevisionPrompt } from './browser-run/deps.js'
+import { buildContext, draftRevisionPromptInBrowser, revisionInstruction, runBrowserPipeline, type PipelineInput } from './browser-run/pipeline.js'
+import { browserModeActive, browserRuntime, toJobFailure } from './browser-run/runtime.js'
+import { registerArtifactHtml, type BrowserApprovalRecord, type BrowserRevisionRecord, type BrowserStore } from './browser-run/store.js'
 import { DEMO_BASE } from './demo-mode.js'
 import { JOB_STAGES } from './job-progress.js'
 import { summarizeValidation } from './summary.js'
@@ -29,7 +33,10 @@ import type {
   PainPointStatus,
   ProjectDetail,
   PromptPreviewResponse,
+  Reference,
+  Requirement,
   RevisionDetail,
+  RevisionListItem,
   RevisionPromptDraft,
   ScreenDetail,
   SliceGenerationRequest,
@@ -44,7 +51,7 @@ export const DEMO_ASIS_QUEUED_MS = 1200
 export const DEMO_ASIS_RUNNING_MS = 3600
 
 export const DEMO_MARK = '정적 데모'
-export const DEMO_ASIS_FAILURE_MESSAGE = '정적 데모에서는 새 URL 을 분석할 수 없습니다. 로컬에서 `pnpm dev` 로 실행하세요.'
+export const DEMO_ASIS_FAILURE_MESSAGE = '브라우저에서는 다른 사이트를 캡처할 수 없습니다. AS-IS 분석은 서버 실행(`pnpm serve`)에서 동작합니다.'
 export const DEMO_GENERATION_UNAVAILABLE_MESSAGE =
   '정적 데모에는 이 화면의 생성 결과가 저장되어 있지 않습니다. 스냅샷에 결과가 있는 화면에서 실행해 보거나, 로컬에서 `pnpm dev` 로 실행하세요.'
 export const DEMO_EXPORT_NOT_CAPTURED_MESSAGE =
@@ -161,8 +168,15 @@ function allProjectDetails(state: DemoState): ProjectDetail[] {
   return out
 }
 
-function metaOf(state: DemoState): Meta {
-  return (state.gets.get('/api/meta') as Meta | undefined) ?? { adapter: 'fixture', model: 'fixture', version: '0.0.0', playwright: false }
+/**
+ * `/api/meta` — 자격 증명이 없으면 스냅샷 그대로(fixture 더미), 있으면 브라우저에서 실제 호출하는 상태를 알린다.
+ * 브라우저에서는 Playwright 를 띄울 수 없으므로 playwright 는 항상 false 다.
+ */
+export function metaOf(state: DemoState): Meta {
+  const base = (state.gets.get('/api/meta') as Meta | undefined) ?? { adapter: 'fixture', model: 'fixture', version: '0.0.0', playwright: false }
+  const cred = browserRuntime.credential()
+  if (!cred) return base
+  return { ...base, adapter: 'anthropic', model: browserRuntime.model, auth: cred.kind, playwright: false }
 }
 
 /**
@@ -187,10 +201,10 @@ function syncCommentCounts(state: DemoState): void {
 
 // ---------------------------------------------------------------- 상태 만들기
 
-export function createDemoState(files: DemoFiles, opts: { now?: () => number } = {}): DemoState {
+export function createDemoState(files: DemoFiles, opts: { now?: () => number; store?: BrowserStore } = {}): DemoState {
   const gets = new Map<string, unknown>()
   for (const [path, value] of Object.entries(clone(files.snapshot))) gets.set(path, value)
-  return {
+  const state: DemoState = {
     gets,
     files: clone(files),
     jobs: new Map(),
@@ -198,6 +212,9 @@ export function createDemoState(files: DemoFiles, opts: { now?: () => number } =
     seq: 0,
     now: opts.now ?? (() => Date.now()),
   }
+  // 스냅샷을 초기 상태로 두고, 이 브라우저에 쌓인 결과(생성 revision·코멘트·승인)를 그 위에 얹는다.
+  applyBrowserOverlay(state, opts.store ?? browserRuntime.store)
+  return state
 }
 
 function nextId(state: DemoState, prefix: string): string {
@@ -253,6 +270,7 @@ function handleGet(state: DemoState, path: string): DemoResponse {
   for (const run of state.jobs.values()) advanceJob(state, run)
   for (const run of state.analyses.values()) advanceAsis(state, run)
 
+  if (path === '/api/meta') return { status: 200, data: metaOf(state) }
   const found = state.gets.get(path)
   if (found === undefined) return notFound(`경로 ${path}`)
   return { status: 200, data: found }
@@ -407,25 +425,29 @@ function approve(state: DemoState, screenId: string, body: unknown): DemoRespons
       message: `차단 코멘트 ${openBlocking.length}건이 열려 있습니다: ${openBlocking.map((c) => `[${c.role}] ${c.text}`).join(' / ')}`,
     })
   }
-  const captured = state.files.approval
-  if (screenId !== captured.screen_id || revisionId !== captured.revision_id) {
-    reasons.push({ code: 'demo.export_not_captured', message: DEMO_EXPORT_NOT_CAPTURED_MESSAGE })
+  if (isBrowserRevision(revisionId)) {
+    // 브라우저에서 만든 revision — 필수 검사(V3)가 미실행이라 승인 게이트를 통과할 수 없다.
+    // 실행하지 않은 검사를 통과로 바꾸지 않는다 (CLAUDE.md). 대신 완료 화면에서 산출물을 파일로 내려받는다.
+    for (const r of browserApprovalReasons(revision)) reasons.push(r)
+  } else {
+    const captured = state.files.approval
+    if (screenId !== captured.screen_id || revisionId !== captured.revision_id) {
+      reasons.push({ code: 'demo.export_not_captured', message: DEMO_EXPORT_NOT_CAPTURED_MESSAGE })
+    }
   }
   if (reasons.length > 0) return { status: 400, data: { error: 'approval_rejected', reasons } }
 
   // 메모리에서 실제로 승인 상태를 반영한다 (홈 목록·완료 화면이 그대로 살아 있게).
-  const response = clone(captured.response)
-  detail.screen.status = 'approved'
-  detail.screen.version = response.version
-  target.artifact_status = 'approved'
-  if (revision) revision.artifact.status = 'approved'
-  for (const project of allProjectDetails(state)) {
-    for (const s of project.screens) {
-      if (s.id !== screenId) continue
-      s.status = 'approved'
-      s.version = response.version
-    }
-  }
+  const response = clone(state.files.approval.response)
+  markApproved(state, screenId, revisionId, response.version)
+  browserRuntime.store.setApproval({
+    screen_id: screenId,
+    revision_id: revisionId,
+    artifact_hash: revision?.artifact.content_hash ?? target.artifact_hash,
+    approved_by: approver.trim(),
+    approved_at: nowIso(state),
+    version: response.version,
+  })
   return { status: 200, data: response }
 }
 
@@ -477,6 +499,291 @@ function patchPainPoint(state: DemoState, analysisId: string, painPointId: strin
   point.status = status as PainPointStatus
   doc.revision = current + 1
   return { status: 200, data: doc }
+}
+
+// ---------------------------------------------------------------- 브라우저 모드 (내 토큰으로 실제 호출)
+
+export const BROWSER_APPROVAL_BLOCKED_MESSAGE =
+  '브라우저 모드에서는 완료(v1.0) 승인을 기록할 수 없습니다 — 필수 실행 검사(V3)를 브라우저에서 돌릴 수 없어 미실행이기 때문입니다. 완료 화면의 "산출물 파일 내려받기" 로 이관하거나, 서버 실행(`pnpm serve`)에서 완료하세요.'
+
+/** 승인 상태를 메모리에 반영한다 (화면 목록·검토·완료 화면이 같은 상태를 본다). */
+function markApproved(state: DemoState, screenId: string, revisionId: string, version: string): void {
+  const detail = screenDetail(state, screenId)
+  if (detail) {
+    detail.screen.status = 'approved'
+    detail.screen.version = version
+    const target = detail.revisions.find((r) => r.id === revisionId)
+    if (target) target.artifact_status = 'approved'
+  }
+  const revision = revisionDetail(state, revisionId)
+  if (revision) revision.artifact.status = 'approved'
+  for (const project of allProjectDetails(state)) {
+    for (const s of project.screens) {
+      if (s.id !== screenId) continue
+      s.status = 'approved'
+      s.version = version
+    }
+  }
+}
+
+/** 이 revision 이 브라우저에서 생성된 것인지. */
+export function isBrowserRevision(revisionId: string): boolean {
+  return browserRuntime.store.load().revisions.some((r) => r.revision.id === revisionId)
+}
+
+/** 브라우저 revision 의 승인 거부 사유 — 필수 검사 미통과를 그대로 적는다. */
+function browserApprovalReasons(revision: RevisionDetail | undefined): Array<{ code: string; message: string }> {
+  const reasons: Array<{ code: string; message: string }> = [{ code: 'browser.v3_not_run', message: BROWSER_APPROVAL_BLOCKED_MESSAGE }]
+  const blockers = (revision?.validation_results ?? []).filter((r) => r.required && r.status !== 'pass')
+  if (blockers.length > 0) {
+    reasons.push({ code: 'approval.required_checks', message: `필수 검사 미통과: ${blockers.map((b) => `${b.check_id}(${b.status})`).join(', ')}` })
+  }
+  return reasons
+}
+
+/** 스냅샷 위에 브라우저 저장 데이터를 얹는다 (생성 revision → 코멘트 → 승인 순). */
+export function applyBrowserOverlay(state: DemoState, store: BrowserStore): void {
+  const data = store.load()
+  for (const record of data.revisions) registerBrowserRevision(state, record)
+  for (const [revisionId, comments] of Object.entries(data.comments)) {
+    const detail = revisionDetail(state, revisionId)
+    if (detail) detail.comments = comments.map((c) => ({ ...c }))
+  }
+  for (const approval of Object.values(data.approvals) as BrowserApprovalRecord[]) {
+    markApproved(state, approval.screen_id, approval.revision_id, approval.version)
+  }
+  syncCommentCounts(state)
+}
+
+/** 브라우저에서 만든 revision 을 스냅샷 상태에 등록한다 (검토·수정·완료 화면이 그대로 읽는다). */
+export function registerBrowserRevision(state: DemoState, record: BrowserRevisionRecord, comments: Comment[] = []): void {
+  const detail: RevisionDetail = {
+    revision: record.revision,
+    spec: record.spec,
+    artifact: record.artifact,
+    validation_results: record.validation_results,
+    comments: comments.map((c) => ({ ...c })),
+    element_index: record.element_index,
+  }
+  const existing = revisionDetail(state, record.revision.id)
+  if (existing) detail.comments = existing.comments
+  state.gets.set(`/api/revisions/${record.revision.id}`, detail)
+  registerArtifactHtml(record.artifact.id, record.html)
+
+  const item: RevisionListItem = {
+    id: record.revision.id,
+    revision_no: record.revision.revision_no,
+    artifact_id: record.artifact.id,
+    artifact_hash: record.artifact.content_hash,
+    artifact_status: record.artifact.status,
+    validation_summary: summarizeValidation(record.validation_results),
+    open_comments: detail.comments.filter((c) => c.status === 'open').length,
+    created_at: record.revision.created_at,
+  }
+  const screen = screenDetail(state, record.screen_id)
+  if (screen) {
+    screen.revisions = [...screen.revisions.filter((r) => r.id !== record.revision.id), item].sort((a, b) => a.revision_no - b.revision_no)
+    screen.screen.current_revision_id = record.revision.id
+    if (screen.screen.status !== 'approved') screen.screen.status = 'review'
+  }
+  for (const project of allProjectDetails(state)) {
+    for (const sc of project.screens) {
+      if (sc.id !== record.screen_id) continue
+      sc.revision_count = screen ? screen.revisions.length : sc.revision_count + 1
+      sc.current_revision_id = record.revision.id
+      if (sc.status !== 'approved') sc.status = 'review'
+    }
+  }
+}
+
+/** 스냅샷에 더미데이터가 들어 있으면 쓴다 (없으면 빈 객체 → 파이프라인이 unresolved 로 남긴다). */
+function dummyDataOf(state: DemoState): Record<string, unknown[]> {
+  const raw = (state.files.snapshot as Record<string, unknown>)['dummy_data']
+  return typeof raw === 'object' && raw !== null ? (raw as Record<string, unknown[]>) : {}
+}
+
+function projectDetailFor(state: DemoState, projectId: string): ProjectDetail | undefined {
+  return state.gets.get(`/api/projects/${projectId}`) as ProjectDetail | undefined
+}
+
+function referencesFor(state: DemoState, projectId: string): Reference[] {
+  const list = state.gets.get(`/api/projects/${projectId}/references`)
+  return Array.isArray(list) ? (list as Reference[]) : []
+}
+
+/** 요청 하나를 파이프라인 입력으로 옮긴다 (생성 실행과 프롬프트 미리보기가 같은 문맥을 쓰도록). */
+function pipelineInputFor(state: DemoState, screenId: string, body: unknown): { error: DemoResponse } | { input: PipelineInput; base: RevisionDetail | undefined } {
+  const credential = browserRuntime.credential()
+  if (!credential) return { error: badRequest('no_credential', '자격 증명이 없습니다. 상단 패널에서 API 키나 토큰을 먼저 넣으세요.') }
+  const screen = screenDetail(state, screenId)
+  if (!screen) return { error: notFound('화면') }
+  const project = projectDetailFor(state, screen.screen.project_id)
+  if (!project) return { error: notFound('프로젝트') }
+
+  const request = asRecord(body) as unknown as SliceGenerationRequest
+  const baseId = request.base_revision_id ?? (request.task_type === 'edit' ? screen.screen.current_revision_id : undefined)
+  const baseDetail = baseId ? revisionDetail(state, baseId) : undefined
+  if (baseId !== undefined && !baseDetail) return { error: badRequest('reference_invalid', `기준 revision 을 찾을 수 없습니다: ${baseId}`) }
+  const revisionNo = screen.revisions.reduce((max, r) => Math.max(max, r.revision_no), 0) + 1
+  const projectRecord = project.project as unknown as Record<string, unknown>
+
+  return {
+    base: baseDetail,
+    input: {
+      request,
+      credential,
+      project: {
+        id: project.project.id,
+        name: project.project.name,
+        org: project.project.org,
+        profile_id: project.project.profile_id,
+        slug: typeof projectRecord['slug'] === 'string' ? (projectRecord['slug'] as string) : undefined,
+        baseline_id: typeof projectRecord['baseline_id'] === 'string' ? (projectRecord['baseline_id'] as string) : undefined,
+      },
+      screen: { id: screen.screen.id, external_id: screen.screen.external_id, title: screen.screen.title, shell: screen.screen.shell, device: request.device ?? screen.screen.device },
+      requirements: project.requirements as Requirement[],
+      references: referencesFor(state, project.project.id),
+      ...(baseDetail ? { base_revision: { id: baseDetail.revision.id, revision_no: baseDetail.revision.revision_no, spec: baseDetail.spec } } : {}),
+      comments: baseDetail?.comments ?? [],
+      dummy: dummyDataOf(state),
+      revision_no: revisionNo,
+      model: browserRuntime.model,
+    },
+  }
+}
+
+/**
+ * 프롬프트 미리보기 — 실제로 보낼 프롬프트를 그 자리에서 조립한다 (모델 호출 없음).
+ * 스냅샷 예시가 아니라 이번 요청의 문맥이므로 "미리보기" 가 실제 실행과 어긋나지 않는다.
+ */
+export function browserPromptPreview(state: DemoState, screenId: string, body: unknown): DemoResponse {
+  const prepared = pipelineInputFor(state, screenId, body)
+  if ('error' in prepared) return prepared.error
+  try {
+    const { ctx, summary } = buildContext(prepared.input)
+    const req = prepared.input.request
+    const prompt = req.task_type === 'edit' ? assembleRevisionPrompt(ctx, revisionInstruction(req)) : assemblePrompt(req, ctx)
+    const preview: PromptPreviewResponse = { prompt: { ...prompt, context_summary: summary }, context_summary: summary }
+    return { status: 200, data: preview }
+  } catch (e) {
+    const failure = toJobFailure(e, 'context_build')
+    return badRequest(failure.code, failure.message, { details: failure.details ?? [] })
+  }
+}
+
+/**
+ * 실제 생성 작업 — 202 로 job_id 를 돌려주고 파이프라인은 뒤에서 돈다.
+ * 단계마다 job 문서를 갱신하므로 기존 작업 상태 패널(2초 폴링)이 그대로 동작한다.
+ */
+export function browserCreateJob(state: DemoState, screenId: string, body: unknown): DemoResponse {
+  const prepared = pipelineInputFor(state, screenId, body)
+  if ('error' in prepared) return prepared.error
+  const { input: pipelineInput, base: baseDetail } = prepared
+  const request = pipelineInput.request
+  const id = nextId(state, 'job')
+  const created = nowIso(state)
+  const model = browserRuntime.model
+  const job: Job = {
+    id,
+    status: 'queued',
+    current_stage: 'context_build',
+    stage: 'context_build',
+    adapter: 'anthropic',
+    model,
+    job_type: typeof request.task_type === 'string' ? request.task_type : 'create',
+    screen_plan_id: screenId,
+    request,
+    attempt: 1,
+    max_attempts: 1,
+    created_at: created,
+    started_at: created,
+    context_summary: ['브라우저 모드 — 내 브라우저가 api.anthropic.com 을 직접 호출합니다'],
+  }
+  state.gets.set(`/api/jobs/${id}`, job)
+
+  void (async () => {
+    try {
+      const result = await runBrowserPipeline(pipelineInput, {
+        fetch: browserRuntime.fetch,
+        now: browserRuntime.now,
+        newId: browserRuntime.newId,
+        onStage: (stage) => {
+          job.status = 'running'
+          job.current_stage = stage
+          job.stage = stage
+        },
+      })
+      result.record.revision.job_id = id
+      registerBrowserRevision(state, result.record)
+      const saved = browserRuntime.store.addRevision(result.record)
+      resolveEditedComments(state, request, baseDetail, result.record.revision.id)
+      syncCommentCounts(state)
+      job.status = 'succeeded'
+      job.current_stage = 'persist'
+      job.stage = 'persist'
+      job.finished_at = browserRuntime.now()
+      job.result = { revision_id: result.record.revision.id, artifact_id: result.record.artifact.id }
+      job.prompt_text = `[system]\n${result.prompt.system}\n\n[user]\n${result.prompt.user}`
+      job.context_summary = [
+        ...result.context_summary,
+        `모델 사용량: 입력 ${result.usage.input_tokens} · 출력 ${result.usage.output_tokens} 토큰`,
+        saved ? '결과를 이 브라우저(localStorage)에 저장했습니다' : `브라우저 저장 실패: ${browserRuntime.store.lastError ?? '원인 미상'}`,
+      ]
+    } catch (e) {
+      job.status = 'failed'
+      job.finished_at = browserRuntime.now()
+      job.failure = toJobFailure(e, job.current_stage ?? 'context_build')
+    }
+  })()
+
+  return { status: 202, data: { job_id: id } }
+}
+
+/** edit 작업이 성공하면 반영한 코멘트를 이 revision 으로 해결 표시한다 (서버 파이프라인과 같다). */
+function resolveEditedComments(state: DemoState, request: SliceGenerationRequest, base: RevisionDetail | undefined, revisionId: string): void {
+  if (request.task_type !== 'edit' || !base) return
+  let changed = false
+  for (const id of request.comment_ids ?? []) {
+    const comment = base.comments.find((c) => c.id === id)
+    if (!comment) continue
+    comment.status = 'resolved'
+    comment.resolved_by_revision_id = revisionId
+    comment.revision = (comment.revision ?? 1) + 1
+    changed = true
+  }
+  if (changed) browserRuntime.store.setComments(base.revision.id, base.comments)
+}
+
+/** 실제 모델로 수정 프롬프트 초안을 만든다 (검토 화면의 "AI 수정 프롬프트 생성"). */
+export async function browserRevisionPrompt(state: DemoState, revisionId: string, body: unknown): Promise<DemoResponse> {
+  const credential = browserRuntime.credential()
+  if (!credential) return badRequest('no_credential', '자격 증명이 없습니다. 상단 패널에서 API 키나 토큰을 먼저 넣으세요.')
+  const detail = revisionDetail(state, revisionId)
+  if (!detail) return notFound('revision')
+  const ids = asRecord(body)['comment_ids']
+  if (!Array.isArray(ids) || ids.length === 0) {
+    return badRequest('invalid_request', '요청 본문이 올바르지 않습니다', { issues: ['코멘트를 최소 1개 골라야 합니다'] })
+  }
+  const screen = screenDetail(state, detail.revision.screen_id)
+  const project = screen ? projectDetailFor(state, screen.screen.project_id) : undefined
+  const wanted = new Set(ids.map(String))
+  try {
+    const draft = await draftRevisionPromptInBrowser(
+      {
+        credential,
+        project: { name: project?.project.name ?? '(프로젝트 미상)' },
+        screen: { external_id: screen?.screen.external_id ?? '(화면 미상)', title: screen?.screen.title ?? '' },
+        spec: detail.spec,
+        comments: detail.comments.filter((c) => wanted.has(c.id)),
+        model: browserRuntime.model,
+      },
+      { fetch: browserRuntime.fetch },
+    )
+    const result: RevisionPromptDraft = { prompt: draft.prompt, rationale: draft.rationale, adapter: 'anthropic' }
+    return { status: 200, data: result }
+  } catch (e) {
+    return badRequest('model_error', `수정 프롬프트 초안 생성에 실패했습니다: ${e instanceof Error ? e.message : String(e)}`)
+  }
 }
 
 // ---------------------------------------------------------------- 라우팅
@@ -552,6 +859,21 @@ function demoState(): Promise<DemoState> {
 }
 
 /**
+ * 자격 증명이 있으면 실제 모델을 쓰는 요청(생성·수정 프롬프트)만 여기서 가로채고, 나머지는 스냅샷 동작(handleWith)을 그대로 쓴다.
+ */
+export async function handleAsyncWith(state: DemoState, method: string, path: string, body?: unknown): Promise<DemoResponse> {
+  if (method === 'POST' && browserModeActive()) {
+    const preview = /^\/api\/screens\/([^/]+)\/prompt-preview$/.exec(path)
+    if (preview) return browserPromptPreview(state, preview[1] ?? '', body)
+    const job = /^\/api\/screens\/([^/]+)\/generation-jobs$/.exec(path)
+    if (job) return browserCreateJob(state, job[1] ?? '', body)
+    const draft = /^\/api\/revisions\/([^/]+)\/revision-prompt$/.exec(path)
+    if (draft) return await browserRevisionPrompt(state, draft[1] ?? '', body)
+  }
+  return handleWith(state, method, path, body)
+}
+
+/**
  * 데모 모드의 단일 진입점. `/api/…` 는 인메모리로 처리하고, 그 밖의 경로(내보낸 정적 파일 등)는 실제로 가져온다.
  */
 export async function handle(method: string, path: string, body?: unknown): Promise<DemoResponse> {
@@ -567,5 +889,5 @@ export async function handle(method: string, path: string, body?: unknown): Prom
     return { status: res.status, data }
   }
   const state = await demoState()
-  return handleWith(state, method, path, body)
+  return handleAsyncWith(state, method, path, body)
 }
