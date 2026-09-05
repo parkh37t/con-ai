@@ -34,6 +34,11 @@ jobs:
       - name: 의존성 설치
         run: pnpm install --frozen-lockfile
 
+      # V3 실행 검사와 postMessage 테스트는 실제 브라우저를 띄운다.
+      # 브라우저가 없으면 결과가 error 로 기록되고(통과로 위장하지 않는다) 검사가 실패한다.
+      - name: Playwright 브라우저 설치
+        run: pnpm exec playwright install --with-deps chromium
+
       - name: 타입 검사·테스트
         run: pnpm check
 
