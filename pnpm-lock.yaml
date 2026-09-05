@@ -8,6 +8,12 @@ importers:
 
   .:
     devDependencies:
+      '@con-ai/domain':
+        specifier: workspace:*
+        version: link:packages/domain
+      '@con-ai/schemas':
+        specifier: workspace:*
+        version: link:packages/schemas
       '@types/node':
         specifier: 22.19.11
         version: 22.19.11
@@ -22,7 +28,11 @@ importers:
 
   apps/web: {}
 
-  packages/domain: {}
+  packages/domain:
+    dependencies:
+      '@con-ai/schemas':
+        specifier: workspace:*
+        version: link:../schemas
 
   packages/importers: {}
 
@@ -30,7 +40,11 @@ importers:
 
   packages/renderer: {}
 
-  packages/schemas: {}
+  packages/schemas:
+    dependencies:
+      zod:
+        specifier: 4.5.4
+        version: 4.5.4
 
   packages/validators: {}
 
@@ -456,6 +470,9 @@ packages:
     engines: {node: '>=8'}
     hasBin: true
 
+  zod@4.5.4:
+    resolution: {integrity: sha512-sC95tT5iHHH9gtpj6A81kh+NEaRAUFN+qlUPDUbRfOMvNf5QCBqsb3WgvnpVtK5Y+4UfA6KqufotuTvMGiTlsA==}
+
 snapshots:
 
   '@jridgewell/sourcemap-codec@1.6.0': {}
@@ -743,3 +760,5 @@ snapshots:
     dependencies:
       siginfo: 2.0.0
       stackback: 0.0.2
+
+  zod@4.5.4: {}
