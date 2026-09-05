@@ -1,0 +1,143 @@
+{
+  "fixture_id": "conflict.req-sfr-066-001",
+  "note": "REQ-SFR-066-001 제공 자료 충돌 보존 fixture (설계 §7, 보고서 §4, 개발프롬프트 '임의 수정 금지'). 원장 SFR 행 308 의 제목과 참고 HTML 설명의 REQ 표기가 다르다. 두 근거를 SourceAnchor 로 나란히 보존하고 TraceLink 를 conflict 로 둔다. 정본은 정하지 않는다. 원장 본문·HTML 본문은 공개 저장소 fixture 에 싣지 않는다. SourceVersion(SHA-256) 은 원본 등록 시 계산하므로 여기서는 합성 version UUID 만 참조한다.",
+  "canonical_source": "unresolved",
+  "resolution_rule": {
+    "who": "담당 기획자 (설계 §15: 충돌하는 REQ 의 정본 결정)",
+    "how": "정본을 확인한 뒤 RequirementRevision 의 새 revision 으로 기록하고 TraceLink 를 다시 판정한다",
+    "forbidden": ["올바른 ID 임의 생성·대체", "날짜만 보고 자동 채택 (설계 §8)", "HTML 의 REQ 표기를 승인 매핑으로 복제 (보고서 §4)"]
+  },
+  "records": [
+    {
+      "schema": "SourceDocument",
+      "data": {
+        "id": "2a000000-0000-4000-8000-000000000001",
+        "project_id": "10000000-0000-4000-8000-000000000001",
+        "file_name": "S2B_BA_A02_요구사항정의서_20260115_V1.0.xlsx",
+        "source_type": "xlsx",
+        "created_at": "2026-09-05T09:00:00+09:00",
+        "note": "요구사항 원장 (보고서 §3). SFR 시트 A열 기준 수입"
+      }
+    },
+    {
+      "schema": "SourceDocument",
+      "data": {
+        "id": "2b000000-0000-4000-8000-000000000001",
+        "project_id": "10000000-0000-4000-8000-000000000001",
+        "file_name": "admin-display-contentManage.html",
+        "source_type": "html",
+        "created_at": "2026-09-05T09:00:00+09:00",
+        "note": "참고용 HTML (시각 규격 참고). REQ 매핑의 근거로 승격하지 않는다 (보고서 §4)"
+      }
+    },
+    {
+      "schema": "SourceAnchor",
+      "data": {
+        "id": "11660000-0000-4000-8000-000000000001",
+        "source_version_id": "2a000000-0000-4000-8000-000000000101",
+        "locator": { "kind": "sheet", "sheet": "SFR", "row": 308 },
+        "excerpt": "REQ-SFR-066-001 | 관심 물품·공급업체 관리 기능 제공"
+      }
+    },
+    {
+      "schema": "SourceAnchor",
+      "data": {
+        "id": "11660000-0000-4000-8000-000000000002",
+        "source_version_id": "2b000000-0000-4000-8000-000000000101",
+        "locator": { "kind": "html", "path": "관리자포털/전시관리/몰관리/admin-display-contentManage.html" },
+        "excerpt": "REQ-SFR-066-001 몰 통합 관리"
+      }
+    },
+    {
+      "schema": "Requirement",
+      "data": {
+        "id": "30660000-0000-4000-8000-000000000001",
+        "project_id": "10000000-0000-4000-8000-000000000001",
+        "external_id": "REQ-SFR-066-001",
+        "current_revision": 1,
+        "created_at": "2026-09-05T09:00:00+09:00"
+      }
+    },
+    {
+      "schema": "RequirementRevision",
+      "data": {
+        "id": "31660000-0000-4000-8000-000000000001",
+        "requirement_id": "30660000-0000-4000-8000-000000000001",
+        "revision": 1,
+        "external_id": "REQ-SFR-066-001",
+        "title": "관심 물품·공급업체 관리 기능 제공",
+        "body": "(원장 SFR 행 308 의 본문은 공개 저장소 fixture 에 싣지 않는다. 원본 등록 시 evidence anchor 로 연결한다)",
+        "evidence": [
+          { "anchor_id": "11660000-0000-4000-8000-000000000001", "note": "원장 SFR 행 308 (설계 §7 은 A308/I308 을 인용). 제목의 출처" },
+          { "anchor_id": "11660000-0000-4000-8000-000000000002", "note": "참고 HTML 설명의 REQ 표기 — 같은 ID 를 '몰 통합 관리' 로 적는다" }
+        ],
+        "status": "conflict",
+        "conflict_note": "원장(관심 물품·공급업체 관리 기능 제공)과 참고 HTML 설명(몰 통합 관리)이 같은 ID 에 다른 기능을 적는다. 어느 쪽이 승인된 최신본인지 제공 자료만으로 확정하지 않는다 (설계 §7).",
+        "created_at": "2026-09-05T09:00:00+09:00",
+        "created_by": "importer-example"
+      }
+    },
+    {
+      "schema": "AcceptanceCriterion",
+      "data": {
+        "id": "32660000-0000-4000-8000-000000000001",
+        "requirement_revision_id": "31660000-0000-4000-8000-000000000001",
+        "external_id": "REQ-SFR-066-001-AC-PENDING",
+        "order": 1,
+        "text": "정본 확정 전까지 수용조건 분해를 보류한다 — 충돌 매핑을 보존하기 위한 임시 조건",
+        "kind": "ui",
+        "verification_method": "unspecified",
+        "evidence": [{ "anchor_id": "11660000-0000-4000-8000-000000000001" }]
+      }
+    },
+    {
+      "schema": "ScreenPlan",
+      "data": {
+        "id": "40660000-0000-4000-8000-000000000001",
+        "project_id": "10000000-0000-4000-8000-000000000001",
+        "external_id": "admin-display-contentManage",
+        "path": "관리자포털/전시관리/몰관리/admin-display-contentManage.html",
+        "portal": "관리자",
+        "aliases": [],
+        "registry_status": "import_candidate",
+        "current_revision": 1,
+        "created_at": "2026-09-05T09:00:00+09:00"
+      }
+    },
+    {
+      "schema": "ScreenRevision",
+      "data": {
+        "id": "41660000-0000-4000-8000-000000000001",
+        "screen_plan_id": "40660000-0000-4000-8000-000000000001",
+        "revision": 1,
+        "external_id": "admin-display-contentManage",
+        "purpose": "참고 HTML(관리자 몰관리 화면)의 수입 revision. 화면 목적 문구는 정본 확정 후 기록한다",
+        "shell": "admin-page",
+        "device": "desktop",
+        "roles": ["admin"],
+        "baseline_id": "example-baseline-1",
+        "created_at": "2026-09-05T09:00:00+09:00"
+      }
+    },
+    {
+      "schema": "TraceLink",
+      "data": {
+        "id": "50660000-0000-4000-8000-000000000001",
+        "revision": 1,
+        "baseline_id": "example-baseline-1",
+        "requirement_revision_id": "31660000-0000-4000-8000-000000000001",
+        "criterion_id": "32660000-0000-4000-8000-000000000001",
+        "screen_revision_id": "41660000-0000-4000-8000-000000000001",
+        "evidence": [
+          { "anchor_id": "11660000-0000-4000-8000-000000000001", "note": "원장 제목: 관심 물품·공급업체 관리 기능 제공" },
+          { "anchor_id": "11660000-0000-4000-8000-000000000002", "note": "HTML 설명 표기: 몰 통합 관리" }
+        ],
+        "origin": "html_token",
+        "status": "conflict",
+        "decided_by": "planner-example",
+        "decided_at": "2026-09-05T09:30:00+09:00",
+        "reason": "화면 설명의 REQ-SFR-066-001(몰 통합 관리)과 원장 SFR 행 308 의 REQ-SFR-066-001(관심 물품·공급업체 관리 기능 제공)이 다르다. 정본 미확정. 매핑을 conflict 로 표시하고 ID 를 임의 생성·대체하지 않는다 (설계 §7, 개발프롬프트)"
+      }
+    }
+  ]
+}
