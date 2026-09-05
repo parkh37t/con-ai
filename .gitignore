@@ -18,3 +18,6 @@ data/review/원본파일_인벤토리.json
 /exports/
 test-results/
 playwright-report/
+
+# 컨테이너 볼륨(운영 DB·내보내기 산출물). 저장소의 data/(검토 자료)와 섞이지 않게 분리한다.
+/var/

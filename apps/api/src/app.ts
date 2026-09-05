@@ -38,8 +38,9 @@ import {
 import { recoverInterruptedAsisAnalyses, runAsisAnalysis, type AsisAnalysisDocument, type AsisStore } from './asis-runner.js'
 import { ASIS_SAMPLE_HTML } from './asis-sample.js'
 import { EXPORT_VERSION, exportApprovedRevision, summarizeValidation } from './export.js'
-import { buildMeta } from './meta.js'
+import { buildMeta, detectPlaywright } from './meta.js'
 import { JobQueue, recoverInterruptedJobs } from './queue.js'
+import { mountWebStatic, notFoundBody } from './runtime.js'
 import { ApprovalBody, AsisCreateBody, AsisPainPointPatchBody, CommentBody, CommentPatchBody, RevisionPromptBody, SliceGenerationRequestBody, toSliceRequest } from './schemas.js'
 
 /** 생성 HTML 응답의 CSP (계약 §7): 외부 자원 없음, 인라인 스타일·스크립트만, 이미지는 data: 만. */
@@ -57,6 +58,11 @@ export interface AppOptions {
   validate: PipelineDeps['validate']
   /** 내보내기 폴더 (EXPORT_DIR). 없으면 만든다. */
   export_dir: string
+  /**
+   * 운영 모드(한 포트) — 웹 빌드 디렉터리 절대 경로. 주면 그 정적 파일과 SPA 폴백을 함께 제공한다(runtime.ts).
+   * 개발(웹 5173 + API 8787)에서는 주지 않는다. 존재 확인은 부르는 쪽(server.ts resolveWebDist)이 한다.
+   */
+  web_dist?: string | undefined
   env?: NodeJS.ProcessEnv | undefined
   now?: (() => string) | undefined
   newId?: (() => string) | undefined
@@ -74,6 +80,8 @@ export interface ConAiApp {
   recovered_job_ids: string[]
   /** 시작 시 failed 로 정리한(서버 재시작으로 중단된) AS-IS 분석 id (계약 §12). */
   recovered_asis_ids: string[]
+  /** 정적 제공 중인 웹 빌드 경로. 켜지 않았으면 null. */
+  web_dist: string | null
 }
 
 export function createApp(options: AppOptions): ConAiApp {
@@ -96,6 +104,8 @@ export function createApp(options: AppOptions): ConAiApp {
   })
 
   const app = new Hono()
+  /** 가동 시간 기준 시각 (GET /healthz). */
+  const startedAt = Date.now()
 
   // ---------- 공통 ----------
 
@@ -106,7 +116,25 @@ export function createApp(options: AppOptions): ConAiApp {
     log(`[api] ${c.req.method} ${c.req.path} 오류: ${err instanceof Error ? (err.stack ?? err.message) : String(err)}`)
     return c.json({ error: 'internal', message: err instanceof Error ? err.message : String(err) }, 500)
   })
-  app.notFound((c) => c.json({ error: 'not_found', message: `경로가 없다: ${c.req.method} ${c.req.path}` }, 404))
+  app.notFound((c) => c.json(notFoundBody(c.req.method, c.req.path), 404))
+
+  // ---------- 상태 확인 ----------
+
+  /**
+   * 컨테이너 헬스체크용. 값(키·토큰)은 넣지 않는다 — 어댑터 종류·Playwright 유무·DB 접근 가능 여부·가동 시간만.
+   * DB 를 읽지 못하면 status 'error' 와 503 을 준다(오케스트레이터가 재시작할 수 있도록).
+   */
+  app.get('/healthz', (c) => {
+    const db = probeDb(store)
+    const body = {
+      status: db === 'ok' ? ('ok' as const) : ('error' as const),
+      adapter: adapter.kind,
+      playwright: detectPlaywright(env),
+      db,
+      uptime_s: Math.max(0, Math.round((Date.now() - startedAt) / 1000)),
+    }
+    return c.json(body, db === 'ok' ? 200 : 503)
+  })
 
   // ---------- 메타·프로젝트 ----------
 
@@ -534,13 +562,28 @@ export function createApp(options: AppOptions): ConAiApp {
 
   app.use('/exports/*', serveStatic({ root: options.export_dir, rewriteRequestPath: (path) => path.replace(/^\/exports/, '') }))
 
-  return { app, queue, deps, recovered_job_ids: recovered, recovered_asis_ids: recoveredAsis }
+  // ---------- 운영 모드: 웹 빌드 (반드시 API 라우트 등록 뒤) ----------
+
+  const webDist = options.web_dist
+  if (webDist !== undefined) mountWebStatic(app, webDist)
+
+  return { app, queue, deps, recovered_job_ids: recovered, recovered_asis_ids: recoveredAsis, web_dist: webDist ?? null }
 }
 
 // ---------- 보조 ----------
 
 function notFound(c: Context, what: string): Response {
   return c.json({ error: 'not_found', message: `${what}을(를) 찾을 수 없다` }, 404)
+}
+
+/** DB 를 실제로 한 번 읽어본다 (없는 문서 조회 — 인덱스 조회라 비용이 거의 없다). 예외면 'error'. */
+function probeDb(store: Store): 'ok' | 'error' {
+  try {
+    store.get('project', '__healthz_probe__')
+    return 'ok'
+  } catch {
+    return 'error'
+  }
 }
 
 type ParseOutcome<T> = { data: T } | { response: Response }

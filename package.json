@@ -9,11 +9,14 @@
   "type": "module",
   "scripts": {
     "bootstrap": "bash scripts/setup.sh",
+    "build:web": "pnpm --filter @con-ai/web build",
     "check": "pnpm typecheck && pnpm test",
     "demo:build": "VITE_DEMO=1 VITE_BASE=/con-ai/ pnpm --filter @con-ai/web build",
     "demo:snapshot": "node scripts/build-demo-snapshot.mjs",
     "dev": "pnpm -r --parallel --filter @con-ai/api --filter @con-ai/web run dev",
     "e2e": "playwright test",
+    "serve": "pnpm build:web && pnpm start",
+    "start": "tsx apps/api/src/server.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc -p tsconfig.json --noEmit"

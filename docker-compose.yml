@@ -1,0 +1,45 @@
+# con-ai 운영 실행 — 한 컨테이너에서 UI + API 를 8787 한 포트로 제공한다.
+#
+#   cp .env.example .env      # 먼저 .env 를 만든다 (env_file 로 읽으므로 없으면 실행이 멈춘다)
+#   mkdir -p ./var/data       # 영속 볼륨 (SQLite DB·내보내기 산출물). 경로는 CON_AI_DATA_DIR 로 바꿀 수 있다
+#   docker compose up -d      # 최초 1회 빌드 후 실행
+#   docker compose logs -f    # 시작 로그(접속 주소·인증 경고) 확인
+#
+# 주의: 이 저장소에서 이미지 빌드를 검증하지 않았다(개발 컨테이너에 Docker 데몬 없음).
+#       사용자 환경에서 `docker compose build` 로 최초 1회 확인이 필요하다. 자세한 내용은 docs/plan/배포.md.
+# 주의: 인증이 없다. 공개 주소에 그대로 올리지 말고 사설망·VPN·리버스 프록시 인증 뒤에 둔다.
+
+services:
+  con-ai:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: con-ai:local
+    container_name: con-ai
+    restart: unless-stopped
+    # Chromium 이 만드는 자식 프로세스를 거둬들일 init 프로세스 (좀비 프로세스 방지).
+    init: true
+    ports:
+      # 사설망에서만 열려면 "127.0.0.1:8787:8787" 로 바꾸고 앞단에 리버스 프록시를 둔다.
+      - "8787:8787"
+    env_file:
+      # 모델 어댑터·자격 증명은 여기서만 읽는다 (.env 는 이미지에 들어가지 않는다 — .dockerignore).
+      - .env
+    environment:
+      # env_file 보다 우선한다. .env 의 값들(CON_AI_DB=.local/con-ai.db 등)은 호스트 개발용 경로이므로
+      # 컨테이너 경로로 반드시 덮어써야 데이터가 볼륨에 쌓인다.
+      PORT: "8787"
+      HOST: "0.0.0.0"
+      CON_AI_DB: /data/con-ai.db
+      EXPORT_DIR: /data/exports
+      WEB_DIST: /app/apps/web/dist
+      # 이미지 안의 Chromium 을 쓰도록 호스트 경로 설정을 비운다 (.env 의 PLAYWRIGHT_CHROMIUM_PATH 무력화).
+      PLAYWRIGHT_CHROMIUM_PATH: ""
+      PLAYWRIGHT_BROWSERS_PATH: /ms-playwright
+    volumes:
+      # SQLite DB 와 완료(v1.0) 내보내기 산출물. 컨테이너를 지워도 남는다.
+      # 기본값 ./var/data 는 gitignore 되며 저장소의 data/(검토 자료)와 겹치지 않는다.
+      # 실제 서버에서는 저장소 밖 경로를 권한다:  CON_AI_DATA_DIR=/srv/con-ai/data docker compose up -d
+      # 컨테이너는 비루트(uid 1000, node)로 실행되므로 호스트 폴더 소유자를 맞춘다: sudo chown -R 1000:1000 <경로>
+      - ${CON_AI_DATA_DIR:-./var/data}:/data
+    # 헬스체크는 이미지의 HEALTHCHECK(/healthz) 를 그대로 쓴다.
