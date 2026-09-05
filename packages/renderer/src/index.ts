@@ -1,16 +1,11 @@
+/**
+ * @con-ai/renderer — ScreenSpec → 오프라인 HTML 목업 + 우측 설명 (세로 조각 계약 §4).
+ * 계약 export: renderScreen, S2B_LEARNED_PROFILE, RenderInput/RenderOutput/RenderProfile/DescriptionModel (types.ts).
+ * 추가 export: buildElementIndex/buildNumbering(V2 검사가 같은 번호 규칙을 쓰기 위해), buildDescription, RENDERER_VERSION.
+ */
 export * from './types.js'
-import type { RenderInput, RenderOutput, RenderProfile } from './types.js'
-/** S2B 학습 규격 프로파일 — 구현 에이전트가 채운다. */
-export const S2B_LEARNED_PROFILE: RenderProfile = {
-  id: 's2b-learned-v1',
-  name: 'S2B 학습 규격 v1',
-  page_shell: { root: 'root-shell', screen: 'screen-wrap', panel: 'right-panel' },
-  popup_shell: { root: 'popup-shell', screen: 'popup-wrap', panel: 'spec-side' },
-  description_order: ['screen_id', 'overview', 'cases', 'flow', 'policy', 'data_mapping', 'sections', 'messages'],
-  numbering: { section: 'number', element: 'alpha' },
-  rules: [],
-}
-/** 미구현 스텁 — 구현 에이전트가 교체한다. */
-export function renderScreen(_input: RenderInput): RenderOutput {
-  throw new Error('renderScreen 미구현')
-}
+export { S2B_LEARNED_PROFILE } from './profile.js'
+export { buildElementIndex, buildNumbering, toElementIndex, toAlpha, type ElementIndexEntry, type Numbering, type NumberedSection, type NumberedElement } from './element-index.js'
+export { buildDescription, describeElement, DESCRIPTION_TITLES } from './description.js'
+export { renderScreen, RENDERER_VERSION } from './render.js'
+export { escapeHtml } from './html.js'

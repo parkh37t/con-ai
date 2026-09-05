@@ -1,0 +1,519 @@
+/**
+ * Hono 앱 (계약 §7). 모든 상태는 Store(DB)에 있고, 작업 실행은 프로세스 안의 순차 큐(JobQueue)로 시작한다.
+ * 의존성(store·adapter·render·validate)은 주입한다 — 테스트는 메모리 DB 와 가짜 어댑터·렌더러·검증기를 넣는다.
+ */
+import { randomUUID } from 'node:crypto'
+import { mkdirSync } from 'node:fs'
+import { Hono, type Context } from 'hono'
+import { serveStatic } from '@hono/node-server/serve-static'
+import { DomainRuleError, canMarkReviewReady, evaluateApprovalGate, type RuleReason } from '@con-ai/domain'
+import type { ModelAdapter } from '@con-ai/model-adapter'
+import type { SliceGenerationRequest } from '@con-ai/prompt-templates'
+import { S2B_LEARNED_PROFILE, type RenderProfile } from '@con-ai/renderer'
+import type { ValidationResult } from '@con-ai/schemas'
+import {
+  PipelineError,
+  StoreConflictError,
+  assembleForRequest,
+  baselineIdOf,
+  buildGenerationContext,
+  sha256,
+  stableStringify,
+  type ApprovalDocument,
+  type ArtifactDocument,
+  type CommentDocument,
+  type IANodeDocument,
+  type JobDocument,
+  type PipelineDeps,
+  type ProjectDocument,
+  type PromptAssembler,
+  type PromptTemplateDocument,
+  type ReferenceDocument,
+  type RequirementDocument,
+  type ScreenDocument,
+  type ScreenRevisionDocument,
+  type Store,
+  type StoredDocument,
+} from '@con-ai/worker-generation'
+import { EXPORT_VERSION, exportApprovedRevision, summarizeValidation } from './export.js'
+import { buildMeta } from './meta.js'
+import { JobQueue, recoverInterruptedJobs } from './queue.js'
+import { ApprovalBody, CommentBody, CommentPatchBody, RevisionPromptBody, SliceGenerationRequestBody, toSliceRequest } from './schemas.js'
+
+/** 생성 HTML 응답의 CSP (계약 §7): 외부 자원 없음, 인라인 스타일·스크립트만, 이미지는 data: 만. */
+export const ARTIFACT_HTML_CSP = "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:"
+
+/** 사람 검토(V6) 결과 — 기획자가 완료 버튼을 누른 것을 pass 로 기록한다. */
+export const HUMAN_REVIEW_CHECK_ID = 'V6.human_review'
+export const HUMAN_REVIEW_CHECKER_VERSION = 'human-review-v0'
+
+export interface AppOptions {
+  store: Store
+  adapter: ModelAdapter
+  render: PipelineDeps['render']
+  validate: PipelineDeps['validate']
+  /** 내보내기 폴더 (EXPORT_DIR). 없으면 만든다. */
+  export_dir: string
+  env?: NodeJS.ProcessEnv | undefined
+  now?: (() => string) | undefined
+  newId?: (() => string) | undefined
+  required_check_ids?: readonly string[] | undefined
+  profile?: RenderProfile | undefined
+  assembler?: PromptAssembler | undefined
+  log?: ((message: string) => void) | undefined
+}
+
+export interface ConAiApp {
+  app: Hono
+  queue: JobQueue
+  deps: PipelineDeps
+  /** 시작 시 failed 로 정리한(서버 재시작으로 중단된) 작업 id. */
+  recovered_job_ids: string[]
+}
+
+export function createApp(options: AppOptions): ConAiApp {
+  const { store, adapter } = options
+  const env = options.env ?? process.env
+  const now = options.now ?? (() => new Date().toISOString())
+  const newId = options.newId ?? (() => randomUUID())
+  const profile = options.profile ?? S2B_LEARNED_PROFILE
+  const requiredCheckIds = options.required_check_ids ?? []
+  const log = options.log ?? ((m: string) => console.log(m))
+  mkdirSync(options.export_dir, { recursive: true })
+
+  const deps: PipelineDeps = { store, adapter, render: options.render, validate: options.validate, now, newId, required_check_ids: requiredCheckIds, profile, assembler: options.assembler }
+  const recovered = recoverInterruptedJobs(store, now)
+  const queue = new JobQueue({ deps, onError: (jobId, err) => log(`[queue] 작업 ${jobId} 예외: ${err instanceof Error ? err.message : String(err)}`) })
+
+  const app = new Hono()
+
+  // ---------- 공통 ----------
+
+  app.onError((err, c) => {
+    if (err instanceof StoreConflictError) return c.json({ error: 'stale_revision', message: err.message, expected: err.expected, current: err.current }, 409)
+    if (err instanceof DomainRuleError) return c.json({ error: 'rule_violation', message: err.message, reasons: err.reasons }, 400)
+    if (err instanceof PipelineError) return c.json({ error: err.code, message: err.message, details: err.details }, err.code === 'internal' ? 404 : 400)
+    log(`[api] ${c.req.method} ${c.req.path} 오류: ${err instanceof Error ? (err.stack ?? err.message) : String(err)}`)
+    return c.json({ error: 'internal', message: err instanceof Error ? err.message : String(err) }, 500)
+  })
+  app.notFound((c) => c.json({ error: 'not_found', message: `경로가 없다: ${c.req.method} ${c.req.path}` }, 404))
+
+  // ---------- 메타·프로젝트 ----------
+
+  app.get('/api/meta', (c) => c.json(buildMeta(adapter, env)))
+
+  app.get('/api/projects', (c) => c.json(store.list<ProjectDocument>('project').map((d) => d.data)))
+
+  app.get('/api/projects/:id', (c) => {
+    const project = store.get<ProjectDocument>('project', c.req.param('id'))
+    if (!project) return notFound(c, '프로젝트')
+    const requirements = store.list<RequirementDocument>('requirement', (d) => d.data.project_id === project.id).map((d) => d.data)
+    const ia_nodes = store.list<IANodeDocument>('ia_node', (d) => d.data.project_id === project.id).map((d) => d.data)
+    const screens = store.list<ScreenDocument>('screen', (d) => d.data.project_id === project.id).map((d) => screenSummary(store, d.data))
+    return c.json({ project: project.data, requirements, ia_nodes, screens })
+  })
+
+  app.get('/api/projects/:id/references', (c) => {
+    const id = c.req.param('id')
+    if (!store.get('project', id)) return notFound(c, '프로젝트')
+    const refs = store.list<ReferenceDocument>('reference', (d) => d.data.project_id === undefined || d.data.project_id === id).map((d) => d.data)
+    return c.json(refs)
+  })
+
+  // ---------- 생성 ----------
+
+  async function readSliceRequest(c: Context, screenId: string): Promise<{ req: SliceGenerationRequest } | { response: Response }> {
+    const parsed = await parseJson(c, SliceGenerationRequestBody)
+    if ('response' in parsed) return parsed
+    if (parsed.data.screen_id !== undefined && parsed.data.screen_id !== screenId) {
+      return { response: c.json({ error: 'invalid_request', message: `본문의 screen_id(${parsed.data.screen_id})가 경로(${screenId})와 다르다` }, 400) }
+    }
+    return { req: toSliceRequest(screenId, parsed.data) }
+  }
+
+  app.post('/api/screens/:id/prompt-preview', async (c) => {
+    const screenId = c.req.param('id')
+    if (!store.get('screen', screenId)) return notFound(c, '화면')
+    const read = await readSliceRequest(c, screenId)
+    if ('response' in read) return read.response
+    const built = buildGenerationContext(store, read.req, { profile_rules: profile.rules })
+    let prompt
+    try {
+      prompt = assembleForRequest(read.req, built.ctx, options.assembler)
+    } catch (err) {
+      return c.json({ error: 'prompt_assembly_failed', message: err instanceof Error ? err.message : String(err) }, 500)
+    }
+    return c.json({ prompt, context_summary: built.summary })
+  })
+
+  app.post('/api/screens/:id/generation-jobs', async (c) => {
+    const screenId = c.req.param('id')
+    const screen = store.get<ScreenDocument>('screen', screenId)
+    if (!screen) return notFound(c, '화면')
+    const read = await readSliceRequest(c, screenId)
+    if ('response' in read) return read.response
+    const req = read.req
+    // 문맥이 만들어지지 않는 요청(없는 요구사항·레퍼런스·기준 revision)은 작업을 만들지 않고 400 으로 알린다.
+    const built = buildGenerationContext(store, req, { profile_rules: profile.rules })
+    const project = built.project.data
+    const id = newId()
+    const createdAt = now()
+    const templateVersion = latestTemplateVersion(store)
+    const job: JobDocument = {
+      id,
+      project_id: project.id,
+      screen_plan_id: screen.id,
+      job_type: req.task_type,
+      status: 'queued',
+      idempotency_key: id,
+      input_snapshot_hash: sha256(stableStringify({ req, context_summary: built.summary })),
+      baseline_id: baselineIdOf(project),
+      prompt_template_version: templateVersion,
+      model_id: adapter.model,
+      attempt: 0,
+      max_attempts: 1,
+      timeout_ms: 180_000,
+      cancel_requested: false,
+      created_at: createdAt,
+      request: req,
+      adapter: adapter.kind,
+      model: adapter.model,
+      prompt_text: '',
+      context_summary: built.summary,
+    }
+    store.put<JobDocument>('job', id, job, 0)
+    queue.enqueue(id)
+    return c.json({ job_id: id }, 202)
+  })
+
+  app.get('/api/jobs/:id', (c) => {
+    const job = store.get<JobDocument>('job', c.req.param('id'))
+    if (!job) return notFound(c, '작업')
+    return c.json(job.data)
+  })
+
+  /** 계약 외 추가: 취소 요청. queued 면 바로 cancelled, running 이면 다음 단계 진입 전에 워커가 cancelled 로 끝낸다. */
+  app.post('/api/jobs/:id/cancel', (c) => {
+    const job = store.get<JobDocument>('job', c.req.param('id'))
+    if (!job) return notFound(c, '작업')
+    if (job.data.status === 'queued') {
+      const updated = store.put<JobDocument>('job', job.id, { ...job.data, status: 'cancelled', cancel_requested: true, finished_at: now() }, job.revision)
+      return c.json(updated.data)
+    }
+    if (job.data.status === 'running') {
+      const updated = store.put<JobDocument>('job', job.id, { ...job.data, cancel_requested: true }, job.revision)
+      return c.json(updated.data)
+    }
+    return c.json({ error: 'job_finished', message: `이미 끝난 작업(${job.data.status})은 취소할 수 없다` }, 409)
+  })
+
+  // ---------- 화면·revision·산출물 ----------
+
+  app.get('/api/screens/:id', (c) => {
+    const screen = store.get<ScreenDocument>('screen', c.req.param('id'))
+    if (!screen) return notFound(c, '화면')
+    const revisions = store
+      .list<ScreenRevisionDocument>('screen_revision', (d) => d.data.screen_id === screen.id)
+      .sort((a, b) => a.data.revision_no - b.data.revision_no)
+      .map((r) => {
+        const artifact = store.get<ArtifactDocument>('artifact', r.data.artifact_id)
+        const results = artifact ? validationResultsFor(store, artifact.data.content_hash) : []
+        return {
+          id: r.id,
+          revision_no: r.data.revision_no,
+          artifact_id: r.data.artifact_id,
+          artifact_hash: artifact?.data.content_hash ?? null,
+          artifact_status: artifact?.data.status ?? null,
+          validation_summary: summarizeValidation(results),
+          open_comments: store.list<CommentDocument>('comment', (d) => d.data.revision_id === r.id && d.data.status === 'open').length,
+          change_summary: r.data.change_summary ?? null,
+          based_on_revision_id: r.data.based_on_revision_id ?? null,
+          job_id: r.data.job_id,
+          created_at: r.data.created_at,
+        }
+      })
+    return c.json({ screen: screen.data, revisions })
+  })
+
+  app.get('/api/revisions/:id', (c) => {
+    const revision = store.get<ScreenRevisionDocument>('screen_revision', c.req.param('id'))
+    if (!revision) return notFound(c, 'revision')
+    const artifact = store.get<ArtifactDocument>('artifact', revision.data.artifact_id)
+    const validation_results = artifact ? validationResultsFor(store, artifact.data.content_hash) : []
+    const comments = store.list<CommentDocument>('comment', (d) => d.data.revision_id === revision.id).map(withRevision)
+    return c.json({
+      revision: { ...revision.data, spec: undefined },
+      spec: revision.data.spec,
+      artifact: artifact ? { ...artifact.data, revision: artifact.revision } : null,
+      validation_results,
+      comments,
+      element_index: revision.data.element_index,
+    })
+  })
+
+  app.get('/api/artifacts/:id/html', (c) => {
+    const id = c.req.param('id')
+    const html = store.getHtml(id)
+    if (html === undefined) return notFound(c, '산출물 HTML')
+    c.header('Content-Security-Policy', ARTIFACT_HTML_CSP)
+    c.header('X-Content-Type-Options', 'nosniff')
+    c.header('Cache-Control', 'no-store')
+    return c.html(html)
+  })
+
+  app.post('/api/artifacts/:id/validations', async (c) => {
+    const artifactDoc = store.get<ArtifactDocument>('artifact', c.req.param('id'))
+    if (!artifactDoc) return notFound(c, '산출물')
+    const artifact = artifactDoc.data
+    const revision = artifact.screen_revision_id ? store.get<ScreenRevisionDocument>('screen_revision', artifact.screen_revision_id) : undefined
+    if (!revision) return c.json({ error: 'no_revision', message: '산출물에 연결된 revision 이 없다' }, 409)
+    const html = store.getHtml(artifact.id)
+    if (html === undefined) return c.json({ error: 'no_html', message: '산출물 HTML 이 없다' }, 409)
+    if (sha256(html) !== artifact.content_hash) return c.json({ error: 'hash_mismatch', message: '저장된 HTML 의 hash 가 산출물 hash 와 다르다' }, 409)
+    const job = store.get<JobDocument>('job', artifact.generation_job_id)
+    const requiredCases = job ? [...job.data.request.cases] : ['normal']
+    const results = await deps.validate({ spec: revision.data.spec, html, required_cases: requiredCases, artifact_hash: artifact.content_hash })
+    const foreign = results.filter((r) => r.artifact_hash !== artifact.content_hash)
+    if (foreign.length > 0) return c.json({ error: 'hash_mismatch', message: `검증 결과 ${foreign.length}건이 다른 hash 를 가리킨다` }, 500)
+    // 같은 hash 의 이전 결과는 지우고 새 결과로 바꾼다 (사람 검토 V6 포함 — 재검증하면 다시 검토한다).
+    for (const old of store.list<ValidationResult>('validation_result', (d) => d.data.artifact_hash === artifact.content_hash)) store.delete('validation_result', old.id)
+    for (const r of results) store.put<ValidationResult>('validation_result', r.id, r, 0)
+    let updated = artifact
+    if (artifact.status !== 'approved' && artifact.status !== 'stale') {
+      const ready = canMarkReviewReady({ content_hash: artifact.content_hash, status: 'validation_pending' }, results, requiredCheckIds).allowed
+      const nextStatus = ready ? 'review_ready' : 'validation_pending'
+      if (nextStatus !== artifact.status) updated = store.put<ArtifactDocument>('artifact', artifact.id, { ...artifact, status: nextStatus }, artifactDoc.revision).data
+    }
+    return c.json({ artifact: updated, validation_results: results, summary: summarizeValidation(results) })
+  })
+
+  // ---------- 코멘트 ----------
+
+  app.post('/api/revisions/:id/comments', async (c) => {
+    const revision = store.get<ScreenRevisionDocument>('screen_revision', c.req.param('id'))
+    if (!revision) return notFound(c, 'revision')
+    const artifact = store.get<ArtifactDocument>('artifact', revision.data.artifact_id)
+    if (!artifact) return c.json({ error: 'no_artifact', message: 'revision 에 연결된 산출물이 없다' }, 409)
+    const parsed = await parseJson(c, CommentBody)
+    if ('response' in parsed) return parsed.response
+    const body = parsed.data
+    const id = newId()
+    const comment: CommentDocument = {
+      id,
+      screen_id: revision.data.screen_id,
+      revision_id: revision.id,
+      artifact_hash: artifact.data.content_hash,
+      target: body.target,
+      author: body.author,
+      role: body.role,
+      text: body.text,
+      blocking: body.blocking,
+      status: 'open',
+      created_at: now(),
+    }
+    if (body.element_id !== undefined) comment.element_id = body.element_id
+    if (body.section_id !== undefined) comment.section_id = body.section_id
+    if (body.case_id !== undefined) comment.case_id = body.case_id
+    if (body.display_no !== undefined) comment.display_no = body.display_no
+    const stored = store.put<CommentDocument>('comment', id, comment, 0)
+    return c.json(withRevision(stored), 201)
+  })
+
+  app.patch('/api/comments/:id', async (c) => {
+    const doc = store.get<CommentDocument>('comment', c.req.param('id'))
+    if (!doc) return notFound(c, '코멘트')
+    const parsed = await parseJson(c, CommentPatchBody)
+    if ('response' in parsed) return parsed.response
+    const next: CommentDocument = { ...doc.data, status: parsed.data.status }
+    if (parsed.data.status === 'open') delete next.resolved_by_revision_id
+    const stored = store.put<CommentDocument>('comment', doc.id, next, parsed.data.revision)
+    return c.json(withRevision(stored))
+  })
+
+  app.post('/api/revisions/:id/revision-prompt', async (c) => {
+    const revision = store.get<ScreenRevisionDocument>('screen_revision', c.req.param('id'))
+    if (!revision) return notFound(c, 'revision')
+    const parsed = await parseJson(c, RevisionPromptBody)
+    if ('response' in parsed) return parsed.response
+    const screen = store.get<ScreenDocument>('screen', revision.data.screen_id)
+    if (!screen) return notFound(c, '화면')
+    const spec = revision.data.spec
+    const requirementIds = requirementIdsForSpec(store, screen.data.project_id, spec.requirements.map((r) => r.id))
+    const req: SliceGenerationRequest = {
+      screen_id: screen.id,
+      task_type: 'edit',
+      purpose: '코멘트 반영 수정 프롬프트 초안',
+      requirement_ids: requirementIds,
+      criterion_ids: [],
+      reference_ids: [],
+      cases: spec.states.map((s) => s.case_kind).filter((k): k is NonNullable<typeof k> => k !== undefined),
+      keep_conditions: [],
+      roles: spec.roles ?? [],
+      device: spec.device,
+      base_revision_id: revision.id,
+      comment_ids: parsed.data.comment_ids,
+    }
+    const built = buildGenerationContext(store, req, { profile_rules: profile.rules })
+    const draft = await adapter.draftRevisionPrompt({ ctx: built.ctx, current: spec, comments: built.ctx.comments ?? [] })
+    return c.json({ prompt: draft.prompt, rationale: draft.rationale, adapter: adapter.kind, model: adapter.model, comment_ids: parsed.data.comment_ids })
+  })
+
+  // ---------- 승인·내보내기 ----------
+
+  app.post('/api/screens/:id/approvals', async (c) => {
+    const screenDoc = store.get<ScreenDocument>('screen', c.req.param('id'))
+    if (!screenDoc) return notFound(c, '화면')
+    const parsed = await parseJson(c, ApprovalBody)
+    if ('response' in parsed) return parsed.response
+    const body = parsed.data
+    const revision = store.get<ScreenRevisionDocument>('screen_revision', body.revision_id)
+    if (!revision || revision.data.screen_id !== screenDoc.id) return c.json({ error: 'invalid_request', message: `revision ${body.revision_id} 은(는) 이 화면의 것이 아니다` }, 400)
+    const artifactDoc = store.get<ArtifactDocument>('artifact', revision.data.artifact_id)
+    if (!artifactDoc) return c.json({ error: 'no_artifact', message: 'revision 에 연결된 산출물이 없다' }, 409)
+    const artifact = artifactDoc.data
+    const project = store.get<ProjectDocument>('project', screenDoc.data.project_id)
+    if (!project) return notFound(c, '프로젝트')
+    const html = store.getHtml(artifact.id)
+
+    const reasons: RuleReason[] = []
+    const screen = screenDoc.data
+    if (screen.status === 'approved' && screen.version !== undefined) {
+      reasons.push({ code: 'approval.screen_already_approved', message: `화면 ${screen.external_id} 은(는) 이미 v${screen.version} 으로 승인·내보내기됐다 — 이 세로 조각은 v1.0 한 번만 내보낸다` })
+    }
+    const comments = store.list<CommentDocument>('comment', (d) => d.data.revision_id === revision.id)
+    const openBlocking = comments.filter((d) => d.data.blocking && d.data.status === 'open')
+    if (openBlocking.length > 0) {
+      reasons.push({ code: 'approval.blocking_comments_open', message: `차단 코멘트 ${openBlocking.length}건이 열려 있다: ${openBlocking.map((d) => `[${d.data.role}] ${d.data.text}`).join(' / ')}` })
+    }
+    if (html === undefined) reasons.push({ code: 'approval.no_html', message: '산출물 HTML 이 저장되어 있지 않다' })
+    else if (sha256(html) !== artifact.content_hash) reasons.push({ code: 'approval.hash_mismatch', message: '저장된 HTML 의 hash 가 산출물 hash 와 다르다' })
+
+    const existing = validationResultsFor(store, artifact.content_hash)
+    const approvedAt = now()
+    const runId = existing[0]?.validation_run_id ?? newId()
+    // 기획자의 완료 버튼 = 사람 검토(V6) pass. 게이트가 통과할 때만 저장한다.
+    const humanReview: ValidationResult = {
+      id: newId(),
+      validation_run_id: runId,
+      artifact_hash: artifact.content_hash,
+      check_id: HUMAN_REVIEW_CHECK_ID,
+      stage: 'V6',
+      status: 'pass',
+      required: true,
+      message: `기획자 ${body.approver} 완료 확인`,
+      evidence: [`approver:${body.approver}`, `approved_at:${approvedAt}`],
+      checker_version: HUMAN_REVIEW_CHECKER_VERSION,
+    }
+    const gate = evaluateApprovalGate({
+      artifact: { id: artifact.id, content_hash: artifact.content_hash, status: artifact.status },
+      target_hash: body.artifact_hash ?? artifact.content_hash,
+      revision: { expected: artifactDoc.revision, current: artifactDoc.revision },
+      validation_results: [...existing.filter((r) => r.check_id !== HUMAN_REVIEW_CHECK_ID), humanReview],
+      required_check_ids: requiredCheckIds,
+      baseline: { current: baselineIdOf(project.data), artifact: revision.data.spec.baseline_id },
+    })
+    reasons.push(...gate.reasons)
+    if (reasons.length > 0 || html === undefined) return c.json({ error: 'approval_rejected', reasons }, 400)
+
+    store.put<ValidationResult>('validation_result', humanReview.id, humanReview, 0)
+    const allResults = validationResultsFor(store, artifact.content_hash)
+    const requirements = store.list<RequirementDocument>('requirement', (d) => d.data.project_id === project.id).map((d) => d.data)
+    const exported = exportApprovedRevision({
+      export_dir: options.export_dir,
+      project: project.data,
+      screen,
+      revision: revision.data,
+      artifact,
+      html,
+      validation_results: allResults,
+      comments: comments.map((d) => d.data),
+      requirements,
+      approved_by: body.approver,
+      approved_at: approvedAt,
+      adapter: adapter.kind,
+      model: adapter.model,
+    })
+    const approval: ApprovalDocument = {
+      id: newId(),
+      artifact_id: artifact.id,
+      artifact_hash: artifact.content_hash,
+      baseline_id: revision.data.spec.baseline_id,
+      validation_run_id: runId,
+      approved_by: body.approver,
+      approved_at: approvedAt,
+      version: EXPORT_VERSION,
+      export_path: exported.export_path,
+      files: exported.files,
+    }
+    if (body.note !== undefined) approval.note = body.note
+    store.put<ApprovalDocument>('approval', approval.id, approval, 0)
+    store.put<ArtifactDocument>('artifact', artifact.id, { ...artifact, status: 'approved', approval_id: approval.id }, artifactDoc.revision)
+    store.put<ScreenDocument>('screen', screen.id, { ...screen, status: 'approved', version: EXPORT_VERSION }, screenDoc.revision)
+    return c.json({ approval, version: EXPORT_VERSION, export_path: exported.export_path, export_url: `/exports/${exported.export_path.split('\\').join('/')}/index.html`, files: exported.files, manifest: exported.manifest })
+  })
+
+  // ---------- 내보낸 정적 파일 ----------
+
+  app.use('/exports/*', serveStatic({ root: options.export_dir, rewriteRequestPath: (path) => path.replace(/^\/exports/, '') }))
+
+  return { app, queue, deps, recovered_job_ids: recovered }
+}
+
+// ---------- 보조 ----------
+
+function notFound(c: Context, what: string): Response {
+  return c.json({ error: 'not_found', message: `${what}을(를) 찾을 수 없다` }, 404)
+}
+
+type ParseOutcome<T> = { data: T } | { response: Response }
+
+async function parseJson<T>(c: Context, schema: { safeParse: (v: unknown) => { success: true; data: T } | { success: false; error: { issues: Array<{ path: PropertyKey[]; message: string }> } } }): Promise<ParseOutcome<T>> {
+  let raw: unknown
+  try {
+    raw = await c.req.json()
+  } catch {
+    return { response: c.json({ error: 'invalid_json', message: '요청 본문이 JSON 이 아니다' }, 400) }
+  }
+  const parsed = schema.safeParse(raw)
+  if (!parsed.success) {
+    const issues = parsed.error.issues.map((i) => ({ path: i.path.map(String).join('.'), message: i.message }))
+    return { response: c.json({ error: 'invalid_request', message: '요청 본문이 올바르지 않다', issues }, 400) }
+  }
+  return { data: parsed.data }
+}
+
+function validationResultsFor(store: Store, hash: string): ValidationResult[] {
+  return store.list<ValidationResult>('validation_result', (d) => d.data.artifact_hash === hash).map((d) => d.data)
+}
+
+function withRevision(doc: StoredDocument<CommentDocument>): CommentDocument & { revision: number } {
+  return { ...doc.data, revision: doc.revision }
+}
+
+function screenSummary(store: Store, screen: ScreenDocument) {
+  const revisions = store.list<ScreenRevisionDocument>('screen_revision', (d) => d.data.screen_id === screen.id)
+  const open_comments = store.list<CommentDocument>('comment', (d) => d.data.screen_id === screen.id && d.data.status === 'open').length
+  return {
+    id: screen.id,
+    external_id: screen.external_id,
+    title: screen.title,
+    shell: screen.shell,
+    device: screen.device,
+    status: screen.status,
+    version: screen.version ?? null,
+    current_revision_id: screen.current_revision_id ?? null,
+    revision_count: revisions.length,
+    open_comments,
+  }
+}
+
+function latestTemplateVersion(store: Store): string {
+  const templates = store.list<PromptTemplateDocument>('prompt_template')
+  return templates[templates.length - 1]?.data.version ?? 'v1'
+}
+
+/** 명세가 참조하는 외부 REQ ID → 프로젝트 요구사항 내부 id. */
+function requirementIdsForSpec(store: Store, projectId: string, externalIds: readonly string[]): string[] {
+  const wanted = new Set(externalIds)
+  return store.list<RequirementDocument>('requirement', (d) => d.data.project_id === projectId && wanted.has(d.data.external_id)).map((d) => d.id)
+}
