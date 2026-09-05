@@ -1,0 +1,7 @@
+{
+  "name": "@con-ai/worker-generation",
+  "version": "0.0.0",
+  "private": true,
+  "description": "단계별 생성 실행 (문맥 구성 → AI 명세 작성 → 스키마 검사 → 렌더링 → 자동 검증 → 결과 저장)",
+  "type": "module"
+}

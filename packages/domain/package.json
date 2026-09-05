@@ -1,0 +1,10 @@
+{
+  "name": "@con-ai/domain",
+  "version": "0.0.0",
+  "private": true,
+  "description": "ID·버전·매핑 규칙 (내부 UUID와 외부 화면 ID 분리, 상태 전이, 커버리지 분모 규칙)",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  }
+}

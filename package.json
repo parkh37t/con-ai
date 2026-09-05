@@ -1,0 +1,21 @@
+{
+  "name": "con-ai",
+  "private": true,
+  "description": "UIUX AI 기획 에이전트 — 요구사항·IA·정책을 기준으로 화면명세와 HTML 목업을 생성·검증·승인하는 기획자 워크스페이스",
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "check": "pnpm typecheck && pnpm test"
+  },
+  "devDependencies": {
+    "@types/node": "22.19.11",
+    "typescript": "5.9.3",
+    "vitest": "4.1.11"
+  }
+}

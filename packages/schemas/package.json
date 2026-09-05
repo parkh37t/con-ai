@@ -1,0 +1,10 @@
+{
+  "name": "@con-ai/schemas",
+  "version": "0.0.0",
+  "private": true,
+  "description": "입력·ScreenSpec·TraceLink·검증 결과 스키마 (zod) 와 예시 fixture",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  }
+}

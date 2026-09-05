@@ -1,0 +1,10 @@
+{
+  "name": "@con-ai/validators",
+  "version": "0.0.0",
+  "private": true,
+  "description": "구조·참조·CASE·추적 검사 (pass/fail/error/not_run)",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "name": "@con-ai/renderer",
+  "version": "0.0.0",
+  "private": true,
+  "description": "화면명세 → 컴포넌트·shell·우측 설명 렌더링 (UI와 설명을 같은 명세에서 생성)",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  }
+}
