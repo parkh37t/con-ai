@@ -8,6 +8,8 @@ Claude Code 는 이 제품의 **개발 도구**다. 운영 중 사용자의 요�
 
 **https://parkh37t.github.io/con-ai/** — 서버 없이 실제 UI 를 그대로 볼 수 있다. `main` 에 push 하면 GitHub Actions 가 자동 배포한다(`.github/workflows/pages.yml`).
 
+> **최초 1회 설정**: 저장소 **Settings → Pages → Build and deployment → Source** 를 `GitHub Actions` 로 바꾼다. Pages 사이트 생성은 저장소 관리자만 할 수 있어 워크플로 토큰으로는 켤 수 없다. 켠 뒤 **Actions → Deploy demo to GitHub Pages → Re-run jobs** 를 누르면 배포된다.
+
 데모는 `apps/web/public/demo/` 의 스냅샷(실제 실행 결과: 화면명세·목업 HTML·검증 13건·코멘트·AS-IS 캡처 2장과 페인포인트 8건)을 읽는다. 눌러볼 수 있는 것은 화면 검토·코멘트 작성·페인포인트 채택·완료(v1.0)·내보낸 파일 열기다. **새 URL 분석과 실제 모델 호출은 동작하지 않는다**(실패로 표시되며 성공으로 위장하지 않는다) — 그 둘은 아래 로컬 실행에서 동작한다.
 
 스냅샷을 다시 뜨려면 로컬에서 `pnpm demo:snapshot` 을 실행하고 결과를 커밋한다(브라우저와 서버가 필요해 CI 에서는 돌리지 않는다).

@@ -51,10 +51,18 @@ jobs:
           test -f apps/web/dist/demo/snapshot.json || { echo "demo/snapshot.json 이 없다 — pnpm demo:snapshot 결과를 커밋했는지 확인"; exit 1; }
           du -sh apps/web/dist
 
-      # enablement: 저장소에 Pages 가 꺼져 있으면 워크플로가 켠다(수동 설정 불필요).
-      - uses: actions/configure-pages@v5
+      # Pages 가 꺼져 있으면 켜기를 시도한다. 사이트 생성은 저장소 관리자 권한이 필요해
+      # Actions 토큰으로는 거부될 수 있다 — 그때는 아래 안내대로 설정에서 한 번 켜면 된다.
+      - id: pages
+        uses: actions/configure-pages@v5
         with:
           enablement: true
+
+      - name: Pages 설정 안내
+        if: failure() && steps.pages.outcome == 'failure'
+        run: |
+          echo "::error title=GitHub Pages 를 먼저 켜야 합니다::저장소 Settings → Pages → Build and deployment → Source 를 'GitHub Actions' 로 바꾼 뒤 이 워크플로를 다시 실행하세요 (Actions → Deploy demo to GitHub Pages → Re-run jobs)."
+          exit 1
 
       - uses: actions/upload-pages-artifact@v3
         with:
