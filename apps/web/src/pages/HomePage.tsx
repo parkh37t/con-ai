@@ -5,12 +5,20 @@ import { Badge, Collapsible, Empty, ErrorBox, Loading, ScreenStatusBadge } from 
 import { IS_DEMO } from '../demo-mode.js'
 import { useAsync, navigate } from '../hooks.js'
 import { hrefTo, hrefToScreen, type Route } from '../router.js'
+import { filterScreensByStage, STAGE_NAV, stageCounts, stageFilterLabel, stageValueText } from '../project-nav.js'
 import { buildIATree, type IATreeNode } from '../summary.js'
 import type { Meta, Project, Requirement, ScreenSummary } from '../types.js'
 
 export function HomePage({ project, projects, meta, route }: { project: Project; projects: Project[]; meta: Meta | null; route: Route }) {
   const detail = useAsync(() => api.project(project.id), [project.id])
+  const analyses = useAsync(() => api.asisAnalyses(project.id), [project.id])
   const hint = realModelHint(meta, { demo: IS_DEMO })
+
+  const stage = route.query['stage']
+  const stageLabel = stageFilterLabel(stage)
+  const allScreens = detail.data?.screens ?? []
+  const shown = filterScreensByStage(allScreens, stage)
+  const counts = stageCounts({ screens: detail.data?.screens ?? null, analyses: analyses.data ?? null })
 
   return (
     <div className="page">
@@ -19,32 +27,60 @@ export function HomePage({ project, projects, meta, route }: { project: Project;
           {hint}
         </div>
       )}
-      <section className="card">
-        <div className="card-head">
-          <h2 data-testid="project-name">{project.name}</h2>
-          <span className="actions">
-            <a className="btn btn-small" data-testid="link-asis" href={hrefTo('asis')} title="4단계 프로세스 ① — 대상 서비스 분석·페인포인트">
-              AS-IS 분석
+
+      <header className="projhead">
+        <div className="projhead-copy">
+          <span className="projhead-kicker">프로젝트 홈</span>
+          <h1 data-testid="project-name">{project.name}</h1>
+          <p>{project.description}</p>
+          <div className="muted small">
+            조직 {project.org} · 프로파일 {project.profile_id} · 생성 {project.created_at}
+          </div>
+        </div>
+        <span className="projhead-actions">
+          {projects.length > 1 && (
+            <label className="inline">
+              프로젝트
+              <select value={project.id} onChange={(e) => navigate(hrefTo('advanced', { project: e.target.value }))}>
+                {projects.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          <a className="btn" data-testid="link-asis" href={hrefTo('asis')} title="4단계 프로세스 ① — 대상 서비스 분석·페인포인트">
+            AS-IS 분석
+          </a>
+          <a className="btn btn-primary" data-testid="link-create" href={hrefTo('create')}>
+            + 새 화면 만들기
+          </a>
+        </span>
+      </header>
+
+      {/* 4단계 집계 — 레일과 같은 숫자를 크게 한 번 더 보여주고, 누르면 그 단계로 좁힌다. */}
+      <div className="kpis" data-testid="home-kpis">
+        {STAGE_NAV.map((item) => {
+          const c = counts[item.key]
+          const href = item.key === 'asis' ? hrefTo('asis') : hrefTo('advanced', item.stage ? { stage: item.stage } : {})
+          const active = item.stage !== undefined && item.stage === stage
+          return (
+            <a key={item.key} className={`kpi${active ? ' active' : ''}`} data-testid={`kpi-${item.key}`} href={href}>
+              <span className="kpi-label">
+                <span className="kpi-no" aria-hidden="true">
+                  {item.no}
+                </span>
+                {item.label}
+              </span>
+              <span className="kpi-value">
+                {stageValueText(c)}
+                <span className="kpi-note">{c.note}</span>
+              </span>
             </a>
-            {projects.length > 1 && (
-              <label className="inline">
-                프로젝트
-                <select value={project.id} onChange={(e) => navigate(hrefTo('advanced', { project: e.target.value }))}>
-                  {projects.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
-          </span>
-        </div>
-        <p>{project.description}</p>
-        <div className="muted small">
-          조직 {project.org} · 프로파일 {project.profile_id} · 생성 {project.created_at}
-        </div>
-      </section>
+          )
+        })}
+      </div>
 
       {detail.error ? <ErrorBox error={detail.error} title="프로젝트 상세를 읽지 못했습니다" /> : null}
       {detail.loading && !detail.data && <Loading />}
@@ -53,9 +89,22 @@ export function HomePage({ project, projects, meta, route }: { project: Project;
           <section className="card">
             <div className="card-head">
               <h3>화면 목록</h3>
-              <span className="muted small">{detail.data.screens.length}개 화면</span>
+              <span className="muted small">
+                {stageLabel ? (
+                  <>
+                    {stageLabel} {shown.length}개 · 전체 {allScreens.length}개
+                  </>
+                ) : (
+                  <>{allScreens.length}개 화면 · 외부 ID = 파일명 = 개발목록 ID</>
+                )}
+              </span>
+              {stageLabel && (
+                <a className="btn btn-small" data-testid="stage-clear" href={hrefTo('advanced')}>
+                  좁힘 해제
+                </a>
+              )}
             </div>
-            <ScreensTable screens={detail.data.screens} />
+            <ScreensTable screens={shown} filtered={stageLabel} />
           </section>
 
           <div className="two-col">
@@ -80,8 +129,9 @@ export function HomePage({ project, projects, meta, route }: { project: Project;
   )
 }
 
-function ScreensTable({ screens }: { screens: ScreenSummary[] }) {
-  if (screens.length === 0) return <Empty>화면이 없습니다.</Empty>
+function ScreensTable({ screens, filtered }: { screens: readonly ScreenSummary[]; filtered?: string | null }) {
+  // 좁혀서 비었는지, 애초에 화면이 없는지를 구분해 적는다.
+  if (screens.length === 0) return <Empty>{filtered ? `「${filtered}」 단계인 화면이 없습니다.` : '화면이 없습니다.'}</Empty>
   return (
     <div className="table-wrap">
       <table className="table">
@@ -178,7 +228,7 @@ function RequirementsList({ requirements }: { requirements: Requirement[] }) {
   )
 }
 
-function IATree({ tree, screens }: { tree: IATreeNode[]; screens: ScreenSummary[] }) {
+function IATree({ tree, screens }: { tree: IATreeNode[]; screens: readonly ScreenSummary[] }) {
   const byId = new Map(screens.map((s) => [s.id, s]))
   const render = (nodes: IATreeNode[]) => (
     <ul className="ia-tree">

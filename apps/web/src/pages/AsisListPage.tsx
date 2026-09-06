@@ -11,7 +11,7 @@ import { useEffect, useState } from 'react'
 import { api } from '../api.js'
 import { ASIS_SAMPLE_PATH, ASIS_SAMPLE_URL, asisStatusLabel, asisStatusTone, isTerminalAsis, painPointCountOf, validateAsisUrl } from '../asis.js'
 import { Empty, ErrorBox, Loading, formatDateTime } from '../components/common.js'
-import { JOB_POLL_INTERVAL_MS, useAsync } from '../hooks.js'
+import { JOB_POLL_INTERVAL_MS, notifyDataChanged, useAsync } from '../hooks.js'
 import { hrefToAsisDetail } from '../router.js'
 import type { AsisAnalysisSummary, Project } from '../types.js'
 
@@ -26,7 +26,10 @@ export function AsisListPage({ project }: { project: Project }) {
   // 폴링 중 일시 오류로 useAsync 의 data 가 비어도 마지막 목록을 유지한다 (목록이 사라지거나 폴링이 멈추지 않게).
   const [lastRows, setLastRows] = useState<AsisAnalysisSummary[] | null>(null)
   useEffect(() => {
-    if (list.data) setLastRows(list.data)
+    if (!list.data) return
+    setLastRows(list.data)
+    // 목록이 새로 읽힐 때마다 레일의 건수도 같이 맞춘다 (실행 직후·폴링 중 모두).
+    notifyDataChanged()
   }, [list.data])
   const rows = list.data ?? lastRows ?? []
   const hasActive = rows.some((a) => !isTerminalAsis(a.status))
@@ -60,22 +63,21 @@ export function AsisListPage({ project }: { project: Project }) {
 
   return (
     <div className="page page-reading">
-      {/* 페이지 제목 한 줄 + 메타 한 줄. 설명은 이 아래 한 곳에만 둔다. */}
-      <header className="page-head">
-        {/* 검은 사각 번호 배지 — 메인 화면의 4단계 카드와 같은 표식 */}
-        <div className="page-head-title">
-          <span className="badge-square badge-inline" aria-hidden="true">
-            1
+      {/* 다른 작업대 화면과 같은 머리 — 구역 딱지 → 제목 → 설명. 설명은 여기 한 곳에만 둔다. */}
+      <header className="projhead">
+        <div className="projhead-copy">
+          <span className="projhead-kicker">
+            <span className="kicker-no" aria-hidden="true">
+              1
+            </span>
+            AS-IS 분석 · <span data-testid="project-name">{project.name}</span>
           </span>
-          <h2>AS-IS 분석</h2>
+          <h1>대상 서비스를 분석해 페인포인트를 찾습니다</h1>
+          <p>
+            URL 을 넣으면 서버가 Playwright 로 방문해 데스크톱·모바일 스크린샷과 페이지 구조를 수집하고, 모델 어댑터가 페인포인트 초안을 만듭니다. 기획자가 채택·거부로
+            확정합니다.
+          </p>
         </div>
-        <p className="page-meta">
-          <span data-testid="project-name">{project.name}</span> · 4단계 프로세스 1단계
-        </p>
-        <p className="page-lead">
-          대상 서비스 URL 을 입력하면 서버가 Playwright 로 방문해 스크린샷·구조를 수집하고, 모델 어댑터가 페인포인트 초안을 만듭니다. 초안은 상세 화면에서 채택/거부로
-          확정합니다.
-        </p>
       </header>
 
       <section className="card">

@@ -46,9 +46,7 @@ export function ReviewPage({ screenId, route }: { screenId: string; route: Route
           ) : null
         }
       />
-      <section className="card">
-        <RevisionList revisions={revisions} selectedId={selectedRevId} route={route} />
-      </section>
+      <RevisionList revisions={revisions} selectedId={selectedRevId} route={route} />
 
       {jobId && <JobStatusPanel jobId={jobId} job={poll.job} error={poll.error} polling={poll.polling} screenId={screenId} successLabel="새 revision 으로 이동" />}
 
@@ -64,44 +62,47 @@ export function ReviewPage({ screenId, route }: { screenId: string; route: Route
   )
 }
 
+/**
+ * 버전 스트립 — 표 대신 한 줄. 각 pill 이 라디오 하나라서 «하나만 고른다» 는 뜻이 그대로 남는다.
+ * 자세한 값(생성 시각·artifact 상태·hash·열린 코멘트)은 마우스를 올리면 나온다 —
+ * 화면 위쪽을 표가 차지하지 않게 한다.
+ */
 function RevisionList({ revisions, selectedId, route }: { revisions: RevisionListItem[]; selectedId: string | null; route: Route }) {
   if (revisions.length === 0) return null
   return (
-    <div className="table-wrap">
-      <table className="table compact">
-        <thead>
-          <tr>
-            <th>선택</th>
-            <th className="num">번호</th>
-            <th>생성 시각</th>
-            <th>artifact 상태</th>
-            <th>검증 요약</th>
-            <th className="num">열린 코멘트</th>
-            <th>artifact hash</th>
-          </tr>
-        </thead>
-        <tbody>
-          {[...revisions].sort((a, b) => b.revision_no - a.revision_no).map((r) => (
-            <tr key={r.id} className={r.id === selectedId ? 'selected-row' : ''} data-testid="revision-row" data-revision-no={r.revision_no} data-revision-id={r.id} data-selected={r.id === selectedId}>
-              <td>
-                <input type="radio" name="revision" data-testid="revision-select" aria-label={`revision ${r.revision_no} 선택`} checked={r.id === selectedId} onChange={() => navigate(withQuery(route, { rev: r.id }))} />
-              </td>
-              <td className="num">#{r.revision_no}</td>
-              <td>{formatDateTime(r.created_at)}</td>
-              <td>
-                <ArtifactStatusBadge status={r.artifact_status} />
-              </td>
-              <td>
-                <ValidationSummaryBadges summary={r.validation_summary} />
-              </td>
-              <td className="num">{r.open_comments}</td>
-              <td>
-                <code title={r.artifact_hash}>{shortHash(r.artifact_hash)}</code>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="revstrip" role="radiogroup" aria-label="버전">
+      <span className="revstrip-label">버전</span>
+      {[...revisions]
+        .sort((a, b) => a.revision_no - b.revision_no)
+        .map((r) => {
+          const v = r.validation_summary
+          const bad = v.fail + v.error + v.not_run
+          return (
+            <label
+              key={r.id}
+              className={`revpill${r.id === selectedId ? ' active' : ''}`}
+              data-testid="revision-row"
+              data-revision-no={r.revision_no}
+              data-revision-id={r.id}
+              data-selected={r.id === selectedId}
+              title={`revision #${r.revision_no} · ${formatDateTime(r.created_at)} · artifact ${r.artifact_status} · hash ${shortHash(r.artifact_hash)} · 통과 ${v.pass} 실패 ${v.fail} 오류 ${v.error} 미실행 ${v.not_run} · 열린 코멘트 ${r.open_comments}`}
+            >
+              <input
+                type="radio"
+                name="revision"
+                className="revpill-radio"
+                data-testid="revision-select"
+                aria-label={`revision ${r.revision_no} 선택`}
+                checked={r.id === selectedId}
+                onChange={() => navigate(withQuery(route, { rev: r.id }))}
+              />
+              <span className="revpill-no">v{r.revision_no}</span>
+              {/* 통과가 아닌 검사가 하나라도 있으면 그 사실만 점으로 알린다 — 자세한 값은 검증 탭. */}
+              <span className={`revpill-dot${bad > 0 ? ' is-bad' : ''}`} aria-hidden="true" />
+              {r.open_comments > 0 && <span className="revpill-open">{r.open_comments}</span>}
+            </label>
+          )
+        })}
     </div>
   )
 }
@@ -114,6 +115,7 @@ function RevisionWorkbench({ screen, detail, route, onChanged }: { screen: Scree
   const [caseId, setCaseId] = useState<string>(() => spec.states?.[0]?.id ?? '')
   const [click, setClick] = useState<ElementClick | null>(null)
   const [selectedCommentIds, setSelectedCommentIds] = useState<string[]>([])
+  const [tab, setTab] = useState<'comments' | 'validation' | 'edit'>('comments')
   const cases = useMemo(() => caseButtons(spec), [spec])
 
   const post = useCallback((msg: unknown) => {
@@ -208,39 +210,58 @@ function RevisionWorkbench({ screen, detail, route, onChanged }: { screen: Scree
           <div className="muted small">격리 iframe(sandbox="allow-scripts", 같은 출처 아님). 화면이나 우측 설명의 요소를 클릭하면 오른쪽 코멘트 폼에 대상이 채워집니다.</div>
         </section>
 
+        {/* 오른쪽 한 칸에 코멘트·검증·수정을 탭으로 겹쳐 둔다 — 미리보기가 넓어지고, 세 가지를 찾아 스크롤하지 않는다. */}
         <aside className="review-side">
-          <CommentForm revisionId={revision.id} click={click} caseId={caseId} onClear={() => setClick(null)} onCreated={onChanged} />
-          <CommentList
-            comments={comments}
-            selectedIds={selectedCommentIds}
-            onToggle={(id, on) => setSelectedCommentIds((ids) => (on ? [...ids, id] : ids.filter((x) => x !== id)))}
-            onHighlight={(c) => {
-              if (c.element_id) post(highlightMessage(c.element_id))
-              if (c.case_id) selectCase(c.case_id)
-            }}
-            onChanged={onChanged}
-          />
+          <div className="side-tabs" role="tablist" aria-label="검토 작업">
+            <button type="button" role="tab" aria-selected={tab === 'comments'} className={`side-tab${tab === 'comments' ? ' active' : ''}`} data-testid="side-tab-comments" onClick={() => setTab('comments')}>
+              코멘트<span className="side-tab-n">{comments.length}</span>
+            </button>
+            <button type="button" role="tab" aria-selected={tab === 'validation'} className={`side-tab${tab === 'validation' ? ' active' : ''}`} data-testid="side-tab-validation" onClick={() => setTab('validation')}>
+              검증<span className="side-tab-n">{summary.pass}/{summary.pass + summary.fail + summary.error + summary.not_run}</span>
+            </button>
+            <button type="button" role="tab" aria-selected={tab === 'edit'} className={`side-tab${tab === 'edit' ? ' active' : ''}`} data-testid="side-tab-edit" onClick={() => setTab('edit')}>
+              수정<span className="side-tab-n">{selectedCommentIds.length}</span>
+            </button>
+          </div>
+
+          {tab === 'comments' && (
+            <>
+              <CommentForm revisionId={revision.id} click={click} caseId={caseId} onClear={() => setClick(null)} onCreated={onChanged} />
+              <CommentList
+                comments={comments}
+                selectedIds={selectedCommentIds}
+                onToggle={(id, on) => setSelectedCommentIds((ids) => (on ? [...ids, id] : ids.filter((x) => x !== id)))}
+                onHighlight={(c) => {
+                  if (c.element_id) post(highlightMessage(c.element_id))
+                  if (c.case_id) selectCase(c.case_id)
+                }}
+                onChanged={onChanged}
+              />
+            </>
+          )}
+
+          {tab === 'validation' && (
+            <section className="card">
+              <div className="card-head">
+                <h3>검증 결과</h3>
+                <span className="actions">
+                  <ValidationSummaryBadges summary={summary} />
+                  <RevalidateButton artifactId={artifact.id} onDone={onChanged} />
+                </span>
+              </div>
+              {foreign > 0 && <div className="notice notice-amber">검증 결과 {foreign}건은 다른 artifact hash 의 것이라 요약에서 제외했습니다.</div>}
+              {validation_results.some((r) => r.stage === 'V3' && r.status === 'not_run') && (
+                <div className="notice" data-testid="v3-not-run-note">
+                  V3(실행 검사)가 <strong>미실행(not_run)</strong> 인 것은 정상입니다 — 브라우저에서는 Playwright 로 화면을 실제로 띄워 볼 수 없습니다. 미실행은 통과가 아니므로 완료(v1.0) 승인은 막히며, 실행 검사는 서버 실행(<code>pnpm serve</code>)에서 동작합니다.
+                </div>
+              )}
+              <ValidationTable results={validation_results} artifactHash={artifact.content_hash} />
+            </section>
+          )}
+
+          {tab === 'edit' && <EditRequestPanel screen={screen} detail={detail} route={route} selectedCommentIds={selectedCommentIds} />}
         </aside>
       </div>
-
-      <section className="card">
-        <div className="card-head">
-          <h3>검증 결과</h3>
-          <span className="actions">
-            <ValidationSummaryBadges summary={summary} />
-            <RevalidateButton artifactId={artifact.id} onDone={onChanged} />
-          </span>
-        </div>
-        {foreign > 0 && <div className="notice notice-amber">검증 결과 {foreign}건은 다른 artifact hash 의 것이라 요약에서 제외했습니다.</div>}
-        {validation_results.some((r) => r.stage === 'V3' && r.status === 'not_run') && (
-          <div className="notice" data-testid="v3-not-run-note">
-            V3(실행 검사)가 <strong>미실행(not_run)</strong> 인 것은 정상입니다 — 브라우저에서는 Playwright 로 화면을 실제로 띄워 볼 수 없습니다. 미실행은 통과가 아니므로 완료(v1.0) 승인은 막히며, 실행 검사는 서버 실행(<code>pnpm serve</code>)에서 동작합니다.
-          </div>
-        )}
-        <ValidationTable results={validation_results} artifactHash={artifact.content_hash} />
-      </section>
-
-      <EditRequestPanel screen={screen} detail={detail} route={route} selectedCommentIds={selectedCommentIds} />
     </>
   )
 }

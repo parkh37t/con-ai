@@ -13,7 +13,7 @@ import { ErrorBox, Loading } from './components/common.js'
 import { CredentialChip, CredentialPanel } from './components/CredentialPanel.js'
 import { WorkspaceRail, type RailSection } from './components/WorkspaceRail.js'
 import { IS_DEMO } from './demo-mode.js'
-import { useAsync, useHashRoute } from './hooks.js'
+import { useAsync, useDataTick, useHashRoute } from './hooks.js'
 import { ApprovePage } from './pages/ApprovePage.js'
 import { AsisDetailPage } from './pages/AsisDetailPage.js'
 import { AsisListPage } from './pages/AsisListPage.js'
@@ -40,8 +40,10 @@ export function App() {
   const entryShell = route.name === 'main' || route.name === 'create' || route.name === 'design'
 
   // 레일의 4단계 건수. 작업대 셸에서만 필요하므로 그때만 읽는다.
-  const detail = useAsync(async () => (project && !entryShell ? api.project(project.id) : null), [project?.id, entryShell])
-  const analyses = useAsync(async () => (project && !entryShell ? api.asisAnalyses(project.id) : null), [project?.id, entryShell])
+  // 화면·분석이 만들어지면(dataTick) 다시 읽는다 — 레일이 옛 숫자를 들고 있지 않게 한다.
+  const dataTick = useDataTick()
+  const detail = useAsync(async () => (project && !entryShell ? api.project(project.id) : null), [project?.id, entryShell, route.name, dataTick])
+  const analyses = useAsync(async () => (project && !entryShell ? api.asisAnalyses(project.id) : null), [project?.id, entryShell, route.name, dataTick])
   const counts = stageCounts({ screens: detail.data?.screens ?? null, analyses: analyses.data ?? null })
 
   // 자격 증명 패널은 기본으로 접혀 있다. 칩을 누르거나, 패널을 열려는 기존 진입(`?help=key` / `?cred=open`)이면 열린 채로 온다.

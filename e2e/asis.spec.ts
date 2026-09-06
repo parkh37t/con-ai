@@ -27,7 +27,9 @@ test('AS-IS 분석: 데모 대상 실행 → succeeded → 상세 확인 → 페
     await expect(page.getByTestId('link-asis')).toBeVisible()
     await page.getByTestId('rail-asis').click()
     await expect(page).toHaveURL(/#\/asis$/)
-    await expect(page.getByRole('heading', { level: 2 })).toContainText('AS-IS 분석')
+    // 화면 제목은 h1 이고, 구역 딱지가 «AS-IS 분석» 을 말한다 (다른 작업대 화면과 같은 머리)
+    await expect(page.locator('.projhead-kicker')).toContainText('AS-IS 분석')
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('페인포인트')
   })
 
   // ---------------------------------------------------------------- (2) 실행

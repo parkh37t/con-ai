@@ -148,6 +148,8 @@ test('세로 조각: 생성 → 검토·코멘트 → 수정 → 완료(v1.0) �
     await expect(page.locator('[data-testid="revision-row"][data-revision-no="1"]')).toContainText('1')
 
     // 검증 결과: V1·V2·V3 가 모두 pass (실행하지 않은 검사를 통과로 표시하지 않으므로 not_run 도 없어야 한다)
+    // 검증은 오른쪽 칸의 「검증」 탭에 있다 (코멘트·검증·수정이 한 칸을 나눠 쓴다)
+    await page.getByTestId('side-tab-validation').click()
     const rows = page.getByTestId('validation-row')
     await expect(rows).not.toHaveCount(0)
     for (const id of ['V1.schema', 'V2.shell', 'V3.console_errors', 'V3.case_switch']) {
@@ -161,7 +163,9 @@ test('세로 조각: 생성 → 검토·코멘트 → 수정 → 완료(v1.0) �
   // ---------------------------------------------------------------- (5) 수정 요청
   let secondRevisionId = ''
   await test.step('수정 요청 — 코멘트 선택 → AI 수정 프롬프트 → 단건 수정 실행 → revision 2 → 코멘트 resolved', async () => {
+    await page.getByTestId('side-tab-comments').click()
     await page.getByTestId('comment-select').check()
+    await page.getByTestId('side-tab-edit').click()
     await page.getByTestId('draft-button').click()
     await expect(page.getByTestId('draft-rationale')).toContainText('코멘트 1건')
     const prompt = page.getByTestId('edit-prompt')
@@ -186,9 +190,11 @@ test('세로 조각: 생성 → 검토·코멘트 → 수정 → 완료(v1.0) �
     await expect(page.frameLocator('[data-testid="preview-iframe"]').locator('.root-shell')).toBeVisible()
 
     // revision 1 의 코멘트는 resolved (해결 revision = 2)
-    // 라디오는 해시 변경(비동기) 뒤에 제어 값이 바뀌므로 check() 대신 click() 후 상태를 단언한다
-    const rev1Radio = page.locator('[data-testid="revision-row"][data-revision-no="1"]').getByTestId('revision-select')
-    await rev1Radio.click()
+    // 버전 pill 이 곧 라디오다(동그라미는 감춰져 있다) — pill 을 누르고, 라디오가 실제로 켜졌는지 단언한다.
+    // 해시 변경이 비동기라 check() 대신 click() 후 상태를 본다.
+    const rev1 = page.locator('[data-testid="revision-row"][data-revision-no="1"]')
+    const rev1Radio = rev1.getByTestId('revision-select')
+    await rev1.click()
     await expect(page).toHaveURL(new RegExp(`rev=${firstRevisionId}`))
     await expect(rev1Radio).toBeChecked()
     await expect(page.locator('[data-testid="revision-row"][data-revision-no="1"]')).toHaveAttribute('data-selected', 'true')
@@ -196,8 +202,8 @@ test('세로 조각: 생성 → 검토·코멘트 → 수정 → 완료(v1.0) �
     await expect(resolved).toHaveAttribute('data-status', 'resolved')
     await expect(resolved).toContainText('해결')
     await expect(resolved).toContainText(secondRevisionId)
-    const rev1 = (await (await request.get(`/api/revisions/${firstRevisionId}`)).json()) as { comments: Array<{ id: string; status: string; resolved_by_revision_id?: string }> }
-    expect(rev1.comments.find((c) => c.id === commentId)).toMatchObject({ status: 'resolved', resolved_by_revision_id: secondRevisionId })
+    const rev1Api = (await (await request.get(`/api/revisions/${firstRevisionId}`)).json()) as { comments: Array<{ id: string; status: string; resolved_by_revision_id?: string }> }
+    expect(rev1Api.comments.find((c) => c.id === commentId)).toMatchObject({ status: 'resolved', resolved_by_revision_id: secondRevisionId })
   })
 
   // ---------------------------------------------------------------- (6) 완료·내보내기

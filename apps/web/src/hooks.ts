@@ -153,6 +153,24 @@ export function useCredentialTick(): number {
   return tick
 }
 
+export const DATA_CHANGED_EVENT = 'con-ai:data-changed'
+
+/** 화면·분석이 만들어지거나 상태가 바뀌었음을 앱 전체에 알린다 (좌측 레일의 단계 건수가 옛 값에 머물지 않게). */
+export function notifyDataChanged(): void {
+  window.dispatchEvent(new Event(DATA_CHANGED_EVENT))
+}
+
+/** notifyDataChanged 가 불릴 때마다 1씩 늘어난다 — useAsync 의 의존값으로 쓴다. */
+export function useDataTick(): number {
+  const [tick, setTick] = useState(0)
+  useEffect(() => {
+    const onChange = () => setTick((t) => t + 1)
+    window.addEventListener(DATA_CHANGED_EVENT, onChange)
+    return () => window.removeEventListener(DATA_CHANGED_EVENT, onChange)
+  }, [])
+  return tick
+}
+
 /** localStorage 의 작은 편의값 (작성자 이름 등). 실패해도 화면은 동작한다. */
 export function useStoredValue(key: string, initial: string): [string, (v: string) => void] {
   const [value, setValue] = useState<string>(() => {

@@ -7,7 +7,7 @@ import { api } from '../api.js'
 import { Badge, Collapsible, Empty, ErrorBox, Loading, formatDateTime } from '../components/common.js'
 import { JobStatusPanel } from '../components/JobStatusPanel.js'
 import { ReferenceCard } from '../components/ReferenceCard.js'
-import { ALL_CASES, TASK_TYPE_LABELS, buildRequest, initialFormState, toggleIn, validateForm, type GenerationFormState } from '../generation-form.js'
+import { ALL_CASES, TASK_TYPE_LABELS, buildRequest, initialFormState, splitLines, toggleIn, validateForm, type GenerationFormState } from '../generation-form.js'
 import { IS_DEMO } from '../demo-mode.js'
 import { navigate, useAsync, useCredentialTick, useJobPolling } from '../hooks.js'
 import { ScreenContextHeader } from '../components/ScreenContextHeader.js'
@@ -110,10 +110,13 @@ export function GeneratePage({ screenId, route }: { screenId: string; route: Rou
 
       {IS_DEMO && !hasCredential && (
         <div className="notice notice-amber" data-testid="browser-mode-hint">
-          지금은 스냅샷 데모입니다 — 생성 실행은 저장된 결과를 보여줄 뿐입니다. <strong>상단 오른쪽 자격 증명 칩을 눌러 토큰을 넣으면 실제로 생성됩니다</strong> (이 브라우저가 api.anthropic.com 을 직접 호출).
+          지금은 스냅샷 데모입니다 — 생성 실행은 저장된 결과를 보여줄 뿐입니다. <strong>왼쪽 아래 자격 증명 칩을 눌러 토큰을 넣으면 실제로 생성됩니다</strong> (이 브라우저가 api.anthropic.com 을 직접 호출).
         </div>
       )}
 
+      {/* 왼쪽은 무엇을 넣을지 정하는 폼, 오른쪽은 «지금 무엇이 담겼는지» 와 실행. 폼이 길어도 실행 버튼은 늘 보인다. */}
+      <div className="gen-layout">
+      <div className="gen-form">
       <section className="card">
         <h3>1. 작업</h3>
         <div className="form-grid">
@@ -220,29 +223,64 @@ export function GeneratePage({ screenId, route }: { screenId: string; route: Rou
           <input type="checkbox" checked={form.use_prompt_override} onChange={(e) => update({ use_prompt_override: e.target.checked })} /> 직접 프롬프트 (자동 조립 대신 사용; 문맥은 그대로 첨부)
         </label>
         {form.use_prompt_override && <textarea rows={8} value={form.prompt_override} placeholder="기획자가 직접 쓰는 프롬프트" onChange={(e) => update({ prompt_override: e.target.value })} />}
-
-        {errors.length > 0 && (
-          <div className="error-box" role="alert">
-            <strong>입력을 확인하세요</strong>
-            <ul>
-              {errors.map((e, i) => (
-                <li key={i}>{e}</li>
-              ))}
-            </ul>
-          </div>
-        )}
-        <div className="button-row">
-          <button type="button" className="btn" data-testid="preview-button" onClick={() => void onPreview()} disabled={previewLoading}>
-            {previewLoading ? '미리보기 생성 중…' : '프롬프트 미리보기'}
-          </button>
-          <button type="button" className="btn btn-primary" data-testid="run-button" onClick={() => void onRun()} disabled={running}>
-            {running ? '요청 중…' : '생성 실행'}
-          </button>
-        </div>
-        {previewError ? <ErrorBox error={previewError} title="프롬프트 미리보기 실패" /> : null}
-        {runError ? <ErrorBox error={runError} title="생성 실행 요청 실패" /> : null}
         {preview && <PromptPreviewView preview={preview} />}
       </section>
+      </div>
+
+      <aside className="gen-aside">
+        <div className="card gen-run">
+          <div className="gen-run-head">
+            <strong>프롬프트 조립</strong>
+            <span className="muted small">{form.use_prompt_override ? '직접 프롬프트 · 문맥은 그대로 첨부' : '문맥에서 자동 조립'}</span>
+          </div>
+          <ul className="gen-tally">
+            <li>
+              <span>요구사항</span>
+              <strong>{form.requirement_ids.length}</strong>
+            </li>
+            <li>
+              <span>수용조건</span>
+              <strong>{form.criterion_ids.length}</strong>
+            </li>
+            <li>
+              <span>참고 화면</span>
+              <strong>{form.reference_ids.length}</strong>
+            </li>
+            <li>
+              <span>CASE</span>
+              <strong>{form.cases.length}</strong>
+            </li>
+            <li>
+              <span>유지 조건</span>
+              <strong>{splitLines(form.keep_conditions_text).length}</strong>
+            </li>
+          </ul>
+
+          {errors.length > 0 && (
+            <div className="error-box" role="alert">
+              <strong>입력을 확인하세요</strong>
+              <ul>
+                {errors.map((e, i) => (
+                  <li key={i}>{e}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <div className="gen-run-buttons">
+            <button type="button" className="btn" data-testid="preview-button" onClick={() => void onPreview()} disabled={previewLoading}>
+              {previewLoading ? '미리보기 생성 중…' : '프롬프트 미리보기'}
+            </button>
+            <button type="button" className="btn btn-primary" data-testid="run-button" onClick={() => void onRun()} disabled={running}>
+              {running ? '요청 중…' : '생성 실행'}
+            </button>
+          </div>
+          <p className="gen-run-note">실행하면 작업 ID 를 받고 2초마다 상태를 읽습니다. 모델 호출은 {IS_DEMO ? '이 브라우저가 내 자격 증명으로' : '서버 어댑터가'} 합니다.</p>
+          {previewError ? <ErrorBox error={previewError} title="프롬프트 미리보기 실패" /> : null}
+          {runError ? <ErrorBox error={runError} title="생성 실행 요청 실패" /> : null}
+        </div>
+      </aside>
+      </div>
     </div>
   )
 }

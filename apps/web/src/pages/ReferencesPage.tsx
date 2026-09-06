@@ -14,10 +14,20 @@ export function ReferencesPage({ projectId }: { projectId: string }) {
 
   return (
     <div className="page">
+      <header className="projhead">
+        <div className="projhead-copy">
+          <span className="projhead-kicker">자료</span>
+          <h1>레퍼런스 포트폴리오</h1>
+          <p>
+            골든 예시는 생성 작업대에서 「참고 화면」으로 선택됩니다. S2B 자료는 학습용 규격(좌 마커 ↔ 우 설명 1:1, 영역 카드, CASE 표기)으로만 쓰고, 실제 대상 데이터는
+            합성 샘플입니다.
+          </p>
+        </div>
+      </header>
       <section className="card">
         <div className="card-head">
-          <h2>레퍼런스 포트폴리오</h2>
-          <span className="muted small">S2B 학습 규격을 적용한 합성 골든 예시. 생성 작업대의 "참고 화면" 에서 같은 목록을 선택한다.</span>
+          <h3>골든 예시</h3>
+          <span className="muted small">{refs.data ? `${refs.data.length}종 · 카드를 누르면 아래에 spec 요약이 나옵니다` : '불러오는 중…'}</span>
         </div>
         {refs.error ? <ErrorBox error={refs.error} title="레퍼런스를 읽지 못했습니다" /> : null}
         {refs.loading && !refs.data && <Loading />}

@@ -673,7 +673,7 @@ ul {
 }
 /* 읽는 화면(AS-IS 목록·상세)의 본문 폭 — 1440px 에서도 한 줄이 길어지지 않게 */
 .page-reading {
-  max-width: 960px;
+  max-width: 1040px;
 }
 .page-head {
   display: flex;
@@ -738,20 +738,239 @@ ul {
 .card {
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 14px 16px;
+  border-radius: var(--radius-card);
+  padding: 16px 18px 18px;
 }
 .card-head {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  align-items: baseline;
   gap: 12px;
   flex-wrap: wrap;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
 }
 .card-head h2,
 .card-head h3 {
   margin: 0;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+/* 제목 오른쪽의 건수·설명은 밀어내고, 그 뒤 버튼은 오른쪽 끝으로 */
+.card-head > .muted:first-of-type {
+  margin-right: auto;
+}
+
+/* ── 프로젝트 홈 머리 ── */
+.projhead {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 4px 2px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.projhead-copy {
+  min-width: 0;
+  flex: 1 1 420px;
+}
+.projhead-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--faint);
+}
+/* 구역 딱지 앞의 단계 번호 — 레일·4단계 카드와 같은 번호다 */
+.kicker-no {
+  width: 16px;
+  height: 16px;
+  display: grid;
+  place-items: center;
+  border-radius: 4px;
+  background: var(--ink);
+  color: var(--card);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+.projhead-copy h1 {
+  margin: 4px 0 0;
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  color: var(--ink);
+  word-break: keep-all;
+}
+.projhead-copy p {
+  margin: 6px 0 4px;
+  max-width: 76ch;
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: var(--text-2);
+  word-break: keep-all;
+}
+.projhead-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ── 4단계 집계 카드 ── */
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--card);
+  overflow: hidden;
+}
+.kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 18px 15px;
+  color: inherit;
+  text-decoration: none;
+}
+.kpi + .kpi {
+  border-left: 1px solid var(--divider);
+}
+.kpi:hover {
+  background: var(--card-soft);
+  color: inherit;
+}
+.kpi.active {
+  background: var(--blue-bg);
+}
+.kpi-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.kpi-no {
+  width: 17px;
+  height: 17px;
+  display: grid;
+  place-items: center;
+  border-radius: 5px;
+  background: var(--fill);
+  color: var(--text-2);
+  font-size: 10.5px;
+  font-weight: 800;
+}
+.kpi.active .kpi-no {
+  background: var(--primary);
+  color: var(--card);
+}
+.kpi-value {
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.kpi-note {
+  margin-left: 5px;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--muted);
+}
+
+/* ── 생성 작업대: 왼쪽 폼 + 오른쪽 실행 패널 ── */
+.gen-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  align-items: start;
+  gap: 14px;
+}
+.gen-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+.gen-aside {
+  position: sticky;
+  top: 16px;
+  min-width: 0;
+}
+.gen-run {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.gen-run-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.gen-run-head strong {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--ink);
+}
+/* 지금 프롬프트에 무엇이 담겼는지 — 실행 버튼 바로 위에 둔다 */
+.gen-tally {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card-soft);
+  overflow: hidden;
+}
+.gen-tally li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 7px 12px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.gen-tally li + li {
+  border-top: 1px solid var(--border);
+}
+.gen-tally strong {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.gen-run-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.gen-run-buttons .btn {
+  justify-content: center;
+  height: 38px;
+  font-size: 13.5px;
+}
+.gen-run-note {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--faint);
+  word-break: keep-all;
+}
+@media (max-width: 1100px) {
+  .gen-layout {
+    grid-template-columns: 1fr;
+  }
+  .gen-aside {
+    position: static;
+    order: -1;
+  }
 }
 .success-card {
   border-color: var(--green);
@@ -879,26 +1098,37 @@ ul {
 .table-wrap {
   overflow-x: auto;
 }
+/* 표 — 머리는 옅은 면 + 작은 대문자 느낌, 줄은 얇은 선 하나. 세로 선은 쓰지 않는다. */
 .table {
   width: 100%;
   border-collapse: collapse;
+  font-size: 12.5px;
 }
 .table th,
 .table td {
   text-align: left;
-  padding: 6px 8px;
-  border-bottom: 1px solid var(--border);
-  vertical-align: top;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--divider);
+  vertical-align: middle;
 }
 .table th {
   background: var(--card-soft);
-  font-weight: 600;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
   white-space: nowrap;
+  border-bottom: 1px solid var(--border);
+}
+.table tbody tr:last-child td {
+  border-bottom: 0;
+}
+.table tbody tr:hover {
+  background: var(--card-soft);
 }
 .table.compact th,
 .table.compact td {
-  padding: 4px 6px;
-  font-size: 13px;
+  padding: 6px 10px;
+  font-size: 12px;
 }
 .table .num {
   text-align: right;
@@ -914,6 +1144,20 @@ ul {
   gap: 6px;
   align-items: center;
   flex-wrap: wrap;
+}
+/* 표는 카드 여백을 뚫고 폭을 다 쓴다 — 열이 많은 화면 목록이 좁아지지 않게 */
+.card > .table-wrap {
+  margin: 0 -18px -18px;
+  border-top: 1px solid var(--border);
+  border-radius: 0 0 var(--radius-card) var(--radius-card);
+  overflow-x: auto;
+}
+/* 좁은 화면에서는 열을 뭉개지 말고 가로로 스크롤한다 (제목이 한 글자씩 접히지 않게) */
+.table-wrap table {
+  min-width: 680px;
+}
+.table-wrap table.compact {
+  min-width: 520px;
 }
 .kv {
   display: grid;
@@ -1072,21 +1316,35 @@ textarea {
 }
 
 /* 접이식 */
+/* 접이식 — 상자가 아니라 한 줄. 열면 아래로 내용이 흐른다 (목록 안에서 무게가 튀지 않게). */
 .collapsible {
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  margin: 6px 0;
-  background: var(--card-soft);
+  margin: 4px 0 0;
 }
 .collapsible > summary {
   cursor: pointer;
-  padding: 6px 10px;
+  padding: 4px 0;
+  font-size: 12.5px;
   font-weight: 600;
+  color: var(--text-2);
+  list-style: none;
+}
+.collapsible > summary::-webkit-details-marker {
+  display: none;
+}
+.collapsible > summary::before {
+  content: '▸ ';
+  color: var(--faint);
+}
+.collapsible[open] > summary::before {
+  content: '▾ ';
+}
+.collapsible > summary:hover {
+  color: var(--ink);
 }
 .collapsible-body {
-  padding: 6px 10px 10px;
-  border-top: 1px solid var(--border);
-  background: var(--card);
+  padding: 6px 0 10px 14px;
+  border-left: 2px solid var(--border);
+  margin-left: 3px;
 }
 .prompt-text {
   white-space: pre-wrap;
@@ -1110,38 +1368,66 @@ textarea {
   margin: 0;
 }
 .req-item {
-  padding: 6px 0;
-  border-bottom: 1px solid var(--border);
+  padding: 10px 0;
+  border-bottom: 1px solid var(--divider);
 }
 .req-item:last-child {
   border-bottom: none;
 }
 .req-head {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: 8px;
   flex-wrap: wrap;
+  font-size: 13px;
+}
+.req-head strong {
+  color: var(--ink);
+}
+.req-head code {
+  font-size: 11.5px;
+  color: var(--muted);
+  background: var(--fill);
 }
 .req-body {
+  margin: 0 0 6px;
   white-space: pre-wrap;
-  color: var(--gray);
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: var(--text-2);
+  word-break: keep-all;
 }
 .criteria {
   list-style: none;
-  padding-left: 4px;
+  margin: 0;
+  padding: 0;
 }
 .criteria li {
-  padding: 2px 0;
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--divider);
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--text-2);
+  word-break: keep-all;
+}
+.criteria li:last-child {
+  border-bottom: 0;
 }
 .ia-tree {
   list-style: none;
+  margin: 0;
   padding-left: 16px;
+  font-size: 12.5px;
 }
 .ia-tree > li {
-  padding: 2px 0;
+  padding: 4px 0;
 }
 .ia-category {
-  font-weight: 600;
+  font-weight: 700;
+  color: var(--ink);
 }
 
 /* 레퍼런스 */
@@ -1267,9 +1553,83 @@ textarea {
   align-items: center;
   flex-wrap: wrap;
 }
+/* ── 버전 스트립 ── */
+.revstrip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.revstrip-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--faint);
+  margin-right: 2px;
+}
+.revpill {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--card);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-2);
+  cursor: pointer;
+  font-variant-numeric: tabular-nums;
+}
+.revpill:hover {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+.revpill.active {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--card);
+}
+.revpill-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+}
+.revpill-dot.is-bad {
+  background: var(--amber);
+}
+.revpill-open {
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--amber-bg);
+  color: var(--amber);
+  font-size: 10.5px;
+  font-weight: 800;
+}
+/* pill 이 곧 라디오다 — 동그라미는 감추고 pill 전체가 선택 영역이 된다 */
+.revpill-radio {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+.revpill:focus-within {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+.revision-meta {
+  word-break: break-all;
+}
+
 .review-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 420px;
+  grid-template-columns: minmax(0, 1fr) 400px;
   gap: 14px;
   align-items: start;
 }
@@ -1283,10 +1643,13 @@ textarea {
 }
 .preview-toolbar {
   display: flex;
+  align-items: center;
   justify-content: space-between;
   gap: 8px;
   flex-wrap: wrap;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--divider);
 }
 .case-buttons,
 .device-toggle {
@@ -1311,10 +1674,67 @@ textarea {
   margin: 0 auto;
 }
 .review-side {
+  position: sticky;
+  top: 16px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 10px;
   min-width: 0;
+  max-height: calc(100vh - 32px);
+  overflow: auto;
+}
+/* 코멘트·검증·수정 탭 — 오른쪽 한 칸을 셋이 나눠 쓴다 */
+.side-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--fill);
+}
+.side-tab {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.side-tab:hover {
+  color: var(--ink);
+}
+.side-tab.active {
+  background: var(--card);
+  color: var(--ink);
+  font-weight: 700;
+  box-shadow: var(--shadow-card);
+}
+.side-tab-n {
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--border);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}
+.side-tab.active .side-tab-n {
+  background: var(--ink);
+  color: var(--card);
+}
+/* 검증 표는 좁은 칸에서 가로로 스크롤한다 (열을 지우지 않는다) */
+.review-side .table-wrap {
+  overflow-x: auto;
 }
 .comment-list {
   list-style: none;
@@ -1498,23 +1918,28 @@ textarea {
   flex-direction: column;
   gap: 8px;
 }
+/* 신호 카드 — 여섯 개가 모두 붉으면 무엇이 심각한지 알 수 없다.
+   카드는 무채색으로 두고, 왼쪽 수치 배지만 색을 갖는다. */
 .signal {
   display: flex;
   align-items: baseline;
   gap: 14px;
   padding: 10px 12px;
-  border: 1px solid var(--red);
-  border-left: 3px solid var(--red);
-  border-radius: 6px;
-  background: var(--red-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
 }
 .signal-value {
   flex: none;
-  min-width: 58px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 15px;
-  font-weight: 800;
+  min-width: 52px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--red-bg);
   color: var(--red);
+  text-align: center;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  font-weight: 800;
 }
 .signal-text {
   display: flex;

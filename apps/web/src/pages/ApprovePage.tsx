@@ -39,18 +39,17 @@ export function ApprovePage({ screenId, route }: { screenId: string; route: Rout
           ) : null
         }
       />
-      <section className="card">
-        {s.status === 'approved' && s.version && (
-          <div className="notice">
-            이 화면은 이미 완료(v{s.version}) 상태입니다. 승인본은 제자리에서 고치지 않으며, 변경은 새 revision 으로 만듭니다.
-          </div>
-        )}
-        {revisions.length === 0 && (
-          <Empty>
-            revision 이 없습니다. <a href={hrefToScreen('generate', screenId)}>생성 작업대</a>에서 먼저 생성하세요.
-          </Empty>
-        )}
-      </section>
+      {/* 알릴 것이 있을 때만 상자를 만든다 (빈 카드를 남기지 않는다) */}
+      {s.status === 'approved' && s.version && (
+        <div className="notice">
+          이 화면은 이미 완료(v{s.version}) 상태입니다. 승인본은 제자리에서 고치지 않으며, 변경은 새 revision 으로 만듭니다.
+        </div>
+      )}
+      {revisions.length === 0 && (
+        <Empty>
+          revision 이 없습니다. <a href={hrefToScreen('generate', screenId)}>생성 작업대</a>에서 먼저 생성하세요.
+        </Empty>
+      )}
       {revision.error ? <ErrorBox error={revision.error} title="revision 을 읽지 못했습니다" /> : null}
       {selectedRevId && !revision.data && !revision.error && <Loading text="revision 을 불러오는 중…" />}
       {revision.data && <ApprovalWorkbench key={revision.data.revision.id} screen={screen.data} detail={revision.data} onApproved={() => screen.reload()} />}
