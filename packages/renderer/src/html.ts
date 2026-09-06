@@ -17,7 +17,8 @@ import { CLIENT_SCRIPT } from './client-script.js'
 import { buildClientData, toInlineJson, type ClientData } from './client-data.js'
 import type { ElementIndexEntry, NumberedElement, NumberedSection, Numbering } from './element-index.js'
 import { CASE_KIND_LABELS, MESSAGE_KIND_LABELS, labelOf } from './labels.js'
-import { STYLES } from './styles.js'
+import { BRAND_STYLES, STYLES } from './styles.js'
+import { themeById, themeStyle } from './theme.js'
 import type { DescriptionModel, DescriptionSection, RenderInput, RenderNavItem } from './types.js'
 
 export function escapeHtml(value: unknown): string {
@@ -105,18 +106,37 @@ function inputAttrs(el: SpecElement, extra = ''): string {
   return parts.join(' ')
 }
 
+/** 자릿수를 맞춰 오른쪽으로 붙이는 열인가. */
+function isNumericFormat(format: string | undefined): boolean {
+  return format === 'number' || format === 'currency'
+}
+
+/**
+ * 상태 코드 → pill 색. **코드 문자열은 바꾸지 않고** 보이는 색만 고른다.
+ * 판단 근거가 없으면 중립색이다 — 모르는 코드를 «정상» 으로 칠하지 않는다.
+ */
+function statusTone(code: string): string {
+  const upper = code.toUpperCase()
+  if (/(APPROVED|DONE|PAID|COMPLETE|SUCCESS|ACTIVE|정상|승인|완료)/.test(upper)) return 'is-ok'
+  if (/(REJECT|CANCEL|FAIL|ERROR|반려|취소|실패|오류)/.test(upper)) return 'is-danger'
+  if (/(PENDING|REVIEW|WAIT|REQUEST|PREPAR|SHIP|검토|대기|요청|준비|배송)/.test(upper)) return 'is-warn'
+  return ''
+}
+
 function renderTable(el: SpecElement, ctx: Ctx): string {
   const columns = el.columns ?? []
   const table = ctx.client.tables.find((t) => t.element_id === el.id)
   const rows = initialRows(ctx, table?.default_sort)
   const head = columns
     .map((c) => {
+      // 숫자·금액 열은 머리도 오른쪽으로 (본문 셀과 축을 맞춘다).
+      const numClass = isNumericFormat(c.format) ? ' class="num"' : ''
       if (c.sortable) {
         const active = table?.default_sort?.column_id === c.id
         const ariaSort = active ? (table?.default_sort?.direction === 'desc' ? 'descending' : 'ascending') : 'none'
-        return `<th data-column-id="${escapeHtml(c.id)}" data-sortable="true" aria-sort="${ariaSort}"><button type="button" class="sort-btn" title="정렬(더미)">${escapeHtml(c.label)}<span class="sort-ind"></span></button></th>`
+        return `<th data-column-id="${escapeHtml(c.id)}"${numClass} data-sortable="true" aria-sort="${ariaSort}"><button type="button" class="sort-btn" title="정렬(더미)">${escapeHtml(c.label)}<span class="sort-ind"></span></button></th>`
       }
-      return `<th data-column-id="${escapeHtml(c.id)}">${escapeHtml(c.label)}</th>`
+      return `<th data-column-id="${escapeHtml(c.id)}"${numClass}>${escapeHtml(c.label)}</th>`
     })
     .join('')
   const bodyRows =
@@ -129,7 +149,10 @@ function renderTable(el: SpecElement, ctx: Ctx): string {
                 const v = row !== null && typeof row === 'object' && !Array.isArray(row) ? (row as Record<string, unknown>)[c.id] : undefined
                 const fmt = c.format ?? 'text'
                 const text = v === undefined || v === null ? '' : (fmt === 'number' || fmt === 'currency') && typeof v === 'number' ? v.toLocaleString('ko-KR') : String(v)
-                return `<td data-column-id="${escapeHtml(c.id)}" class="fmt-${fmt}">${escapeHtml(text)}</td>`
+                const cls = `fmt-${fmt}${isNumericFormat(fmt) ? ' num' : ''}${fmt === 'link' ? ' cell-link' : ''}`
+                // 상태 코드는 그대로 두면 «CM_PAID» 처럼 읽힌다. 코드는 유지하되 상태로 보이게 감싼다.
+                const inner = fmt === 'status' && text !== '' ? `<span class="pill ${statusTone(text)}">${escapeHtml(text)}</span>` : escapeHtml(text)
+                return `<td data-column-id="${escapeHtml(c.id)}" class="${cls}">${inner}</td>`
               })
               .join('')
             const clickable = table?.row_action ? ' class="clickable" tabindex="0"' : ''
@@ -482,7 +505,7 @@ export function renderHtmlDocument(args: {
   const title = `${spec.screen_id} — ${input.meta.screen_title}`
   return (
     `<!DOCTYPE html>\n<html lang="ko">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n` +
-    `<meta name="con-ai-renderer" content="${escapeHtml(profile.id)}">\n<title>${escapeHtml(title)}</title>\n<style>${STYLES}</style>\n</head>\n` +
+    `<meta name="con-ai-renderer" content="${escapeHtml(profile.id)}">\n<title>${escapeHtml(title)}</title>\n<style>${STYLES}\n${BRAND_STYLES}\n${themeStyle(themeById(input.meta.theme_id))}</style>\n</head>\n` +
     `<body data-screen-id="${escapeHtml(spec.screen_id)}" data-shell="${escapeHtml(spec.shell)}" data-shell-kind="${kind}" data-case="${escapeHtml(client.initial_case)}" data-profile="${escapeHtml(profile.id)}" data-action-types="${escapeHtml([...new Set(spec.actions.map((a) => a.type))].join(' '))}">\n` +
     renderToolbar(ctx) +
     `\n<div class="${rootClass}" data-shell-root data-device="${spec.device}">\n` +

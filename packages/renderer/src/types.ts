@@ -23,6 +23,8 @@ export interface RenderMeta {
   portal_name?: string
   /** 목업 GNB 메뉴. 없으면 화면명에서 기본 메뉴를 만든다 (html.ts menusOf) */
   menus?: RenderNavItem[]
+  /** 브랜드 테마 id (theme.ts). 없거나 모르는 값이면 기본 테마 — 없는 브랜드를 지어내지 않는다. */
+  theme_id?: string
 }
 export interface RenderInput { spec: ScreenSpecShape; profile: RenderProfile; dummy: Record<string, unknown[]>; meta: RenderMeta }
 export interface RenderOutput { html: string; description: DescriptionModel; element_index: Array<{ element_id: string; section_id: string; display_no: string }> }

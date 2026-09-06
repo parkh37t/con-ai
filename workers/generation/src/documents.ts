@@ -15,6 +15,10 @@ export interface ProjectDocument {
   profile_id: string
   /** 계약 외 추가: 이 프로젝트의 고정 기준 버전 ID (`baseline-<slug>-1`). */
   baseline_id: string
+  /** 목업의 브랜드 테마 id (renderer theme.ts). 없으면 기본 테마. */
+  theme_id?: string
+  /** 목업 GNB 에 쓸 포털 이름. 없으면 shell 접두어에서 만든다. */
+  portal_name?: string
   created_at: string
 }
 

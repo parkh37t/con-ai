@@ -122,6 +122,9 @@ export async function runGenerationJob(jobId: string, deps: PipelineDeps): Promi
           requirements: built.ctx.requirements.map((r) => ({ external_id: r.external_id, title: r.title, criterion_ids: r.criteria.map((c) => c.id) })),
           revision_label: `r${revisionNo}`,
           generated_by: `${deps.adapter.kind}:${deps.adapter.model}`,
+          // 목업의 브랜드는 프로젝트가 갖는다 (없으면 렌더러의 기본 테마).
+          ...(built.project.data.theme_id === undefined ? {} : { theme_id: built.project.data.theme_id }),
+          ...(built.project.data.portal_name === undefined ? {} : { portal_name: built.project.data.portal_name }),
         },
       })
     } catch (err) {

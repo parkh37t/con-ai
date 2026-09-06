@@ -651,6 +651,9 @@ function pipelineInputFor(state: DemoState, screenId: string, body: unknown): { 
         profile_id: project.project.profile_id,
         slug: typeof projectRecord['slug'] === 'string' ? (projectRecord['slug'] as string) : undefined,
         baseline_id: typeof projectRecord['baseline_id'] === 'string' ? (projectRecord['baseline_id'] as string) : undefined,
+        // 목업 브랜드 — 프로젝트가 갖고 있으면 그대로 넘긴다 (서버 파이프라인과 같다).
+        theme_id: typeof projectRecord['theme_id'] === 'string' ? (projectRecord['theme_id'] as string) : undefined,
+        portal_name: typeof projectRecord['portal_name'] === 'string' ? (projectRecord['portal_name'] as string) : undefined,
       },
       screen: { id: screen.screen.id, external_id: screen.screen.external_id, title: screen.screen.title, shell: screen.screen.shell, device: request.device ?? screen.screen.device },
       requirements: project.requirements as Requirement[],

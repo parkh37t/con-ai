@@ -570,6 +570,9 @@ function projectOf(d: DomainSeed, createdAt: string): ProjectDocument {
     description: d.description,
     profile_id: 's2b-learned-v1',
     baseline_id: d.baseline_id,
+    // 목업 브랜드 — 도메인 key 가 renderer 의 테마 id 와 같다 (banking / commerce).
+    theme_id: d.key,
+    portal_name: d.portal,
     created_at: createdAt,
   }
 }

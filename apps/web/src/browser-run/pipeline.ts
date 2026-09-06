@@ -60,6 +60,10 @@ export interface PipelineProject {
   profile_id: string
   slug?: string | undefined
   baseline_id?: string | undefined
+  /** 목업 브랜드 테마 id (renderer theme.ts). 없으면 기본 테마. */
+  theme_id?: string | undefined
+  /** 목업 GNB 포털 이름. 없으면 shell 접두어에서 만든다. */
+  portal_name?: string | undefined
 }
 
 export interface PipelineScreen {
@@ -395,6 +399,9 @@ export async function runBrowserPipeline(input: PipelineInput, deps: PipelineDep
         requirements: ctx.requirements.map((r) => ({ external_id: r.external_id, title: r.title, criterion_ids: r.criteria.map((c) => c.id) })),
         revision_label: `r${input.revision_no}`,
         generated_by: engine.adapter === 'anthropic' ? `anthropic:${model} (브라우저 직접 호출)` : `fixture:${model} (브라우저 더미 어댑터)`,
+        // 목업의 브랜드는 프로젝트가 갖는다 (서버 파이프라인과 같다).
+        ...(input.project.theme_id === undefined ? {} : { theme_id: input.project.theme_id }),
+        ...(input.project.portal_name === undefined ? {} : { portal_name: input.project.portal_name }),
       },
     })
   } catch (e) {

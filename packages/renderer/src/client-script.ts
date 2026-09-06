@@ -53,6 +53,14 @@ export const CLIENT_SCRIPT: string = String.raw`
     return Array.isArray(rows) ? rows : [];
   }
   function isRecord(row) { return row !== null && typeof row === 'object' && !Array.isArray(row); }
+  /* 상태 코드 → pill 색. html.ts 의 statusTone 과 같은 규칙이다 (한쪽만 고치면 CASE 를 바꿀 때 색이 달라진다). */
+  function statusTone(code) {
+    var upper = String(code).toUpperCase();
+    if (/(APPROVED|DONE|PAID|COMPLETE|SUCCESS|ACTIVE|정상|승인|완료)/.test(upper)) return 'is-ok';
+    if (/(REJECT|CANCEL|FAIL|ERROR|반려|취소|실패|오류)/.test(upper)) return 'is-danger';
+    if (/(PENDING|REVIEW|WAIT|REQUEST|PREPAR|SHIP|검토|대기|요청|준비|배송)/.test(upper)) return 'is-warn';
+    return '';
+  }
   function cellValue(row, colId) {
     if (!isRecord(row)) return '';
     var v = row[colId];
@@ -106,9 +114,19 @@ export const CLIENT_SCRIPT: string = String.raw`
       if (t.row_action) { tr.className = 'clickable'; tr.tabIndex = 0; }
       t.columns.forEach(function (c) {
         var td = document.createElement('td');
+        var fmt = c.format || 'text';
         td.setAttribute('data-column-id', c.id);
-        td.className = 'fmt-' + (c.format || 'text');
-        td.textContent = formatCell(cellValue(row, c.id), c.format);
+        // 서버가 처음 그린 것과 **같은 모양**으로 다시 그린다 (숫자 오른쪽 정렬·상태 pill·링크 색).
+        td.className = 'fmt-' + fmt + (fmt === 'number' || fmt === 'currency' ? ' num' : '') + (fmt === 'link' ? ' cell-link' : '');
+        var text = formatCell(cellValue(row, c.id), c.format);
+        if (fmt === 'status' && text !== '') {
+          var pill = document.createElement('span');
+          pill.className = 'pill ' + statusTone(text);
+          pill.textContent = text;
+          td.appendChild(pill);
+        } else {
+          td.textContent = text;
+        }
         tr.appendChild(td);
       });
       tbody.appendChild(tr);

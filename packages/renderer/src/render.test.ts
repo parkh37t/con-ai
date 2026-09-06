@@ -5,6 +5,7 @@ import { DESCRIPTION_TITLES, buildDescription } from './description.js'
 import { buildElementIndex, buildNumbering, toAlpha } from './element-index.js'
 import { S2B_LEARNED_PROFILE } from './profile.js'
 import { renderScreen } from './render.js'
+import { BRAND_THEMES, DEFAULT_BRAND_THEME, isSafeColor, themeStyle } from './theme.js'
 import { EXAMPLE_META, at, loadFixtureSpec, renderInputOf } from './test-helpers.js'
 
 function must(v: string | undefined): string {
@@ -250,7 +251,8 @@ describe('renderScreen — fixtures/screen-specs/example-order-list.valid.json',
     expect(rows).toHaveLength(3)
     expect(at(rows, 0)).toContain('EX-2026-0003')
     expect(at(rows, 2)).toContain('EX-2026-0001')
-    expect(at(rows, 0)).toContain('<td data-column-id="amount" class="fmt-currency">1,250,000</td>')
+    // 금액 열은 자릿수를 맞춰 오른쪽으로 붙인다 (num).
+    expect(at(rows, 0)).toContain('<td data-column-id="amount" class="fmt-currency num">1,250,000</td>')
     expect(html).toContain('data-row-count-for="order-table">총 3건</span>')
   })
 
@@ -367,5 +369,49 @@ describe('renderScreen — 팝업 shell·모바일·이스케이프·컴포넌�
     const { html } = renderScreen(renderInputOf(EXAMPLE_ORDER_LIST_EXTENDED, { dummy: {} }))
     expect(html).toContain('표시할 행이 없습니다')
     expect(html).toContain('data-row-count-for="order-table">총 0건</span>')
+  })
+})
+
+/**
+ * 브랜드 테마 — 목업이 «설계용 와이어프레임» 이 아니라 실제 화면으로 보이게 하는 층.
+ * 외부 자원을 끌어오지 않는지, 모르는 값이 스타일에 새어 들어오지 않는지를 본다.
+ */
+describe('브랜드 테마', () => {
+  const themed = (theme_id: string | undefined): string =>
+    renderScreen(
+      renderInputOf(EXAMPLE_ORDER_LIST_EXTENDED, { meta: { ...EXAMPLE_META, ...(theme_id === undefined ? {} : { theme_id }) } }),
+    ).html
+
+  it('테마 id 를 주면 그 브랜드 색이 CSS 변수로 들어간다', () => {
+    const banking = themed('banking')
+    expect(banking).toContain(`--brand:${BRAND_THEMES['banking']?.primary}`)
+    expect(banking).toContain(`--brand-top:${BRAND_THEMES['banking']?.top_bar}`)
+  })
+
+  it('테마를 주지 않거나 모르는 id 면 기본 테마다 — 없는 브랜드를 지어내지 않는다', () => {
+    for (const html of [themed(undefined), themed('없는브랜드')]) {
+      expect(html).toContain(`--brand:${DEFAULT_BRAND_THEME.primary}`)
+    }
+  })
+
+  it('색 형식이 아닌 값은 스타일에 넣지 않는다 (주입 차단)', () => {
+    expect(isSafeColor('#0c2071')).toBe(true)
+    expect(isSafeColor('#abc')).toBe(true)
+    expect(isSafeColor('red;}body{display:none')).toBe(false)
+    const style = themeStyle({ ...DEFAULT_BRAND_THEME, primary: 'red;}body{display:none' })
+    expect(style).not.toContain('display:none')
+    expect(style).toContain(`--brand:${DEFAULT_BRAND_THEME.primary}`)
+  })
+
+  it('브랜드 층도 외부 자원을 끌어오지 않는다 (V2.no_external_refs)', () => {
+    const html = themed('banking')
+    expect(html).not.toMatch(/@import|url\(|<link|https?:\/\//)
+  })
+
+  it('상태 열은 코드를 그대로 두고 pill 로 감싼다 — 코드 문자열을 바꾸지 않는다', () => {
+    const html = themed('commerce')
+    expect(html).toMatch(/<span class="pill is-\w+">[A-Z_]+<\/span>/)
+    // 클라이언트가 CASE 를 바꿔 다시 그릴 때도 같은 규칙을 쓴다 (한쪽만 고치면 색이 달라진다).
+    expect(html).toContain("pill.className = 'pill ' + statusTone(text)")
   })
 })

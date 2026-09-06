@@ -22,6 +22,10 @@ export interface Project {
   org: string
   description: string
   profile_id: string
+  /** 목업 브랜드 테마 id (없으면 렌더러 기본 테마). */
+  theme_id?: string
+  /** 목업 GNB 포털 이름. */
+  portal_name?: string
   created_at: string
 }
 

@@ -275,3 +275,97 @@ table.msg-table tr.is-active td{background:var(--accent-soft)}
 .modal-card .modal-body p{margin:5px 0;font-size:13px;color:#333}
 .modal-card .modal-foot{margin-top:16px;text-align:right}
 `
+
+/**
+ * 목업 영역의 **브랜드 시각 층** — 위 STYLES 뒤에 붙여 덮어쓴다.
+ *
+ * 목표: 화면설계서의 왼쪽이 「회색 상자와 검은 버튼」이 아니라 **만들어질 실제 화면**으로 보이게 한다
+ * (참고: BNK 화면설계서 계열의 목업 — 짙은 유틸 바 + 흰 GNB + 넓은 여백 + 카드 + 브랜드 색 버튼).
+ *
+ * 지키는 것
+ * - 클래스 이름·구조를 바꾸지 않는다 (V2 구조 검사가 보는 것을 건드리지 않는다).
+ * - 외부 자원을 쓰지 않는다 — 웹폰트·이미지 없이 색·여백·그림자·인라인 SVG 로만 만든다.
+ * - 오른쪽 설명(panel)은 그대로 둔다. 설명은 문서이지 화면이 아니다.
+ */
+export const BRAND_STYLES: string = `
+/* ── 화면 바탕: 문서가 아니라 «서비스» 로 보이게 ── */
+.screen-wrap{background:var(--brand-canvas)}
+.screen-wrap .body-wrap{padding:28px 32px 72px;max-width:1240px}
+
+/* ── 상단 유틸 바 (짙은 띠) — 실제 사이트의 계열사/언어 줄 ── */
+.gnb{position:relative;height:64px;background:var(--brand-surface);border-bottom:1px solid var(--brand-line);padding:0 32px;gap:30px}
+.gnb::before{content:'';position:absolute;left:0;right:0;top:-34px;height:34px;background:var(--brand-top)}
+.screen-head{padding-top:34px;background:var(--brand-surface)}
+.gnb .logo{min-width:0;height:auto;padding:0;border:0;border-radius:0;display:inline-flex;align-items:center;gap:9px;font-size:19px;font-weight:800;letter-spacing:-.02em;color:var(--brand-ink)}
+.gnb .logo::before{content:'';width:26px;height:20px;flex:none;border-radius:3px;
+  background:linear-gradient(to right,var(--brand-accent) 0 6px,transparent 6px 10px,var(--brand) 10px 16px,transparent 16px 20px,var(--brand-ink) 20px 26px)}
+.gnb-menu{gap:30px}
+.gnb-menu .m{font-size:15px;font-weight:700;color:var(--brand-text)}
+.gnb-menu .m.on{color:var(--brand);font-weight:800;border-bottom:3px solid var(--brand);padding-bottom:4px}
+.gnb .util{font-size:12.5px;color:var(--brand-muted)}
+.gnb .ham{border:1px solid var(--brand-line);border-radius:10px;color:var(--brand-ink)}
+.breadcrumb{padding:12px 32px;background:var(--brand-surface);border-bottom:1px solid var(--brand-line);color:var(--brand-muted)}
+.breadcrumb b{color:var(--brand-ink)}
+
+/* ── 화면 제목: 큰 제목 + 얇은 구분선 (검은 2px 밑줄 대신) ── */
+.screen-title-row{border-bottom:0;padding-bottom:0;margin-bottom:22px;align-items:flex-end}
+.screen-title{font-size:30px;font-weight:800;letter-spacing:-.03em;color:var(--brand-ink)}
+.screen-title-row .screen-id{color:var(--brand-muted)}
+
+/* ── 영역: 흰 카드 + 옅은 그림자. 번호 배지는 브랜드 색으로 ── */
+.sec{background:var(--brand-surface);border:1px solid var(--brand-line);border-radius:var(--brand-radius);
+  box-shadow:0 1px 2px rgba(16,23,54,.04),0 8px 24px rgba(16,23,54,.05);padding:26px 26px 22px}
+.sec > .mk,.mk{background:var(--brand-ink);border-radius:7px}
+.sec-title{color:var(--brand-ink);font-weight:800;font-size:16.5px}
+.sm{background:var(--brand);box-shadow:0 1px 3px rgba(16,23,54,.25)}
+
+/* ── 입력: 실제 폼 높이·라운드·포커스 링 ── */
+.field-label{font-size:13px;color:var(--brand-text)}
+.control input[type=text],.control input[type=number],.control input[type=date],.control select,.control textarea{
+  min-height:44px;padding:10px 13px;border:1px solid var(--brand-line);border-radius:calc(var(--brand-radius) - 4px);
+  background:var(--brand-surface);color:var(--brand-ink);font-size:14px}
+.control input:focus,.control select:focus,.control textarea:focus{outline:2px solid var(--brand);outline-offset:1px;border-color:var(--brand)}
+.field-text{border-color:var(--brand-line)}
+.field-text .field-label{background:var(--brand-canvas);border-right-color:var(--brand-line);color:var(--brand-text)}
+
+/* ── 버튼: 주요 = 브랜드 채움, 보조 = 테두리 ── */
+.btn{min-height:44px;padding:11px 24px;border:1px solid var(--brand);background:var(--brand);color:var(--brand-on);
+  border-radius:calc(var(--brand-radius) - 4px);font-size:14px;font-weight:700;box-shadow:0 1px 2px rgba(16,23,54,.12)}
+.btn:hover{filter:brightness(.92);background:var(--brand);border-color:var(--brand)}
+.btn.btn-secondary{background:var(--brand-surface);color:var(--brand);border-color:var(--brand-line);box-shadow:none}
+.btn.btn-secondary:hover{background:var(--brand-canvas);filter:none}
+
+/* ── 표: 브랜드 머리 + 얇은 가로선 (격자 대신), 숫자는 자릿수 정렬 ── */
+table.grid{border-radius:calc(var(--brand-radius) - 4px);overflow:hidden;border:1px solid var(--brand-line);font-size:13.5px}
+table.grid th,table.grid td{border:0;border-bottom:1px solid var(--brand-line);padding:13px 14px}
+table.grid th{background:var(--brand-canvas);color:var(--brand-ink);font-weight:800;font-size:12.5px;letter-spacing:.01em}
+table.grid tbody tr:last-child td{border-bottom:0}
+table.grid tbody tr:hover td{background:var(--brand-canvas)}
+table.grid td.num,table.grid th.num{text-align:right;font-variant-numeric:tabular-nums}
+table.grid td.cell-link{color:var(--brand);font-weight:700}
+
+/* ── 상태 pill — 코드가 아니라 상태로 읽히게 ── */
+.pill{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700;
+  background:var(--brand-canvas);color:var(--brand-text);border:1px solid var(--brand-line);white-space:nowrap}
+.pill::before{content:'';width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.75}
+.pill.is-ok{color:var(--brand-ok);background:var(--brand-ok-bg);border-color:var(--brand-ok-bg)}
+.pill.is-warn{color:var(--brand-warn);background:var(--brand-warn-bg);border-color:var(--brand-warn-bg)}
+.pill.is-danger{color:var(--brand-danger);background:var(--brand-danger-bg);border-color:var(--brand-danger-bg)}
+
+/* ── 안내 메시지 ── */
+.msg{border-radius:calc(var(--brand-radius) - 4px);border-width:1px;padding:13px 16px;font-size:13.5px}
+
+/* ── 팝업도 같은 언어로 ── */
+.popup-card{border-radius:var(--brand-radius);border:1px solid var(--brand-line);box-shadow:0 24px 64px rgba(16,23,54,.18)}
+.popup-head{background:var(--brand-surface);border-bottom:1px solid var(--brand-line)}
+.popup-title{color:var(--brand-ink)}
+.popup-wrap{background:var(--brand-canvas)}
+
+/* ── 모바일: 화면 폭이 좁을 때 여백을 줄인다 ── */
+@media (max-width:900px){
+  .gnb{padding:0 18px}
+  .breadcrumb{padding:10px 18px}
+  .screen-wrap .body-wrap{padding:20px 18px 56px}
+  .screen-title{font-size:24px}
+}
+`

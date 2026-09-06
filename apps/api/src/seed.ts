@@ -607,6 +607,8 @@ export function seedIfEmpty(store: Store, now: () => string = () => new Date().t
     description: '파트너가 견적을 요청·조회·등록하는 가상 포털. 세로 조각 검증용 샘플이며 실제 고객 데이터를 담지 않는다.',
     profile_id: 's2b-learned-v1',
     baseline_id: SEED.baseline_id,
+    theme_id: 'partner',
+    portal_name: '파트너 포털',
     created_at: now(),
   }
   store.put('project', project.id, project, 0)
