@@ -12,7 +12,7 @@ import { STAGE_NAV, stageValueText, type StageCounts, type StageKey } from '../p
 import { hrefTo } from '../router.js'
 import type { Meta, Project } from '../types.js'
 
-export type RailSection = StageKey | 'references' | 'other'
+export type RailSection = StageKey | 'references' | 'trace' | 'other'
 
 function stageHref(item: (typeof STAGE_NAV)[number]): string {
   if (item.key === 'asis') return hrefTo('asis')
@@ -75,7 +75,22 @@ export function WorkspaceRail({
         })}
 
         <span className="rail-label rail-label-gap">자료</span>
-        <a className={`rail-item rail-item-quiet${current === 'references' ? ' active' : ''}`} href={hrefTo('references')} data-testid="rail-references">
+        {/* 추적 체인은 단계가 아니라 네 단계 전체를 가로지르는 표라서 「자료」에 둔다. */}
+        <a
+          className={`rail-item rail-item-quiet${current === 'trace' ? ' active' : ''}`}
+          href={hrefTo('trace')}
+          data-testid="rail-trace"
+          {...(current === 'trace' ? { 'aria-current': 'page' as const } : {})}
+        >
+          <span className="rail-dot" aria-hidden="true" />
+          <span className="rail-item-label">ID 매핑 (추적 체인)</span>
+        </a>
+        <a
+          className={`rail-item rail-item-quiet${current === 'references' ? ' active' : ''}`}
+          href={hrefTo('references')}
+          data-testid="rail-references"
+          {...(current === 'references' ? { 'aria-current': 'page' as const } : {})}
+        >
           <span className="rail-dot" aria-hidden="true" />
           <span className="rail-item-label">레퍼런스 포트폴리오</span>
         </a>

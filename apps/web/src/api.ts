@@ -10,6 +10,8 @@ import type {
   CommentInput,
   CommentStatus,
   ExportManifest,
+  IANode,
+  IdIssueResponse,
   Job,
   Meta,
   PainPointStatus,
@@ -19,13 +21,14 @@ import type {
   ReasonLike,
   Reference,
   RevisionDetail,
+  RevisionPromptDraft,
+  RtmReport,
   Screen,
   ScreenCreateInput,
   ScreenCreateResponse,
-  RevisionPromptDraft,
   ScreenDetail,
   SliceGenerationRequest,
-  ValidationResult,
+  ValidationResult
 } from './types.js'
 import { browserArtifactUrl } from './browser-run/artifact-urls.js'
 import { DEMO_BASE, IS_DEMO } from './demo-mode.js'
@@ -128,6 +131,21 @@ export const api = {
   projects: () => request<Project[]>('GET', '/api/projects'),
   project: (id: string) => request<ProjectDetail>('GET', `/api/projects/${encodeURIComponent(id)}`),
   references: (projectId: string) => request<Reference[]>('GET', `/api/projects/${encodeURIComponent(projectId)}/references`),
+
+  // -------------------------------------------------------------- 추적 체인 RTM (산출물 P1-05)
+  /** REQ → IA → FN → SCR 집계·행·갭 제안. 저장하지 않고 서버가 매번 계산한다. */
+  rtm: (projectId: string) => request<RtmReport>('GET', `/api/projects/${encodeURIComponent(projectId)}/rtm`),
+  /** IA 노드 한 건 — 저장 직전에 현재 revision 을 읽는다. */
+  iaNode: (id: string) => request<{ ia_node: IANode; revision: number }>('GET', `/api/ia-nodes/${encodeURIComponent(id)}`),
+  /** IA 노드 연결·기능 추가. 번호는 붙지 않는다 — 발번은 따로 사람이 누른다. */
+  patchIaNode: (id: string, body: { revision: number; by: string; reason: string; requirement_ids?: string[]; add_function?: { name: string; kind?: 'normal' | 'exception'; base_function_id?: string } }) =>
+    request<{ ia_node: IANode; revision: number }>('PATCH', `/api/ia-nodes/${encodeURIComponent(id)}`, body),
+  /** ID 발번 — 사람이 사유와 함께 누른 것만 온다. 서버가 번호를 다시 계산해 응답에 싣는다. */
+  issueId: (id: string, body: { external_id: string; by: string; reason: string; revision: number; function_id?: string; expected_proposal_hash?: string }) =>
+    request<IdIssueResponse>('POST', `/api/ia-nodes/${encodeURIComponent(id)}/id-issuances`, body),
+  /** ID 개명 — 옛 값은 별칭으로 남는다. */
+  relabelId: (id: string, body: { external_id: string; by: string; reason: string; revision: number; function_id?: string }) =>
+    request<{ ia_node: IANode; revision: number }>('POST', `/api/ia-nodes/${encodeURIComponent(id)}/id-relabels`, body),
   promptPreview: (screenId: string, req: SliceGenerationRequest) => request<PromptPreviewResponse>('POST', `/api/screens/${encodeURIComponent(screenId)}/prompt-preview`, req),
   createJob: (screenId: string, req: SliceGenerationRequest) => request<{ job_id: string }>('POST', `/api/screens/${encodeURIComponent(screenId)}/generation-jobs`, req),
   job: (id: string) => request<Job>('GET', `/api/jobs/${encodeURIComponent(id)}`),

@@ -186,6 +186,13 @@ export function createApp(options: AppOptions): ConAiApp {
     return c.json(computeRtm(buildRtmInput(store, project.id)))
   })
 
+  /** IA 노드 한 건 — 화면이 저장 직전에 현재 revision 을 읽는다 (낙관적 잠금). */
+  app.get('/api/ia-nodes/:id', (c) => {
+    const doc = store.get<IANodeDocument>('ia_node', c.req.param('id'))
+    if (!doc) return notFound(c, 'IA 노드')
+    return c.json({ ia_node: doc.data, revision: doc.revision })
+  })
+
   /**
    * IA 노드 연결·기능 정의 (발번과 분리).
    * 요구사항 연결과 기능 추가는 번호가 없어도 할 수 있다 — 번호는 사람이 따로 발번한다.

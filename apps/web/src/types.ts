@@ -41,6 +41,35 @@ export interface Requirement {
 }
 
 export type IANodeKind = 'category' | 'screen'
+/** ID 발번 기록 — 누가·언제·왜. 셋 다 있어야 발번이다 (산출물 P1-05). */
+export interface IdIssuance {
+  by: string
+  at: string
+  reason: string
+}
+
+/** 옛 외부 ID. 개명하면 여기로 내려오고 지우지 않는다. */
+export interface IdAlias {
+  external_id: string
+  valid_from: string
+  valid_to?: string
+  reason: string
+  by: string
+}
+
+/** 기능(FN) — IA 노드 문서 안에 산다. FN 은 IA 1개에만 소속된다. */
+export interface FunctionEntry {
+  id: string
+  name: string
+  kind: 'normal' | 'exception'
+  /** 발번 전에는 없다. 화면에는 «미발번» 으로 적는다. */
+  external_id?: string
+  issued?: IdIssuance
+  aliases?: IdAlias[]
+  base_function_id?: string
+  element_refs?: { screen_plan_id: string; element_or_action_id: string }[]
+}
+
 export interface IANode {
   id: string
   project_id: string
@@ -50,6 +79,88 @@ export interface IANode {
   portal: string
   kind: IANodeKind
   screen_plan_id?: string
+  external_id?: string
+  issued?: IdIssuance
+  aliases?: IdAlias[]
+  requirement_ids?: string[]
+  asis_ref?: string
+  change_reason?: string
+  functions?: FunctionEntry[]
+}
+
+// ---------------------------------------------------------------- RTM (추적 체인, 산출물 P1-05)
+
+export type RtmRowStatus = 'mapped' | 'partial' | 'non_ui_only' | 'unmapped'
+
+export interface RtmIaCell {
+  id: string
+  name: string
+  external_id?: string
+}
+export interface RtmFnCell {
+  id: string
+  name: string
+  external_id?: string
+}
+export interface RtmScrCell {
+  id: string
+  external_id: string
+  title: string
+  status: ScreenStatus
+}
+
+export interface RtmRow {
+  requirement_external_id: string
+  title: string
+  ui_criteria: number
+  non_ui_criteria: number
+  ia: RtmIaCell[]
+  fn: RtmFnCell[]
+  scr: RtmScrCell[]
+  status: RtmRowStatus
+  gap_reason?: string
+}
+
+export interface RtmSummary {
+  requirements_total: number
+  mapped: number
+  partial: number
+  non_ui_only: number
+  unmapped: number
+  /** 분모가 0 이면 null — 0/0 을 100% 로 표시하지 않는다. */
+  req_to_scr_ratio: number | null
+  ia_nodes_total: number
+  ia_nodes_issued: number
+  functions_total: number
+  functions_issued: number
+  screens_total: number
+  test_pass: { status: 'not_run'; reason: string }
+  element_tagging: { refs_total: number; refs_live: number; refs_stale: number; not_run_screens: string[] }
+}
+
+export interface RtmGapProposal {
+  kind: 'link_requirement' | 'define_function' | 'link_screen' | 'issue_ia_id' | 'issue_fn_id'
+  requirement_external_id?: string
+  ia_node_id?: string
+  suggested_value?: string
+  rationale: string
+  proposal_hash: string
+}
+
+export interface RtmReport {
+  summary: RtmSummary
+  rows: RtmRow[]
+  proposals: RtmGapProposal[]
+  g1_traceability: { passed: boolean; reason: string }
+}
+
+/** 발번 응답 — 서버가 다시 계산한 번호가 요청값과 다르면 differs 가 true 다. */
+export interface IdIssueResponse {
+  ia_node: IANode
+  revision: number
+  issued_external_id: string
+  recomputed_external_id: string | null
+  differs: boolean
 }
 
 export type ScreenStatus = 'draft' | 'review' | 'approved'

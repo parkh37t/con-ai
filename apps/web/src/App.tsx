@@ -24,6 +24,7 @@ import { MainPage } from './pages/MainPage.js'
 import { ReferencesPage } from './pages/ReferencesPage.js'
 import { ReviewPage } from './pages/ReviewPage.js'
 import { SimpleHomePage } from './pages/SimpleHomePage.js'
+import { TraceMatrixPage } from './pages/TraceMatrixPage.js'
 import { stageCounts } from './project-nav.js'
 import { hrefTo } from './router.js'
 
@@ -58,6 +59,8 @@ export function App() {
       ? 'asis'
       : route.name === 'references'
         ? 'references'
+        : route.name === 'trace'
+          ? 'trace'
         : route.name === 'review'
           ? 'review'
           : route.name === 'approve'
@@ -92,6 +95,8 @@ export function App() {
     body = <HomePage key={project.id} project={project} projects={projectList} meta={meta.data} route={route} />
   } else if (route.name === 'references') {
     body = <ReferencesPage key={project.id} projectId={project.id} />
+  } else if (route.name === 'trace') {
+    body = <TraceMatrixPage key={project.id} project={project} />
   } else if (route.name === 'asis') {
     body = <AsisListPage key={project.id} project={project} />
   } else {

@@ -885,6 +885,128 @@ ul {
   color: var(--muted);
 }
 
+/* ── ID 매핑 (추적 체인, 산출물 P1-05) ── */
+.kpi-alert {
+  color: var(--red);
+}
+/* 표 안의 보조 줄 — 「무엇이 없는지」를 셀 아래에 작게 적는다 */
+.rtm-sub {
+  display: block;
+  margin-top: 3px;
+  line-height: 1.5;
+  word-break: keep-all;
+}
+/* IA·FN·SCR 코드 칩. 미발번이면 회색 글씨로 «(IA 코드 미발번)» 이 들어온다 */
+.rtm-chip {
+  display: inline-block;
+  margin: 0 4px 3px 0;
+  padding: 2px 7px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--card-soft);
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--text-2);
+  text-decoration: none;
+  white-space: nowrap;
+}
+a.rtm-chip:hover {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+.gap-actor {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.gap-actor input {
+  width: 180px;
+  height: 32px;
+  padding: 0 10px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 400;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--card);
+}
+.gap-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.gap-item {
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--primary);
+  border-radius: 10px;
+  background: var(--card-soft);
+}
+.gap-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.gap-rationale {
+  margin: 6px 0 10px;
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: var(--text-2);
+  word-break: keep-all;
+}
+.gap-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.gap-form input {
+  flex: 1 1 180px;
+  min-width: 0;
+  height: 34px;
+  padding: 0 10px;
+  font: inherit;
+  font-size: 13px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--card);
+}
+.gap-form input:focus {
+  border-color: var(--primary);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(36, 87, 230, 0.12);
+}
+.footnote-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.footnote-list li {
+  padding-left: 14px;
+  position: relative;
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: var(--muted);
+  word-break: keep-all;
+}
+.footnote-list li::before {
+  content: '·';
+  position: absolute;
+  left: 4px;
+  color: var(--border-strong);
+}
+
 /* ── 생성 작업대: 왼쪽 폼 + 오른쪽 실행 패널 ── */
 .gen-layout {
   display: grid;
@@ -1080,6 +1202,11 @@ ul {
   background: var(--amber-bg);
   border-color: var(--amber);
   color: var(--amber);
+}
+.notice-green {
+  background: var(--green-bg);
+  border-color: var(--green);
+  color: var(--green);
 }
 .loading {
   color: var(--muted);

@@ -1,6 +1,24 @@
 import { describe, expect, it } from 'vitest'
 import { hrefTo, hrefToAsisDetail, hrefToDesign, hrefToScreen, parseRoute, withQuery } from './router.js'
 
+describe('ID 매핑 라우트 (#/trace)', () => {
+  it('`#/trace` 는 ID 매핑 화면이다', () => {
+    expect(parseRoute('#/trace')).toEqual({ name: 'trace', query: {} })
+    expect(parseRoute('#/trace/')).toEqual({ name: 'trace', query: {} })
+    expect(parseRoute('#/trace?project=p1')).toEqual({ name: 'trace', query: { project: 'p1' } })
+  })
+
+  it('하위 경로는 없다', () => {
+    expect(parseRoute('#/trace/x')).toEqual({ name: 'not_found', path: '/trace/x', query: {} })
+  })
+
+  it('링크와 쿼리 보존', () => {
+    expect(hrefTo('trace')).toBe('#/trace')
+    expect(hrefTo('trace', { project: 'p1' })).toBe('#/trace?project=p1')
+    expect(withQuery({ name: 'trace', query: { project: 'p1' } }, { project: 'p2' })).toBe('#/trace?project=p2')
+  })
+})
+
 describe('parseRoute — 해시 라우팅', () => {
   it('빈 해시·`#`·`#/` 는 메인 화면이다', () => {
     expect(parseRoute('')).toEqual({ name: 'main', query: {} })

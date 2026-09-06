@@ -1,7 +1,7 @@
 /**
  * 해시 라우팅 — 라우터 라이브러리 없이 `#/…` 경로를 파싱한다 (순수 함수, 테스트 가능).
  *
- * 경로: `#/`(메인), `#/new`(만들기), `#/d/:revisionId`(설계서 결과), `#/advanced`(프로젝트 전체), `#/references`, `#/asis`, `#/asis/:id`,
+ * 경로: `#/`(메인), `#/new`(만들기), `#/d/:revisionId`(설계서 결과), `#/advanced`(프로젝트 전체), `#/trace`(ID 매핑), `#/references`, `#/asis`, `#/asis/:id`,
  *       `#/screens/:id/generate`, `#/screens/:id/review`, `#/screens/:id/approve`.
  * 쿼리(`?rev=…&job=…`)는 해시 뒤에 붙는다.
  */
@@ -13,6 +13,7 @@ export type Route =
   | { name: 'design'; revisionId: string; query: Query }
   | { name: 'advanced'; query: Query }
   | { name: 'references'; query: Query }
+  | { name: 'trace'; query: Query }
   | { name: 'asis'; query: Query }
   | { name: 'asis_detail'; analysisId: string; query: Query }
   | { name: 'generate'; screenId: string; query: Query }
@@ -52,6 +53,7 @@ export function parseRoute(hash: string): Route {
     if (revisionId) return { name: 'design', revisionId, query }
   }
   if (segments.length === 1 && segments[0] === 'references') return { name: 'references', query }
+  if (segments.length === 1 && segments[0] === 'trace') return { name: 'trace', query }
   if (segments.length === 1 && segments[0] === 'asis') return { name: 'asis', query }
   if (segments.length === 2 && segments[0] === 'asis') {
     const analysisId = decodeURIComponent(segments[1] ?? '')
@@ -76,13 +78,14 @@ function encodeQuery(query: Query | undefined): string {
 }
 
 /** 메인·만들기·고급(프로젝트 전체)·포트폴리오·AS-IS 분석 목록 링크. */
-export type FlatRouteName = 'main' | 'create' | 'advanced' | 'references' | 'asis'
+export type FlatRouteName = 'main' | 'create' | 'advanced' | 'references' | 'trace' | 'asis'
 
 const FLAT_ROUTE_PATHS: Readonly<Record<FlatRouteName, string>> = {
   main: '#/',
   create: '#/new',
   advanced: '#/advanced',
   references: '#/references',
+  trace: '#/trace',
   asis: '#/asis',
 }
 
@@ -123,6 +126,8 @@ export function withQuery(route: Route, patch: Query): string {
       return hrefTo('advanced', query)
     case 'references':
       return hrefTo('references', query)
+    case 'trace':
+      return hrefTo('trace', query)
     case 'asis':
       return hrefTo('asis', query)
     case 'asis_detail':
