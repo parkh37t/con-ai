@@ -99,7 +99,7 @@ export function App() {
   } else if (route.name === 'references') {
     body = <ReferencesPage key={project.id} projectId={project.id} />
   } else if (route.name === 'prototype') {
-    body = <PrototypePage key={project.id} project={project} />
+    body = <PrototypePage key={project.id} project={project} projects={projectList} />
   } else if (route.name === 'trace') {
     body = <TraceMatrixPage key={project.id} project={project} />
   } else if (route.name === 'asis') {

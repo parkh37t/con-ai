@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import { assemblePrompt } from '@con-ai/prompt-templates'
 import { AdapterError, AnthropicAdapter, createAdapter, defaultProfileAvailable, FixtureAdapter, OAUTH_BETA_HEADER, type ModelAdapter } from './index.js'
-import { fakeFetch, messageBody, sampleContext, sampleRequest, sampleWireOutput } from './test-fixtures.js'
+import { fakeFetch, messageBody, sampleContext, sampleModelOutputText, sampleRequest } from './test-fixtures.js'
 
 const KEY = 'sk-ant-test-1234567890'
 const TOKEN = 'oauth-test-token-abcdefghijklmnop'
@@ -16,7 +16,7 @@ const prompt = assemblePrompt(req, ctx)
 
 /** 어댑터를 만들고 한 번 호출해 실제로 보낸 헤더를 돌려준다. */
 async function headersSentBy(env: NodeJS.ProcessEnv, opts: { profileAvailable?: () => boolean } = {}) {
-  const { fetch, requests } = fakeFetch(() => ({ status: 200, body: messageBody({ text: JSON.stringify(sampleWireOutput()) }) }))
+  const { fetch, requests } = fakeFetch(() => ({ status: 200, body: messageBody({ text: sampleModelOutputText() }) }))
   const adapter = createAdapter(env, { clientOptions: { fetch, maxRetries: 0 }, ...opts })
   await adapter.generateSpec({ prompt, ctx, req })
   const sent = requests[0]
@@ -104,7 +104,7 @@ describe('createAdapter — 인증 방식 (MODEL_AUTH=api_key|token|auto)', () =
   it('키·토큰이 없고 `ant auth login` 프로필이 있으면 zero-arg 클라이언트로 profile 방식이 된다; 프로필이 실제로 없으면 호출 시 auth 오류다', async () => {
     process.env.ANTHROPIC_CONFIG_DIR = join(scratch, 'empty-config')
     mkdirSync(process.env.ANTHROPIC_CONFIG_DIR, { recursive: true })
-    const { fetch, requests } = fakeFetch(() => ({ status: 200, body: messageBody({ text: JSON.stringify(sampleWireOutput()) }) }))
+    const { fetch, requests } = fakeFetch(() => ({ status: 200, body: messageBody({ text: sampleModelOutputText() }) }))
     const adapter = createAdapter({ MODEL_ADAPTER: 'anthropic' }, { clientOptions: { fetch, maxRetries: 0 }, profileAvailable: () => true })
     expect(adapter.auth).toBe('profile')
     expect(adapter.kind).toBe('anthropic')

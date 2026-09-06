@@ -184,9 +184,11 @@ describe('API 통합 — 생성 → 검토 → 수정 → 완료·내보내기',
     expect(meta).toEqual({ adapter: 'fixture', model: 'fixture', auth: 'none', version: expect.any(String), playwright: false })
     expect(JSON.stringify(meta)).not.toMatch(/sk-|key=|token=/i)
 
+    // 시드는 샘플 도메인 3종(견적·뱅킹·커머스)을 넣는다. 견적 포털이 첫 번째다.
     const projects = (await (await h.get('/api/projects')).json()) as Array<{ id: string; name: string }>
-    expect(projects).toHaveLength(1)
+    expect(projects).toHaveLength(3)
     expect(projects[0]?.id).toBe(SEED.project_id)
+    expect(projects.map((p) => p.name).join(' ')).toContain('뱅킹')
 
     const detail = (await (await h.get(`/api/projects/${SEED.project_id}`)).json()) as { requirements: unknown[]; ia_nodes: unknown[]; screens: Array<{ external_id: string; status: string; revision_count: number; open_comments: number }> }
     expect(detail.requirements).toHaveLength(5)

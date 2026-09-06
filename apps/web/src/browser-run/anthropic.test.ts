@@ -15,6 +15,7 @@ import {
   callAnthropic,
   extractStructured,
 } from './anthropic.js'
+import { countOptionalParameters, STRUCTURED_OUTPUT_OPTIONAL_LIMIT } from './deps.js'
 import type { StoredCredential } from './credential.js'
 import { fakeFetch, modelResponse } from './test-helpers.js'
 
@@ -46,6 +47,8 @@ describe('요청 형태', () => {
     expect(outputConfig.effort).toBe('high')
     expect(outputConfig.format.type).toBe('json_schema')
     expect(outputConfig.format.schema).toEqual(SCREEN_OUTPUT_JSON_SCHEMA)
+    // **실제로 나가는 본문**의 선택 파라미터 수 — 상한(24)을 넘으면 API 가 400 으로 거부한다.
+    expect(countOptionalParameters(outputConfig.format.schema)).toBeLessThanOrEqual(STRUCTURED_OUTPUT_OPTIONAL_LIMIT)
     // thinking 파라미터는 넣지 않는다 (claude-opus-5 기본 adaptive).
     expect(sent?.body['thinking']).toBeUndefined()
   })
@@ -141,25 +144,25 @@ describe('JSON Schema — wire-schema 와 같은 모양', () => {
     for (const o of objects) expect(o['additionalProperties']).toBe(false)
   })
 
-  it('ScreenSpec 필수 키가 빠지지 않는다', () => {
+  it('ScreenSpec 은 모든 키를 요구하고, 선택 키는 null 을 허용하는 모양이다', () => {
     const spec = (SCREEN_OUTPUT_JSON_SCHEMA['properties'] as Record<string, Record<string, unknown>>)['screen_spec']
-    expect(spec?.['required']).toEqual([
-      'schema_version',
-      'screen_id',
-      'baseline_id',
-      'purpose',
-      'shell',
-      'device',
-      'requirements',
-      'sections',
-      'actions',
-      'states',
-      'messages',
-      'data_mapping',
-      'locked_elements',
-      'locked_actions',
-      'unresolved',
-    ])
+    const props = spec?.['properties'] as Record<string, Record<string, unknown>>
+    // 선택 파라미터 상한(24) 때문에 모든 키가 required 다 — 「없음」은 null 로 온다.
+    expect(spec?.['required']).toEqual(Object.keys(props))
+    expect(Object.keys(props)).toContain('roles')
+    // 원래 선택이던 roles 는 «배열 또는 null»
+    expect(props['roles']).toEqual({ anyOf: [{ type: 'array', items: { type: 'string' } }, { type: 'null' }] })
+    // 원래 필수이던 screen_id 는 그대로 문자열이다 (null 을 허용하지 않는다).
+    expect((props['screen_id'] as Record<string, unknown>)['anyOf']).toBeUndefined()
+  })
+
+  /**
+   * 구조화 출력의 선택 파라미터 상한 — 이 검사가 없어서 실제 모델 호출이 400 으로 죽었다.
+   * (API: "Schemas contains too many optional parameters (41) … limit: 24")
+   */
+  it('선택 파라미터가 상한(24) 이하다 — 서버 wire-schema 와 같은 규칙', () => {
+    expect(countOptionalParameters(SCREEN_OUTPUT_JSON_SCHEMA)).toBeLessThanOrEqual(STRUCTURED_OUTPUT_OPTIONAL_LIMIT)
+    expect(countOptionalParameters(REVISION_DRAFT_JSON_SCHEMA)).toBeLessThanOrEqual(STRUCTURED_OUTPUT_OPTIONAL_LIMIT)
   })
 
   it('수정 초안 스키마는 prompt·rationale 두 개', () => {

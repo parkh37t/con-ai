@@ -18,6 +18,7 @@ import {
   FixtureAdapter,
   ScreenSpecShape,
   assemblePrompt,
+  stripNulls,
   assembleRevisionPrompt,
   checkScreenSpecReferences,
   makeResult,
@@ -344,7 +345,8 @@ async function generateOutput(args: {
       { credential, system: prompt.system, user: prompt.user, schema: SCREEN_OUTPUT_JSON_SCHEMA, model: engine.model },
       { fetch: deps.fetch },
     )
-    return { output: call.output, usage: call.usage }
+    // 구조화 출력은 «없음» 을 null 로 보낸다 (선택 파라미터 상한 때문). 스키마가 아는 모양으로 되돌린다.
+    return { output: stripNulls(call.output), usage: call.usage }
   } catch (e) {
     const details = e instanceof BrowserModelError ? e.details : []
     throw new BrowserPipelineError('model_error', `모델 호출에 실패했습니다 (${engine.model}): ${messageOf(e)}`, { stage, details })

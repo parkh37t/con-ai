@@ -4,7 +4,8 @@ import { assemblePrompt, assembleRevisionPrompt } from '@con-ai/prompt-templates
 import { describe, expect, it } from 'vitest'
 import { AnthropicAdapter, DEFAULT_MAX_TOKENS } from './anthropic-adapter.js'
 import { AdapterError } from './errors.js'
-import { errorBody, fakeFetch, messageBody, sampleContext, sampleRequest, sampleWireOutput, type CapturedRequest } from './test-fixtures.js'
+import { errorBody, fakeFetch, messageBody, sampleContext, sampleRequest, sampleModelOutputText, sampleWireOutput, type CapturedRequest } from './test-fixtures.js'
+import { countOptionalParameters, STRUCTURED_OUTPUT_OPTIONAL_LIMIT } from './wire-schema.js'
 
 const KEY = 'sk-ant-test-1234567890'
 
@@ -32,7 +33,7 @@ const prompt = assemblePrompt(req, ctx)
 
 describe('AnthropicAdapter — 구조화 출력 (네트워크 없이 fetch 를 흉내낸다)', () => {
   it('skill 문서 형태로 messages.parse 를 호출하고(system, max_tokens 16000, output_config.format+effort, thinking 없음) 결과를 GenerationOutputInput 으로 돌려준다', async () => {
-    const { adapter, requests } = adapterWith(() => ({ status: 200, body: messageBody({ text: JSON.stringify(sampleWireOutput()) }) }))
+    const { adapter, requests } = adapterWith(() => ({ status: 200, body: messageBody({ text: sampleModelOutputText() }) }))
     expect(adapter.kind).toBe('anthropic')
     expect(adapter.model).toBe('claude-opus-5')
     expect(adapter.auth).toBe('api_key')
@@ -51,6 +52,9 @@ describe('AnthropicAdapter — 구조화 출력 (네트워크 없이 fetch 를 �
     expect(outputConfig.effort).toBe('high')
     expect(outputConfig.format.type).toBe('json_schema')
     expect(outputConfig.format.schema.required).toEqual(['screen_spec', 'trace_proposals', 'unresolved', 'change_summary'])
+    // **실제로 나가는 본문**의 선택 파라미터 수 — 상한(24)을 넘으면 API 가 400 으로 거부한다.
+    // 이 검사가 없어서 실제 호출이 죽었다: "Schemas contains too many optional parameters (41) … limit: 24".
+    expect(countOptionalParameters(outputConfig.format.schema)).toBeLessThanOrEqual(STRUCTURED_OUTPUT_OPTIONAL_LIMIT)
     expect(sent.body).not.toHaveProperty('thinking')
     expect(sent.body).not.toHaveProperty('stream')
     // 결과
@@ -58,7 +62,7 @@ describe('AnthropicAdapter — 구조화 출력 (네트워크 없이 fetch 를 �
     expect(result.output.screen_spec.screen_id).toBe('EXAMPLE-order-list')
     expect(result.usage).toEqual({ input_tokens: 123, output_tokens: 45 })
     expect(result.stop_reason).toBe('end_turn')
-    expect(result.raw_text).toBe(JSON.stringify(sampleWireOutput()))
+    expect(result.raw_text).toBe(sampleModelOutputText())
   })
 
   it('stop_reason 이 refusal 이면 stop_details 를 담은 AdapterError(refusal) 를 던진다', async () => {
@@ -143,13 +147,13 @@ describe('AnthropicAdapter — 구조화 출력 (네트워크 없이 fetch 를 �
     const editReq = sampleRequest({ task_type: 'edit' })
     const withBase = sampleContext({ base_spec: current, comments: [{ id: 'c-1', role: 'designer', author: 'A', text: '검색어를 필수로', element_id: 'query', target: 'screen' }] })
     const revisionPrompt = assembleRevisionPrompt(withBase, '검색어를 필수로 바꾼다')
-    const a = adapterWith(() => ({ status: 200, body: messageBody({ text: JSON.stringify(sampleWireOutput()) }) }))
+    const a = adapterWith(() => ({ status: 200, body: messageBody({ text: sampleModelOutputText() }) }))
     const result = await a.adapter.reviseSpec({ prompt: revisionPrompt, ctx: withBase, req: editReq, current })
     expect(a.requests[0]?.body.messages).toEqual([{ role: 'user', content: revisionPrompt.user }])
     expect(GenerationOutput.safeParse(result.output).success).toBe(true)
 
     const withoutBase = sampleContext()
-    const b = adapterWith(() => ({ status: 200, body: messageBody({ text: JSON.stringify(sampleWireOutput()) }) }))
+    const b = adapterWith(() => ({ status: 200, body: messageBody({ text: sampleModelOutputText() }) }))
     await b.adapter.reviseSpec({ prompt, ctx: withoutBase, req: editReq, current })
     const content = (b.requests[0]?.body.messages as Array<{ content: string }>)[0]?.content ?? ''
     expect(content.startsWith(prompt.user)).toBe(true)

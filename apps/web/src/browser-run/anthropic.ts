@@ -238,12 +238,26 @@ export async function callAnthropic<T>(input: CallInput, opts: { fetch?: FetchLi
  * | WireRevisionDraft     | REVISION_DRAFT_JSON_SCHEMA |
  *
  * 구조화 출력 제약(문서): 모든 object 에 additionalProperties:false, 재귀 금지, 숫자·문자열 길이 제약 미지원.
+ *
+ * **선택 필드는 «필수 + null 허용» 로 보낸다.** 구조화 출력에는 스키마 전체의 선택 파라미터 수 상한(24)이 있고,
+ * 이 구조를 선택 필드로 그대로 보내면 38개가 넘어 API 가 400 으로 거부한다
+ * ("Schemas contains too many optional parameters"). 서버(packages/model-adapter/wire-schema.ts)의 `structuredVariant`
+ * 와 같은 규칙이며, 받은 뒤 `stripNulls` 로 null 인 키를 지워 원래 모양으로 되돌린다. 개수는 테스트가 지킨다.
  */
 
 type JsonSchema = Record<string, unknown>
 
+/**
+ * object 스키마. `required` 에 없는 키는 «필수 + null 허용» 으로 바꿔 담는다 —
+ * 선택 파라미터 수를 0 으로 만들면서 «없음» 을 표현할 수 있게 한다.
+ */
 function obj(properties: Record<string, JsonSchema>, required: string[]): JsonSchema {
-  return { type: 'object', properties, required, additionalProperties: false }
+  const req = new Set(required)
+  const out: Record<string, JsonSchema> = {}
+  for (const [key, value] of Object.entries(properties)) {
+    out[key] = req.has(key) ? value : { anyOf: [value, { type: 'null' }] }
+  }
+  return { type: 'object', properties: out, required: Object.keys(properties), additionalProperties: false }
 }
 function arr(items: JsonSchema): JsonSchema {
   return { type: 'array', items }

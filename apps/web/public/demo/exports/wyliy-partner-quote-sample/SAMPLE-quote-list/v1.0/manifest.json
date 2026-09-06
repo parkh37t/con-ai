@@ -6,10 +6,10 @@
   },
   "screen_external_id": "SAMPLE-quote-list",
   "version": "1.0",
-  "artifact_hash": "5c8aa323e0869404ed63085f2c6ab6846a394452ef6516ca63314fe129576763",
-  "spec_hash": "9a0ea1fb9fb918fa90249045e115052e0e979732d53799aa56048033c708de2d",
+  "artifact_hash": "7b2b77e7309f9724011275572b3b0a10f03b1ea435b6ca10cb7be134d8d36c11",
+  "spec_hash": "98f24297813b2c5f07aa159deffb6f4ac59f52ee7b81b0407d268be66bc17120",
   "approved_by": "데모 기획자",
-  "approved_at": "2026-09-06T13:49:22.979Z",
+  "approved_at": "2026-09-06T14:31:31.670Z",
   "adapter": "fixture",
   "model": "fixture",
   "validation_summary": {
@@ -19,8 +19,8 @@
     "not_run": 0
   },
   "design_handoff": {
-    "screen_revision_id": "d98f2c85-0ea3-4636-91eb-15c62438afa5",
-    "design_input_spec_hash": "9a0ea1fb9fb918fa90249045e115052e0e979732d53799aa56048033c708de2d",
+    "screen_revision_id": "913fab19-f082-4779-b596-59e3094922fb",
+    "design_input_spec_hash": "98f24297813b2c5f07aa159deffb6f4ac59f52ee7b81b0407d268be66bc17120",
     "locked_elements": [],
     "locked_actions": [],
     "allowed_tokens": [
@@ -32,23 +32,23 @@
   "files": [
     {
       "path": "index.html",
-      "sha256": "5c8aa323e0869404ed63085f2c6ab6846a394452ef6516ca63314fe129576763"
+      "sha256": "7b2b77e7309f9724011275572b3b0a10f03b1ea435b6ca10cb7be134d8d36c11"
     },
     {
       "path": "spec.json",
-      "sha256": "16bb6ad006c5b8cd6ec0019a4200900f40ff967a9b09986ed065ec04bdd985c1"
+      "sha256": "b2c99b3025c96f7309f7e10ba03b2150ee97b2dbc4787727dba664b18254e7ea"
     },
     {
       "path": "trace.json",
-      "sha256": "0648d1b93f1059c55ad360ae601fa5c6c8eed5f276700127af0624cbc267319f"
+      "sha256": "a7e40774d8979f364201364c8aa4d122d66222113abb708c46d7b3fbffa867a8"
     },
     {
       "path": "validation.json",
-      "sha256": "167dd7e2592dc6354e13e2e04d7d3f2d73f24e9a4d15d84fade140f5b9a6abaa"
+      "sha256": "c63a97e28119bfafc873f5a1e2032dec5e27c414a7995dbd9a7d4b5393c4b1bf"
     },
     {
       "path": "comments.json",
-      "sha256": "99e9728961fdfae526e4dcd37704503a93b6f3426b0047ec7a28a596df39cafc"
+      "sha256": "41bab6c6cec703070cfbac23909e0e555fe4a1c8b9eaeb5f504be74d99fc008e"
     }
   ]
 }

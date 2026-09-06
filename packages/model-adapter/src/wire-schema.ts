@@ -6,6 +6,12 @@
  * 만으로 같은 구조를 정의한다. enum 값은 schemas 의 enum 을 그대로 써서 어긋나지 않게 한다.
  *
  * 어댑터는 파싱된 wire 결과를 그대로 `output`(GenerationOutputInput)으로 돌려주고, 최종 검증(참조·정규식·필수 CASE)은 서버가 한다 (설계 §8).
+ *
+ * **API 로 보낼 때는 `structuredVariant` 로 바꿔 보낸다.** 구조화 출력에는 스키마 전체의 선택 파라미터 수 상한(24)이 있어
+ * 이 구조를 `.optional()` 그대로 보내면 38개가 되어 API 가 400 으로 거부한다
+ * ("Schemas contains too many optional parameters"). 그래서 보낼 때만 선택(`optional`)을 «필수 + null 허용»(`nullable`)으로
+ * 바꿔 상한을 0 으로 만들고, 받은 뒤 `stripNulls` 로 null 인 키를 지워 원래 스키마로 되읽는다.
+ * 표현력은 그대로다. 개수는 optional-limit 테스트가 지킨다.
  */
 import { z } from 'zod'
 import { ActionType, CaseKind, ColumnFormat, DeviceProfile, ElementType, MessageKind, SortDirection, UnresolvedKind, ValidationRule, type GenerationOutputInput } from '@con-ai/schemas'
@@ -161,4 +167,92 @@ export type WirePainPointDraft = z.infer<typeof WirePainPointDraft>
 /** wire 결과는 그대로 GenerationOutputInput 이어야 한다 — 어긋나면 여기서 컴파일이 실패한다. */
 export function toGenerationOutputInput(wire: WireOutput): GenerationOutputInput {
   return wire
+}
+
+// ---------------------------------------------------------------- 구조화 출력용 변환
+
+/**
+ * 구조화 출력으로 보낼 스키마 — 선택 필드를 «필수 + null 허용» 으로 바꾼다.
+ * 스키마를 두 벌 적지 않으려고 원본에서 **파생**한다 (한쪽만 고쳐 어긋나는 일을 만들지 않는다).
+ */
+export function structuredVariant<T extends z.ZodType>(schema: T): z.ZodType {
+  if (schema instanceof z.ZodOptional) return structuredVariant(schema.unwrap() as z.ZodType).nullable()
+  if (schema instanceof z.ZodNullable) return structuredVariant(schema.unwrap() as z.ZodType).nullable()
+  if (schema instanceof z.ZodArray) return z.array(structuredVariant(schema.element as z.ZodType))
+  if (schema instanceof z.ZodObject) {
+    const shape = schema.shape as Record<string, z.ZodType>
+    const next: Record<string, z.ZodType> = {}
+    for (const [key, value] of Object.entries(shape)) next[key] = structuredVariant(value)
+    const built = z.object(next)
+    const description = schema.description
+    return description === undefined ? built : built.describe(description)
+  }
+  return schema
+}
+
+/**
+ * 값이 null 인 키를 지운다 — 구조화 출력의 «없음» 표기(null)를 스키마의 «없음» 표기(키 없음)로 되돌린다.
+ * 배열 원소의 null 은 지우지 않는다. 형식 오류이므로 뒤 스키마가 거부해야 한다.
+ */
+export function stripNulls(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map((v) => stripNulls(v))
+  if (value === null || typeof value !== 'object') return value
+  const out: Record<string, unknown> = {}
+  for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+    if (v === null) continue
+    out[k] = stripNulls(v)
+  }
+  return out
+}
+
+/**
+ * `stripNulls` 의 반대 — 없는 선택 키를 null 로 채운다. **모델이 실제로 보내는 모양**이다.
+ * 테스트가 모델 응답을 흉내낼 때 쓴다 (없는 키를 그대로 두면 실제 응답과 달라 검사가 헛돈다).
+ */
+export function fillMissingWithNull<T extends z.ZodType>(schema: T, value: unknown): unknown {
+  if (schema instanceof z.ZodOptional) return value === undefined ? null : fillMissingWithNull(schema.unwrap() as z.ZodType, value)
+  if (schema instanceof z.ZodNullable) return value === undefined || value === null ? null : fillMissingWithNull(schema.unwrap() as z.ZodType, value)
+  if (schema instanceof z.ZodArray) {
+    return Array.isArray(value) ? value.map((v) => fillMissingWithNull(schema.element as z.ZodType, v)) : value
+  }
+  if (schema instanceof z.ZodObject) {
+    if (value === null || typeof value !== 'object' || Array.isArray(value)) return value
+    const source = value as Record<string, unknown>
+    const out: Record<string, unknown> = {}
+    for (const [key, inner] of Object.entries(schema.shape as Record<string, z.ZodType>)) {
+      out[key] = fillMissingWithNull(inner, source[key])
+    }
+    return out
+  }
+  return value
+}
+
+/**
+ * 펼친 스키마 트리에서 선택 파라미터가 몇 개인지 — API 가 세는 방식대로 «나올 때마다» 센다.
+ * 상한(24)을 넘으면 API 가 400 으로 거부하므로 테스트가 이 값을 지킨다.
+ */
+export const STRUCTURED_OUTPUT_OPTIONAL_LIMIT = 24
+
+export function countOptionalParameters(jsonSchema: unknown): number {
+  if (jsonSchema === null || typeof jsonSchema !== 'object') return 0
+  const node = jsonSchema as Record<string, unknown>
+  let n = 0
+  const properties = node['properties']
+  if (node['type'] === 'object' && properties !== undefined && typeof properties === 'object') {
+    const required = new Set(Array.isArray(node['required']) ? (node['required'] as unknown[]).map(String) : [])
+    for (const [key, value] of Object.entries(properties as Record<string, unknown>)) {
+      if (!required.has(key)) n += 1
+      n += countOptionalParameters(value)
+    }
+  }
+  if (node['items'] !== undefined) n += countOptionalParameters(node['items'])
+  for (const key of ['anyOf', 'oneOf', 'allOf']) {
+    const branch = node[key]
+    if (Array.isArray(branch)) for (const v of branch) n += countOptionalParameters(v)
+  }
+  const defs = node['$defs']
+  if (defs !== undefined && typeof defs === 'object' && defs !== null) {
+    for (const v of Object.values(defs as Record<string, unknown>)) n += countOptionalParameters(v)
+  }
+  return n
 }

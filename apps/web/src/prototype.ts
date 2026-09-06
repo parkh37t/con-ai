@@ -68,16 +68,31 @@ export const PROTOTYPE_STEPS: readonly PrototypeStepSpec[] = [
 
 // ---------------------------------------------------------------- 샘플 데이터 (가상)
 
-/** ② 생성에 쓰는 한 줄 요청. */
-export const PROTOTYPE_SENTENCE =
-  '파트너가 견적 요청 목록을 조회하고 상태·기간으로 검색한다. 목록에서 상세로 이동하고, 엑셀 다운로드 버튼으로 목록을 내려받는다.'
+/**
+ * ② 생성에 쓰는 한 줄 요청 — **그 프로젝트의 요구사항에서 만든다.**
+ * 도메인마다 다른 문장을 손으로 적어 두면 프로젝트를 늘릴 때마다 어긋난다.
+ * 요구사항 본문이 이미 «누가 무엇을 한다» 한 문장이라 그대로 쓰기 좋다.
+ */
+export function prototypeSentence(requirements: ReadonlyArray<{ title: string; body: string }>): string {
+  const first = requirements[0]
+  if (first === undefined) return PROTOTYPE_SENTENCE_FALLBACK
+  // 목록 화면 하나에 담기 좋은 두 번째 요구사항(내려받기·다운로드)이 있으면 함께 넣는다.
+  const extra = requirements.slice(1).find((r) => /내려받|다운로드/.test(`${r.title} ${r.body}`))
+  return extra === undefined ? first.body : `${first.body} ${extra.body}`
+}
 
-/** ③ 검토에 쓰는 코멘트 2건. 차단 1건이 있어야 승인 게이트가 실제로 막힌다. */
+/** 요구사항을 아직 읽지 못했을 때만 쓰는 문장. */
+export const PROTOTYPE_SENTENCE_FALLBACK = '사용자가 목록을 조회하고 조건으로 검색한다. 목록에서 상세로 이동하고, 다운로드 버튼으로 목록을 내려받는다.'
+
+/**
+ * ③ 검토에 쓰는 코멘트 2건. 차단 1건이 있어야 승인 게이트가 실제로 막힌다.
+ * 어느 도메인의 목록 화면에도 그대로 맞는 말만 쓴다 (특정 화면의 라벨을 박아 두지 않는다).
+ */
 export const PROTOTYPE_COMMENTS: ReadonlyArray<{ author: string; role: CommentRole; text: string; blocking: boolean }> = [
   {
     author: '샘플 디자이너',
     role: 'designer',
-    text: '검색 영역의 「견적번호」 라벨을 「견적 번호」로 띄어 써 주세요. 라벨이 붙어 있어 읽기 어렵습니다.',
+    text: '검색 영역 라벨의 띄어쓰기를 규격대로 맞춰 주세요. 지금은 붙어 있어 읽기 어렵습니다.',
     blocking: true,
   },
   {
@@ -107,6 +122,11 @@ export interface PrototypeRun {
 }
 
 export const PROTOTYPE_STORE_KEY = 'con-ai:prototype'
+
+/** 진행 기록은 **프로젝트마다 따로** 남긴다 — 도메인을 바꿔 돌릴 때 섞이지 않게 한다. */
+export function runKey(projectId: string): string {
+  return `${PROTOTYPE_STORE_KEY}:${projectId}`
+}
 
 export function emptyRun(): PrototypeRun {
   return {}
@@ -180,11 +200,11 @@ export function setPrototypeStorage(get: (() => StorageLike | null) | null): voi
 }
 
 /** 저장된 진행 기록. 모양이 깨졌으면 빈 상태로 시작한다 (예전 값을 새 결과처럼 쓰지 않는다). */
-export function loadRun(): PrototypeRun {
+export function loadRun(projectId: string): PrototypeRun {
   const s = storage()
   if (!s) return emptyRun()
   try {
-    const raw = s.getItem(PROTOTYPE_STORE_KEY)
+    const raw = s.getItem(runKey(projectId))
     if (raw === null || raw === '') return emptyRun()
     const parsed: unknown = JSON.parse(raw)
     if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) return emptyRun()
@@ -195,22 +215,22 @@ export function loadRun(): PrototypeRun {
 }
 
 /** 저장한다. 실패해도 화면은 계속 동작한다 (false 를 돌려 화면이 알린다). */
-export function saveRun(run: PrototypeRun): boolean {
+export function saveRun(projectId: string, run: PrototypeRun): boolean {
   const s = storage()
   if (!s) return false
   try {
-    s.setItem(PROTOTYPE_STORE_KEY, JSON.stringify(run))
+    s.setItem(runKey(projectId), JSON.stringify(run))
     return true
   } catch {
     return false
   }
 }
 
-export function clearRun(): void {
+export function clearRun(projectId: string): void {
   const s = storage()
   if (!s) return
   try {
-    s.removeItem(PROTOTYPE_STORE_KEY)
+    s.removeItem(runKey(projectId))
   } catch {
     /* 무시 */
   }

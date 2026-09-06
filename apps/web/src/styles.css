@@ -3397,6 +3397,36 @@ button.chip:hover,
 /* ══════════════════════════════════════════════════════════════
    프로토타입 둘러보기 (#/prototype) — 4단계를 순서대로 실행한다
    ══════════════════════════════════════════════════════════════ */
+/* 프로토타입 샘플 도메인 선택 — 탭이 아니라 «지금 어느 도메인을 돌리는지» 표시다. */
+.proto-projects {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+}
+.proto-project {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--text-2);
+  font-size: 13px;
+  text-decoration: none;
+}
+.proto-project:hover {
+  border-color: var(--border-strong);
+  color: var(--ink);
+}
+.proto-project.is-current {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--primary-text);
+  font-weight: 600;
+}
+
 .proto-status {
   display: flex;
   align-items: center;

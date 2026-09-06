@@ -17,13 +17,13 @@ import { notifyDataChanged, useAsync, useStoredValue } from '../hooks.js'
 import {
   PROTOTYPE_APPROVER,
   PROTOTYPE_COMMENTS,
-  PROTOTYPE_SENTENCE,
   PROTOTYPE_STEPS,
   clearRun,
   doneCount,
   isComplete,
   loadRun,
   progressText,
+  prototypeSentence,
   saveRun,
   stepStatus,
   type PrototypeRun,
@@ -38,8 +38,8 @@ import type { Job, Project, ScreenCreateInput } from '../types.js'
 const POLL_MS = 700
 const POLL_LIMIT = 400
 
-export function PrototypePage({ project }: { project: Project }) {
-  const [run, setRun] = useState<PrototypeRun>(() => loadRun())
+export function PrototypePage({ project, projects }: { project: Project; projects: Project[] }) {
+  const [run, setRun] = useState<PrototypeRun>(() => loadRun(project.id))
   const [busy, setBusy] = useState<PrototypeStepId | null>(null)
   const [error, setError] = useState<unknown>(null)
   const [note, setNote] = useState<string | null>(null)
@@ -47,10 +47,14 @@ export function PrototypePage({ project }: { project: Project }) {
   const [approver, setApprover] = useStoredValue('con-ai.approver', PROTOTYPE_APPROVER)
   const samples = useAsync(async () => (IS_DEMO ? await loadAsisSamples() : []), [])
   const meta = useAsync(() => api.meta(), [])
+  // 한 줄 요청은 이 프로젝트의 요구사항에서 만든다 — 도메인마다 문장을 손으로 적어 두지 않는다.
+  const detail = useAsync(() => api.project(project.id), [project.id])
+  const sentence = prototypeSentence(detail.data?.requirements ?? [])
+  const firstScreen = detail.data?.screens[0]
 
   useEffect(() => {
-    if (!saveRun(run)) setStorageWarning(true)
-  }, [run])
+    if (!saveRun(project.id, run)) setStorageWarning(true)
+  }, [project.id, run])
 
   const advance = (patch: Partial<PrototypeRun>) => setRun((r) => ({ ...r, ...patch }))
 
@@ -86,11 +90,14 @@ export function PrototypePage({ project }: { project: Project }) {
       const references = await api.references(project.id)
       // 「만들기」 화면과 같은 절차 — 참고 화면을 자동으로 고르고, 그 열 구성으로 예시 더미데이터를 붙인다.
       // (더미데이터가 없으면 표가 0행이 되어 V3 검색 검사가 정직하게 실패한다.)
-      const sampleFrom = autoReferenceIds(PROTOTYPE_SENTENCE, references)[0]
-      const body: ScreenCreateInput = { title: '견적 요청 목록 (프로토타입)', device: 'desktop', shell: 'partner-page' }
+      const sampleFrom = autoReferenceIds(sentence, references)[0]
+      // 화면 이름·shell·기기는 그 프로젝트의 기존 화면을 따른다 (뱅킹은 모바일, 커머스는 PC).
+      const device = firstScreen?.device ?? 'desktop'
+      const body: ScreenCreateInput = { title: `${project.name.split('—').pop()?.trim() ?? '샘플'} 목록 (프로토타입)`, device }
+      if (firstScreen?.shell !== undefined) body.shell = firstScreen.shell
       if (sampleFrom !== undefined) body.sample_from = sampleFrom
       const { screen } = await api.createScreen(project.id, body)
-      const { request } = buildSimpleCreateRequest({ screen_id: screen.id, sentence: PROTOTYPE_SENTENCE, device: 'desktop', references })
+      const { request } = buildSimpleCreateRequest({ screen_id: screen.id, sentence, device, references })
       const { job_id } = await api.createJob(screen.id, request)
       const job = await pollJob(job_id)
       const revisionId = job.result?.revision_id
@@ -111,7 +118,7 @@ export function PrototypePage({ project }: { project: Project }) {
       }
       const draft = await api.revisionPrompt(baseId, commentIds)
       const base = await api.revision(baseId)
-      const request = buildSimpleEditRequest({ screen_id: screenId, base_revision_id: baseId, instruction: draft.prompt, device: 'desktop', spec: base.spec })
+      const request = buildSimpleEditRequest({ screen_id: screenId, base_revision_id: baseId, instruction: draft.prompt, device: firstScreen?.device ?? 'desktop', spec: base.spec })
       request.comment_ids = commentIds
       const { job_id } = await api.createJob(screenId, request)
       const job = await pollJob(job_id)
@@ -139,7 +146,7 @@ export function PrototypePage({ project }: { project: Project }) {
   }
 
   const reset = () => {
-    clearRun()
+    clearRun(project.id)
     setRun({})
     setError(null)
     setNote('진행 기록을 지웠습니다. 만들어진 화면·설계서는 그대로 남아 있습니다 (「이 브라우저 저장 데이터 지우기」로 함께 지울 수 있습니다).')
@@ -169,6 +176,24 @@ export function PrototypePage({ project }: { project: Project }) {
           </p>
         </div>
       </header>
+
+      {projects.length > 1 && (
+        <nav className="proto-projects" aria-label="샘플 도메인">
+          <span className="muted small">샘플 도메인</span>
+          {projects.map((p) => (
+            <a
+              key={p.id}
+              className={`proto-project${p.id === project.id ? ' is-current' : ''}`}
+              href={hrefTo('prototype', { project: p.id })}
+              data-testid="proto-project"
+              {...(p.id === project.id ? { 'aria-current': 'page' as const } : {})}
+            >
+              {p.name.split('—').pop()?.trim() ?? p.name}
+            </a>
+          ))}
+          <span className="muted small">— 도메인마다 진행 기록을 따로 남깁니다</span>
+        </nav>
+      )}
 
       <div className="proto-status" data-testid="proto-status">
         <span className="proto-progress" data-testid="proto-progress">
@@ -206,6 +231,7 @@ export function PrototypePage({ project }: { project: Project }) {
             disabled={busy !== null}
             run={run}
             samples={samples.data ?? []}
+            sentence={sentence}
             approver={approver}
             setApprover={setApprover}
             onRun={() => void RUNNERS[spec.id]()}
@@ -242,6 +268,7 @@ function StepCard({
   disabled,
   run,
   samples,
+  sentence,
   approver,
   setApprover,
   onRun,
@@ -252,6 +279,7 @@ function StepCard({
   disabled: boolean
   run: PrototypeRun
   samples: readonly AsisSampleTarget[]
+  sentence: string
   approver: string
   setApprover: (v: string) => void
   onRun: () => void
@@ -286,7 +314,7 @@ function StepCard({
         )}
       </dl>
 
-      <StepDetail spec={spec} run={run} samples={samples} approver={approver} setApprover={setApprover} />
+      <StepDetail spec={spec} run={run} samples={samples} sentence={sentence} approver={approver} setApprover={setApprover} />
 
       <div className="proto-step-actions">
         {/* 끝난 단계는 실행 버튼을 두지 않는다 — 다시 누를 수 없는 버튼을 남겨 두면 무엇을 해야 할지 흐려진다. */}
@@ -306,12 +334,14 @@ function StepDetail({
   spec,
   run,
   samples,
+  sentence,
   approver,
   setApprover,
 }: {
   spec: PrototypeStepSpec
   run: PrototypeRun
   samples: readonly AsisSampleTarget[]
+  sentence: string
   approver: string
   setApprover: (v: string) => void
 }) {
@@ -327,7 +357,7 @@ function StepDetail({
   if (spec.id === 'generate') {
     return (
       <p className="proto-sample" data-testid="proto-sample">
-        요청 문장: <q>{PROTOTYPE_SENTENCE}</q>
+        요청 문장: <q data-testid="proto-sentence">{sentence}</q>
       </p>
     )
   }

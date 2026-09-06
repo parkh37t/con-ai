@@ -3,7 +3,7 @@ import type { ClientOptions } from '@anthropic-ai/sdk'
 import { EXAMPLE_ORDER_LIST_EXTENDED, type ScreenSpecInput } from '@con-ai/schemas'
 import type { GenerationContext, SliceGenerationRequest } from '@con-ai/prompt-templates'
 import type { AsisStructure } from './types.js'
-import type { WireOutput } from './wire-schema.js'
+import { fillMissingWithNull, WireOutput } from './wire-schema.js'
 
 export const REQ_UUID = '33333333-3333-4333-8333-333333333333'
 export const SCREEN_UUID = '44444444-4444-4444-8444-444444444444'
@@ -139,4 +139,12 @@ export function fakeFetch(respond: (req: CapturedRequest) => { status: number; b
     return new Response(JSON.stringify(res.body), { status: res.status, headers: { 'content-type': 'application/json', 'request-id': 'req_test' } })
   }
   return { fetch, requests }
+}
+
+/**
+ * 모델이 실제로 보내는 응답 본문 — 구조화 출력은 모든 키를 필수로 요구하므로 «해당 없음» 이 null 로 온다.
+ * 검사가 실제 응답과 같은 모양을 쓰도록 여기서 만든다 (wire-schema.ts 의 structuredVariant 참고).
+ */
+export function sampleModelOutputText(): string {
+  return JSON.stringify(fillMissingWithNull(WireOutput, sampleWireOutput()))
 }

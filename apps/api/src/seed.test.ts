@@ -1,7 +1,7 @@
 /** 시드 테스트 — 모든 레퍼런스 spec 이 ScreenSpec 으로 파싱되고, 화면 3개·요구사항 5건·더미데이터가 fixture_id 와 맞고, 두 번 실행해도 중복되지 않는다. */
 import { describe, expect, it } from 'vitest'
 import { IANode, PromptTemplate, ScreenSpec, ShellId } from '@con-ai/schemas'
-import { sha256, type DummyDataDocument, type ProjectDocument, type ReferenceDocument, type RequirementDocument, type ScreenDocument } from '@con-ai/worker-generation'
+import { sha256, type DocumentKind, type DummyDataDocument, type ProjectDocument, type ReferenceDocument, type RequirementDocument, type ScreenDocument } from '@con-ai/worker-generation'
 import { SEED, SEED_DUMMY_DATA, SEED_PROJECT_NAME, SEED_REFERENCES, SEED_REQUIREMENTS, SEED_SCREENS, goldenCreatePopupSpec, goldenDetailSpec, goldenListSpec, seedIfEmpty } from './seed.js'
 import { SqliteStore } from './store.js'
 
@@ -69,31 +69,36 @@ describe('시드 (계약 §10)', () => {
     expect(SEED_DUMMY_DATA.find((d) => d.id === 'SAMPLE-quote-list-error')?.case_kind).toBe('error')
   })
 
-  it('빈 DB 에 시드하면 프로젝트·화면 3개·IA·레퍼런스·더미·템플릿이 들어가고, 두 번째 호출은 아무것도 하지 않는다', () => {
+  /**
+   * 이 검사의 대상은 **견적 포털 시드**다. 같은 seedIfEmpty 가 도메인 샘플(뱅킹·커머스)도 넣으므로
+   * 개수는 프로젝트로 걸러서 센다 (도메인 쪽은 seed-domains.test.ts 가 따로 본다).
+   */
+  it('빈 DB 에 시드하면 견적 프로젝트의 화면 3개·IA·레퍼런스·더미·템플릿이 들어가고, 두 번째 호출은 아무것도 하지 않는다', () => {
     const store = new SqliteStore(':memory:')
     const first = seedIfEmpty(store, () => '2026-09-05T09:00:00.000Z')
     expect(first.seeded).toBe(true)
     expect(first.project_id).toBe(SEED.project_id)
 
-    const projects = store.list<ProjectDocument>('project')
-    expect(projects).toHaveLength(1)
-    expect(projects[0]?.data.name).toBe(SEED_PROJECT_NAME)
-    expect(projects[0]?.data.baseline_id).toBe(SEED.baseline_id)
+    const mine = <T extends { project_id?: string | undefined }>(kind: DocumentKind) => store.list<T>(kind, (d) => d.data.project_id === SEED.project_id)
 
-    const screens = store.list<ScreenDocument>('screen')
+    const project = store.list<ProjectDocument>('project').find((p) => p.id === SEED.project_id)
+    expect(project?.data.name).toBe(SEED_PROJECT_NAME)
+    expect(project?.data.baseline_id).toBe(SEED.baseline_id)
+
+    const screens = mine<ScreenDocument>('screen')
     expect(screens.map((s) => s.data.external_id)).toEqual(['SAMPLE-quote-list', 'SAMPLE-quote-detail', 'SAMPLE-quote-create-popup'])
     expect(screens.map((s) => s.data.shell)).toEqual(['partner-page', 'partner-page', 'partner-popup'])
     for (const s of screens) expect(ShellId.safeParse(s.data.shell).success).toBe(true)
 
-    const nodes = store.list<IANode>('ia_node')
+    const nodes = mine<IANode>('ia_node')
     expect(nodes).toHaveLength(5)
-    for (const n of nodes) expect(IANode.safeParse(n.data).success).toBe(true)
+    for (const n of store.list<IANode>('ia_node')) expect(IANode.safeParse(n.data).success).toBe(true)
     const screenNodes = nodes.filter((n) => n.data.kind === 'screen')
     expect(new Set(screenNodes.map((n) => n.data.screen_plan_id))).toEqual(new Set(screens.map((s) => s.id)))
 
-    expect(store.list<RequirementDocument>('requirement')).toHaveLength(5)
-    expect(store.list<ReferenceDocument>('reference')).toHaveLength(3)
-    expect(store.list<DummyDataDocument>('dummy_data')).toHaveLength(SEED_DUMMY_DATA.length)
+    expect(mine<RequirementDocument>('requirement')).toHaveLength(5)
+    expect(mine<ReferenceDocument>('reference')).toHaveLength(3)
+    expect(mine<DummyDataDocument>('dummy_data')).toHaveLength(SEED_DUMMY_DATA.length)
 
     const templates = store.list<{ version: string; body: string; body_hash: string }>('prompt_template')
     expect(templates).toHaveLength(1)
@@ -101,9 +106,14 @@ describe('시드 (계약 §10)', () => {
     expect(templates[0]?.data.body_hash).toBe(sha256(templates[0]?.data.body ?? ''))
     expect(PromptTemplate.safeParse(templates[0]?.data).success).toBe(true)
 
+    const before = store.count()
     const second = seedIfEmpty(store)
     expect(second.seeded).toBe(false)
-    expect(store.count()).toBe(1 + 5 + 5 + 3 + 3 + SEED_DUMMY_DATA.length + 1)
+    expect(store.count()).toBe(before) // 다시 불러도 늘지 않는다
+    // 견적 시드가 넣은 문서 수는 그대로다 (도메인 샘플이 끼어들어도 이 프로젝트의 수는 변하지 않는다).
+    expect(1 + mine('requirement').length + mine('ia_node').length + mine('screen').length + mine('reference').length + mine('dummy_data').length + 1).toBe(
+      1 + 5 + 5 + 3 + 3 + SEED_DUMMY_DATA.length + 1,
+    )
     store.close()
   })
 })

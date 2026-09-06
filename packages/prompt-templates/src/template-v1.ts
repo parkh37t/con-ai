@@ -71,6 +71,9 @@ export function buildSystemPrompt(ctx: GenerationContext, mode: 'generate' | 're
     '- 잠긴 요소·동작(locked_elements, locked_actions, 유지 조건)은 변경하지 않는다.',
     '- 실제 거래·개인정보 조회·외부 업무 API 동작은 명세에 넣지 않는다.',
     `출력: 지정 스키마의 JSON 객체 하나 — ${OUTPUT_KINDS.join(', ')}. ${CONTRACT_LINES.no_html} JSON 밖의 설명 문장도 출력하지 않는다.`,
+    // 구조화 출력에는 선택 파라미터 수 상한이 있어 모든 키를 필수로 보낸다 (model-adapter/wire-schema.ts).
+    // 그래서 «해당 없음» 을 빈 문자열이나 지어낸 값으로 채우지 않도록 여기서 분명히 말해 둔다.
+    '- 스키마의 모든 키를 빠짐없이 넣는다. 해당 없는 값은 빈 문자열이나 임의의 값이 아니라 null 로 보낸다.',
     '',
     '## 근거 우선순위',
     CONTRACT_LINES.priority,

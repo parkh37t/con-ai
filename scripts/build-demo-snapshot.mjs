@@ -335,9 +335,12 @@ async function main() {
     // ---------- 6. GET 스냅샷 (승인 직전 상태) ----------
     await get('/api/meta')
     await get('/api/projects')
-    await get(`/api/projects/${project.id}`)
-    await get(`/api/projects/${project.id}/references`)
-    await get(`/api/projects/${project.id}/asis-analyses`)
+    // 샘플 도메인(견적·뱅킹·커머스)을 모두 담는다 — 하나만 담으면 나머지 도메인 화면이 배포에서 404 가 된다.
+    for (const p of projects) {
+      await get(`/api/projects/${p.id}`)
+      await get(`/api/projects/${p.id}/references`)
+      await get(`/api/projects/${p.id}/asis-analyses`)
+    }
     for (const s of detail.screens) await get(`/api/screens/${s.id}`)
     const revisionIds = [rev1Id, rev2Id]
     for (const id of revisionIds) await get(`/api/revisions/${id}`)

@@ -7,6 +7,7 @@
  * DB 가 비어 있을 때(project 문서 0건)만 실행한다.
  */
 import { ScreenSpec, type IANode, type ScreenSpecInput } from '@con-ai/schemas'
+import { SEED_DOMAINS, domainDocuments } from './seed-domains.js'
 import { sha256, type DummyDataDocument, type ProjectDocument, type PromptTemplateDocument, type ReferenceDocument, type RequirementDocument, type ScreenDocument, type Store } from '@con-ai/worker-generation'
 
 /** 시드 문서 ID (테스트·API 가 참조). 합성 UUID 는 앞자리로 종류를 구분한다: a1 프로젝트, a2 IA, a3 요구사항, a4 화면, a5 레퍼런스, a6 템플릿, a7 anchor. */
@@ -615,5 +616,16 @@ export function seedIfEmpty(store: Store, now: () => string = () => new Date().t
   for (const ref of SEED_REFERENCES) store.put('reference', ref.id, ref, 0)
   for (const d of SEED_DUMMY_DATA) store.put('dummy_data', d.id, d, 0)
   store.put('prompt_template', SEED_PROMPT_TEMPLATE.id, SEED_PROMPT_TEMPLATE, 0)
+
+  // 도메인 샘플(뱅킹·커머스) — 견적 포털 하나만으로는 다른 업무에서도 되는지 볼 수 없다 (seed-domains.ts).
+  for (const domain of SEED_DOMAINS) {
+    const docs = domainDocuments(domain, now())
+    store.put('project', docs.project.id, docs.project, 0)
+    for (const r of docs.requirements) store.put('requirement', r.id, r, 0)
+    for (const n of docs.ia_nodes) store.put('ia_node', n.id, n, 0)
+    for (const s of docs.screens) store.put('screen', s.id, s, 0)
+    for (const ref of docs.references) store.put('reference', ref.id, ref, 0)
+    for (const d of docs.dummy_data) store.put('dummy_data', d.id, d, 0)
+  }
   return { seeded: true, project_id: project.id }
 }

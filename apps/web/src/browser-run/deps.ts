@@ -46,4 +46,6 @@ export type { IANode as IANodeShape } from '../../../../packages/schemas/src/scr
 // 더미 어댑터 — 서버의 `MODEL_ADAPTER=fixture` 와 **같은 클래스**다. 네트워크·시각·난수를 쓰지 않는다.
 // (model-adapter 의 index.ts 는 `node:fs`/`node:path` 를 쓰므로 어댑터 파일에서 직접 가져온다.)
 export { FIXTURE_MODEL, FixtureAdapter } from '../../../../packages/model-adapter/src/fixture-adapter.js'
+// 구조화 출력의 «없음»(null) 을 스키마의 «없음»(키 없음) 으로 되돌린다 — 서버와 같은 함수를 쓴다.
+export { countOptionalParameters, STRUCTURED_OUTPUT_OPTIONAL_LIMIT, stripNulls } from '../../../../packages/model-adapter/src/wire-schema.js'
 export type { AdapterResult, AsisStructure, PainPointDraft, PainPointDraftResult } from '../../../../packages/model-adapter/src/types.js'

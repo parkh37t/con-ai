@@ -97,3 +97,53 @@ test('정적 데모 프로토타입: 4단계를 끝까지 실행하고 새로고
     expect(consoleErrors, `콘솔 오류: ${consoleErrors.join(' | ')}`).toEqual([])
   })
 })
+
+/**
+ * 도메인 3종을 모두 돌린다 — 「견적 포털에서만 되는 것」이 아님을 실제로 확인한다.
+ * (기획자가 「뱅킹 앱에서 조회 화면이다」 를 넣었을 때 막혔던 것이 이 검사가 없어서였다.)
+ */
+test('정적 데모 프로토타입: 샘플 도메인 3종(견적·뱅킹·커머스)이 모두 4단계를 통과한다', async ({ page }) => {
+  test.setTimeout(600_000)
+  const consoleErrors: string[] = []
+  page.on('console', (m) => {
+    if (m.type() === 'error') consoleErrors.push(m.text())
+  })
+  page.on('pageerror', (e) => consoleErrors.push(`pageerror: ${e.message}`))
+
+  await page.goto('#/')
+  await page.evaluate(() => localStorage.clear())
+  await page.goto('#/prototype')
+  await expect(page.getByTestId('proto-status')).toBeVisible({ timeout: 30_000 })
+
+  const tabs = page.locator('[data-testid="proto-project"]')
+  await expect(tabs).toHaveCount(3)
+  const names = await tabs.allInnerTexts()
+  expect(names.join(' ')).toContain('뱅킹')
+  expect(names.join(' ')).toContain('커머스')
+
+  for (let i = 0; i < 3; i++) {
+    const label = names[i] ?? `${i}`
+    await test.step(`${label} — 4단계를 끝까지 돌린다`, async () => {
+      await page.locator('[data-testid="proto-project"]').nth(i).click()
+      await expect(page.getByTestId('proto-progress')).toContainText('0단계')
+      // 요청 문장은 그 도메인의 요구사항에서 나온다 — 다른 도메인의 말이 섞이지 않는다.
+      const sentence = await page.locator('[data-testid="proto-step"][data-step="generate"]').getByTestId('proto-sentence').innerText()
+      expect(sentence.length).toBeGreaterThan(20)
+
+      for (const id of ['asis', 'generate', 'review', 'approve']) await runStep(page, id)
+      await expect(page.getByTestId('proto-complete')).toBeVisible()
+      await expect(page.locator('[data-testid="proto-step"][data-step="approve"]').getByTestId('proto-result')).toContainText('v1.0')
+    })
+  }
+
+  await test.step('도메인별 진행 기록이 서로 섞이지 않는다', async () => {
+    await page.reload()
+    await expect(page.getByTestId('proto-status')).toBeVisible({ timeout: 30_000 })
+    for (let i = 0; i < 3; i++) {
+      await page.locator('[data-testid="proto-project"]').nth(i).click()
+      await expect(page.getByTestId('proto-progress')).toContainText('모두 끝났습니다')
+    }
+  })
+
+  expect(consoleErrors, `콘솔 오류: ${consoleErrors.join(' | ')}`).toEqual([])
+})

@@ -14,7 +14,7 @@ import type { ScreenSpecShape } from '@con-ai/schemas'
 import type { AssembledPrompt, GenerationContext, SliceGenerationRequest } from '@con-ai/prompt-templates'
 import { AdapterError } from './errors.js'
 import type { AdapterAuth, AdapterResult, AsisStructure, ModelAdapter, PainPointDraftResult } from './types.js'
-import { toGenerationOutputInput, WireOutput, WirePainPointDraft, WireRevisionDraft } from './wire-schema.js'
+import { stripNulls, structuredVariant, toGenerationOutputInput, WireOutput, WirePainPointDraft, WireRevisionDraft } from './wire-schema.js'
 
 export const DEFAULT_MODEL = 'claude-opus-5'
 export const DEFAULT_MAX_TOKENS = 16000
@@ -124,7 +124,11 @@ export class AnthropicAdapter implements ModelAdapter {
     return { summary: r.parsed.summary, pain_points: r.parsed.pain_points }
   }
 
-  /** skill 문서 "Structured Outputs" 의 형태 그대로 호출한다. thinking 파라미터는 넣지 않는다. */
+  /**
+   * skill 문서 "Structured Outputs" 의 형태 그대로 호출한다. thinking 파라미터는 넣지 않는다.
+   * 보낼 때는 `structuredVariant` 로 선택 필드를 «필수 + null 허용» 으로 바꾼다 (선택 파라미터 상한 24; wire-schema.ts 참고).
+   * 받은 뒤 null 인 키를 지우고 **원래 스키마로 다시 읽어** 타입과 검증을 원래대로 되돌린다.
+   */
   async #parse<S extends z.ZodType>(system: string, user: string, schema: S): Promise<Parsed<z.infer<S>>> {
     let message
     try {
@@ -133,7 +137,7 @@ export class AnthropicAdapter implements ModelAdapter {
         max_tokens: this.#maxTokens,
         system,
         messages: [{ role: 'user', content: user }],
-        output_config: { format: zodOutputFormat(schema), effort: 'high' },
+        output_config: { format: zodOutputFormat(structuredVariant(schema)), effort: 'high' },
       })
     } catch (err) {
       throw this.#toAdapterError(err)
@@ -146,10 +150,16 @@ export class AnthropicAdapter implements ModelAdapter {
       const why = d === null ? '' : ` (분류: ${d.category ?? '미상'}${d.explanation ? `, 설명: ${this.#redact(d.explanation)}` : ''})`
       throw new AdapterError('refusal', `모델이 요청을 거부했다${why}. 요청 내용을 바꿔 다시 시도해야 한다`, { details: { stop_reason, stop_details: d, usage } })
     }
-    const parsed: z.infer<S> | null = message.parsed_output
-    if (parsed === null) {
+    const returned: unknown = message.parsed_output
+    if (returned === null || returned === undefined) {
       throw new AdapterError('empty_output', `모델 출력에서 구조화 결과를 얻지 못했다 (stop_reason: ${stop_reason ?? '없음'}${message.stop_reason === 'max_tokens' ? ', 출력이 max_tokens 에서 잘렸다' : ''})`, { details: { stop_reason, raw_text: this.#redact(raw_text), usage } })
     }
+    const reread = schema.safeParse(stripNulls(returned))
+    if (!reread.success) {
+      const issues = reread.error.issues.slice(0, 5).map((i) => `${i.path.map(String).join('.') || '(root)'}: ${i.message}`)
+      throw new AdapterError('parse', `모델 출력을 구조화 스키마(wire)로 해석하지 못했다. 원인: ${issues.join(' / ')}`, { details: { stop_reason, usage } })
+    }
+    const parsed = reread.data as z.infer<S>
     return { parsed, raw_text, usage, stop_reason }
   }
 
