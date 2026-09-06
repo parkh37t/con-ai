@@ -5,11 +5,10 @@
  *   `anthropic-dangerous-direct-browser-access: true` (브라우저 직접 호출 허용 헤더).
  * - 인증: `api_key` → `x-api-key`, `token` → `authorization: Bearer …` + `anthropic-beta: oauth-2025-04-20`.
  * - 구조화 출력: `output_config: { format: { type: 'json_schema', schema }, effort: 'high' }`.
- *   SDK(@anthropic-ai/sdk)를 웹 번들에 넣지 않으므로 zod→JSON Schema 변환기 대신 손으로 쓴 JSON Schema 를 쓴다.
+ *   보내는 JSON Schema 는 `packages/model-adapter/src/structured-schema.ts` (SDK 변환기가 만든 생성물) 한 벌을 그대로 쓴다.
  * - 자격 증명 값은 헤더에만 넣는다. 콘솔·오류 메시지·저장 데이터에 넣지 않는다 (redact 로 한 번 더 가린다).
  * - fetch 는 주입할 수 있다 (테스트).
  */
-import { ActionType, CaseKind, ColumnFormat, DeviceProfile, ElementType, MessageKind, SortDirection, UnresolvedKind, ValidationRule } from './deps.js'
 import type { CredentialKind, StoredCredential } from './credential.js'
 
 export const ANTHROPIC_MESSAGES_URL = 'https://api.anthropic.com/v1/messages'
@@ -237,138 +236,10 @@ export async function callAnthropic<T>(input: CallInput, opts: { fetch?: FetchLi
  * | WireOutput            | SCREEN_OUTPUT_JSON_SCHEMA |
  * | WireRevisionDraft     | REVISION_DRAFT_JSON_SCHEMA |
  *
- * 구조화 출력 제약(문서): 모든 object 에 additionalProperties:false, 재귀 금지, 숫자·문자열 길이 제약 미지원.
- *
- * **선택 필드는 «필수 + null 허용» 로 보낸다.** 구조화 출력에는 스키마 전체의 선택 파라미터 수 상한(24)이 있고,
- * 이 구조를 선택 필드로 그대로 보내면 38개가 넘어 API 가 400 으로 거부한다
- * ("Schemas contains too many optional parameters"). 서버(packages/model-adapter/wire-schema.ts)의 `structuredVariant`
- * 와 같은 규칙이며, 받은 뒤 `stripNulls` 로 null 인 키를 지워 원래 모양으로 되돌린다. 개수는 테스트가 지킨다.
+ * 구조화 출력으로 보내는 JSON Schema 는 **손으로 적지 않는다.**
+ * 서버(`packages/model-adapter`)가 SDK 변환기로 만든 한 벌(`structured-schema.ts`)을 그대로 가져다 쓴다.
+ * 예전에는 같은 스키마를 여기에 한 벌 더 적었는데, 변환기가 구조화 출력이 받지 않는 것(enum·const·중첩 anyOf)을
+ * 설명으로 옮기는 것을 사람이 따라 적을 수 없어 계속 어긋났고 실제 호출이 400 으로 죽었다.
  */
 
-type JsonSchema = Record<string, unknown>
-
-/**
- * object 스키마. `required` 에 없는 키는 «필수 + null 허용» 으로 바꿔 담는다 —
- * 선택 파라미터 수를 0 으로 만들면서 «없음» 을 표현할 수 있게 한다.
- */
-function obj(properties: Record<string, JsonSchema>, required: string[]): JsonSchema {
-  const req = new Set(required)
-  const out: Record<string, JsonSchema> = {}
-  for (const [key, value] of Object.entries(properties)) {
-    out[key] = req.has(key) ? value : { anyOf: [value, { type: 'null' }] }
-  }
-  return { type: 'object', properties: out, required: Object.keys(properties), additionalProperties: false }
-}
-function arr(items: JsonSchema): JsonSchema {
-  return { type: 'array', items }
-}
-function str(description?: string): JsonSchema {
-  return description === undefined ? { type: 'string' } : { type: 'string', description }
-}
-function enumOf(values: readonly string[]): JsonSchema {
-  return { type: 'string', enum: [...values] }
-}
-
-const anchorRef = obj({ anchor_id: str('SourceAnchor 의 내부 UUID (uuid 형식). 실제 근거가 없으면 data_mapping 대신 unresolved 로 보낸다'), note: str() }, ['anchor_id'])
-
-const tableColumn = obj(
-  { id: str(), label: str(), sortable: { type: 'boolean' }, downloadable: { type: 'boolean' }, format: enumOf(ColumnFormat.options) },
-  ['id', 'label'],
-)
-
-const defaultSort = obj({ column_id: str(), direction: enumOf(SortDirection.options) }, ['column_id', 'direction'])
-
-const fieldValidation = obj({ rule: enumOf(ValidationRule.options), value: { anyOf: [{ type: 'string' }, { type: 'number' }] }, message_id: str() }, ['rule'])
-
-const elementOption = obj({ value: str(), label: str() }, ['value', 'label'])
-
-const element = obj(
-  {
-    id: str('영역·요소 이름공간에서 유일한 로컬 ID (영숫자로 시작, 영숫자 . _ : - 만)'),
-    type: enumOf(ElementType.options),
-    label: str(),
-    required: { type: 'boolean' },
-    display_no: str(),
-    placeholder: str(),
-    options: arr(elementOption),
-    columns: arr(tableColumn),
-    default_sort: defaultSort,
-    max_length: { type: 'integer' },
-    validations: arr(fieldValidation),
-    trace: arr(str('수용조건 외부 ID')),
-    locked: { type: 'boolean' },
-    note: str(),
-  },
-  ['id', 'type', 'label'],
-)
-
-const section = obj({ id: str(), title: str(), display_no: str(), elements: arr(element), note: str() }, ['id', 'title', 'elements'])
-
-const action = obj(
-  {
-    id: str(),
-    type: enumOf(ActionType.options),
-    label: str(),
-    trigger: str('동작을 일으키는 요소 id'),
-    target: str('정의된 영역·요소 id'),
-    target_screen_id: str('대상 화면 외부 ID'),
-    target_state_id: str('전이할 CASE id'),
-    trace: arr(str()),
-    note: str(),
-  },
-  ['id', 'type'],
-)
-
-const screenState = obj(
-  { id: str(), fixture_id: str('더미데이터 fixture 외부 ID'), expected: str(), case_kind: enumOf(CaseKind.options), role: str(), message_ids: arr(str()), note: str() },
-  ['id', 'fixture_id', 'expected'],
-)
-
-const message = obj({ id: str(), kind: enumOf(MessageKind.options), text: str(), when: str() }, ['id', 'kind', 'text'])
-
-const dataMapping = obj({ element_id: str(), column_id: str(), source: str(), evidence: arr(anchorRef) }, ['element_id', 'source', 'evidence'])
-
-const unresolved = obj({ id: str(), kind: enumOf(UnresolvedKind.options), text: str(), related_ids: arr(str()) }, ['kind', 'text'])
-
-const requirementRef = obj({ id: str('REQ 외부 ID'), criterion_ids: arr(str('수용조건 외부 ID')) }, ['id', 'criterion_ids'])
-
-const screenSpec = obj(
-  {
-    schema_version: { type: 'string', const: '1.0' },
-    screen_id: str('대상 화면의 외부 ID (변경 금지)'),
-    baseline_id: str('기준 버전 ID (변경 금지)'),
-    purpose: str(),
-    shell: str('`<포털>-page` 또는 `<포털>-popup`'),
-    device: enumOf(DeviceProfile.options),
-    roles: arr(str()),
-    requirements: arr(requirementRef),
-    sections: arr(section),
-    actions: arr(action),
-    states: arr(screenState),
-    messages: arr(message),
-    data_mapping: arr(dataMapping),
-    locked_elements: arr(str()),
-    locked_actions: arr(str()),
-    unresolved: arr(unresolved),
-  },
-  ['schema_version', 'screen_id', 'baseline_id', 'purpose', 'shell', 'device', 'requirements', 'sections', 'actions', 'states', 'messages', 'data_mapping', 'locked_elements', 'locked_actions', 'unresolved'],
-)
-
-const traceProposal = obj(
-  { requirement_id: str(), criterion_id: str(), element_or_action_id: str(), evidence: arr(anchorRef), rationale: str(), confidence: { type: 'number' } },
-  ['requirement_id', 'criterion_id', 'element_or_action_id'],
-)
-
-const changeSummary = obj(
-  { summary: str(), added_ids: arr(str()), changed_ids: arr(str()), removed_ids: arr(str()), locked_violations: arr(str()) },
-  ['summary', 'added_ids', 'changed_ids', 'removed_ids', 'locked_violations'],
-)
-
-/** 생성·수정 작업의 모델 출력 전체 (wire-schema.ts WireOutput). html 키는 없다. */
-export const SCREEN_OUTPUT_JSON_SCHEMA: JsonSchema = obj(
-  { screen_spec: screenSpec, trace_proposals: arr(traceProposal), unresolved: arr(unresolved), change_summary: changeSummary },
-  ['screen_spec', 'trace_proposals', 'unresolved', 'change_summary'],
-)
-
-/** 코멘트 → 수정 지시문 초안 (wire-schema.ts WireRevisionDraft). */
-export const REVISION_DRAFT_JSON_SCHEMA: JsonSchema = obj({ prompt: str(), rationale: str() }, ['prompt', 'rationale'])
+export { REVISION_DRAFT_JSON_SCHEMA, SCREEN_OUTPUT_JSON_SCHEMA } from './deps.js'
