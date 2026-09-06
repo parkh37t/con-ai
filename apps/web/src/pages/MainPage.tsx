@@ -31,7 +31,7 @@ export function MainPage({ project, meta, route }: { project: Project | null; me
   return (
     <div className="main-page">
       <header className="main-top">
-        <span className="main-brand">con-ai 화면설계</span>
+        <span className="main-brand">AI 기획 에이전트</span>
         <span className="main-top-right">
           <AdapterChip meta={meta} credential={credential !== null} testId="main-adapter" />
           <a className="main-advanced" data-testid="main-link-advanced" href={hrefTo('advanced')}>

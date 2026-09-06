@@ -1,10 +1,11 @@
 /**
- * 상단 바 — 제품명 › 구분선 › 메뉴, 오른쪽에 상태 칩만.
+ * 상단 바 — 왼쪽 제품명, 가운데 메뉴, 오른쪽 상태 칩.
  *
  * 위계를 한 줄 안에서 만든다:
- *  - 왼쪽: 제품명(굵게) → 얇은 세로 구분선 → 메뉴. 프로젝트명은 여기 두지 않는다(각 페이지 본문에서 보여준다).
+ *  - 세 칸 그리드(제품명 | 메뉴 | 칩)로 메뉴가 화면 정중앙에 온다. 제품명·칩이 길어져도 가운데는 흔들리지 않는다.
+ *  - 메뉴가 이 화면의 주된 이동 수단이므로 제품명보다 글자를 크게 준다. 프로젝트명은 여기 두지 않는다(각 페이지 본문이 가진다).
  *  - 현재 메뉴는 배경 박스가 아니라 밑줄로 표시한다 — 화면설계서 GNB 와 같은 언어.
- *  - 오른쪽: 자격 증명 칩(정적 배포), 정적 데모 표시, 어댑터·Playwright 상태 칩.
+ *  - 오른쪽: 자격 증명 칩(정적 배포), 저장소 링크, 어댑터·Playwright 상태 칩.
  *    긴 설명은 title 로 내리고 칩 문구는 짧게 유지한다.
  */
 import type { ReactNode } from 'react'
@@ -27,9 +28,8 @@ export function TopBar({ meta, metaError, current, credentialChip }: { meta: Met
   return (
     <header className="topbar">
       <a className="brand" href={hrefTo('main')}>
-        con-ai 기획 작업대
+        AI 기획 에이전트
       </a>
-      <span className="topbar-sep" aria-hidden="true" />
       <nav className="topbar-nav" aria-label="주요 화면">
         {NAV_ITEMS.map((item) => {
           const active = item.section !== null && item.section === current

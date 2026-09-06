@@ -1,4 +1,4 @@
-/* con-ai 기획 작업대 — 단정한 업무용 스타일 (회색 배경, 카드, 표). 단일 밝은 테마. */
+/* AI 기획 에이전트 — 단정한 업무용 스타일 (회색 배경, 카드, 표). 단일 밝은 테마. */
 :root {
   --bg: #f3f4f6;
   --card: #ffffff;
@@ -142,18 +142,23 @@ ul {
   top: 0;
   z-index: 10;
 }
+/* 세 칸(제품명 | 메뉴 | 칩). 양옆 칸이 같은 폭이라 메뉴가 화면 정중앙에 온다.
+   minmax(0, 1fr) 로 두어 칩이 길어져도 가운데 칸을 밀지 않는다. */
 .topbar {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-areas: 'brand nav right';
   align-items: center;
-  gap: 14px;
+  column-gap: 16px;
   padding: 0 20px;
-  min-height: 46px;
+  min-height: 54px;
   background: #ffffff;
   border-bottom: 1px solid var(--border);
-  flex-wrap: wrap;
 }
-/* 제품명 — 메뉴보다 한 단계 위. 프로젝트명은 여기 두지 않는다(본문 헤더가 가진다). */
+/* 제품명 — 메뉴로 시선을 넘기는 표지. 프로젝트명은 여기 두지 않는다(본문 헤더가 가진다). */
 .brand {
+  grid-area: brand;
+  justify-self: start;
   font-size: 14.5px;
   font-weight: 800;
   letter-spacing: -0.01em;
@@ -161,24 +166,23 @@ ul {
   color: var(--doc-ink);
   white-space: nowrap;
 }
-/* 이름과 메뉴를 가르는 얇은 세로선 */
-.topbar-sep {
-  flex: none;
-  width: 1px;
-  height: 18px;
-  background: var(--border);
-}
+/* 메뉴가 이 화면의 주된 이동 수단이다. 제품명·칩보다 크게 준다. */
 .topbar-nav {
+  grid-area: nav;
+  justify-self: center;
   display: flex;
   align-items: center;
-  gap: 18px;
+  justify-content: center;
+  gap: 26px;
   flex-wrap: wrap;
 }
 /* 현재 메뉴는 배경 박스가 아니라 밑줄 — 설계서 GNB 와 같은 언어 */
 .topbar-nav a {
-  padding: 13px 0;
-  font-size: 13.5px;
-  color: #555555;
+  padding: 15px 0;
+  font-size: 15.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: #4a4a4a;
   text-decoration: none;
   border-bottom: 2px solid transparent;
   white-space: nowrap;
@@ -193,11 +197,25 @@ ul {
   border-bottom-color: var(--doc-ink);
 }
 .topbar-right {
-  margin-left: auto;
+  grid-area: right;
+  justify-self: end;
   display: flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+}
+/* 한 줄에 세 칸이 다 들어가지 않는 폭: 제품명·칩을 윗줄에 두고 메뉴는 아랫줄 가운데에 그대로 둔다. */
+@media (max-width: 1120px) {
+  .topbar {
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+      'brand right'
+      'nav nav';
+    padding-bottom: 2px;
+  }
+  .topbar-nav a {
+    padding: 11px 0;
+  }
 }
 .main {
   flex: 1;
@@ -1900,27 +1918,32 @@ button.chip:hover,
   .topdock {
     position: static;
   }
+  /* 좁은 화면은 한 칸으로 쌓는다: 제품명 → 메뉴(가운데) → 칩. 가로 스크롤이 생기지 않게 한다. */
   .topbar {
-    padding: 0 14px 4px;
-    gap: 10px;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      'brand'
+      'nav'
+      'right';
+    padding: 6px 14px 4px;
+    column-gap: 10px;
   }
   .topbar-right .chip {
     font-size: 11.5px;
     padding: 2px 7px;
   }
+  /* 모바일에서는 메뉴가 두 줄로 접힌다. 폭을 묶어 3+2 로 고르게 접히게 하고, 접혀도 가운데 정렬을 유지한다. */
   .topbar-nav {
-    gap: 14px;
+    gap: 8px 16px;
+    max-width: 320px;
   }
   .topbar-nav a {
-    padding: 9px 0;
+    padding: 8px 0;
+    font-size: 14.5px;
   }
   .topbar-right {
-    width: 100%;
-    margin-left: 0;
-    padding-bottom: 8px;
-  }
-  .topbar-sep {
-    display: none;
+    justify-self: start;
+    padding-bottom: 6px;
   }
   .cred-panel,
   .demo-banner {

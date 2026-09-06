@@ -88,7 +88,7 @@ export function SimpleHomePage({ project, meta, route }: { project: Project; met
     <div className="simple-page">
       <header className="simple-top">
         <a className="simple-brand" data-testid="simple-home" href={hrefTo('main')}>
-          ← con-ai 화면설계
+          ← AI 기획 에이전트
         </a>
         <span className="simple-top-right">
           <AdapterChip meta={meta} credential={credential !== null} testId="simple-adapter" />
