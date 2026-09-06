@@ -4,6 +4,8 @@
  */
 export * from './result.js'
 export * from './external-id.js'
+export * from './id-registry.js'
+export * from './rtm.js'
 export * from './coverage.js'
 export * from './state-machines.js'
 export * from './approval-gate.js'

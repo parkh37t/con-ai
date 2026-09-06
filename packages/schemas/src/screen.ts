@@ -10,6 +10,7 @@
  */
 import { z } from 'zod'
 import { Actor, AnchorRef, ContentHash, ExternalId, InternalId, IsoDateTime, NonEmptyText, Revision } from './common.js'
+import { FunctionEntry, IaExternalId, IdAlias, IdIssuance } from './id-registry.js'
 
 /** 기기 프로파일 (설계 §2 PC/모바일; §9 예시 `device: "desktop"`). */
 export const DeviceProfile = z.enum(['desktop', 'mobile']).describe('기기 (설계 §2, §9)')
@@ -56,6 +57,17 @@ export const ShellProfile = z
 /** IA 노드 종류 — 카테고리와 화면을 구분한다 (설계 §6). */
 export const IANodeKind = z.enum(['category', 'screen']).describe('IA 노드 종류 (설계 §6)')
 
+/**
+ * IA 노드.
+ *
+ * 추적 체인(REQ → IA → FN → SCR)을 위해 더한 필드는 **전부 optional** 이다.
+ * `.default([])` 를 쓰지 않는 것은 zod 의 default 가 출력 타입에 필수 키를 만들어
+ * 이미 있는 `IANode[]` 리터럴(시드 5건)을 typecheck 에서 깨뜨리기 때문이다.
+ * 읽는 쪽에서 `node.functions ?? []` 로 받는다.
+ *
+ * external_id 는 «아직 발번하지 않음» 을 없는 값으로 표현한다. 부팅 시 자동 발번은 하지 않는다 —
+ * 발번은 사람이 P1-05 화면에서 사유와 함께 누르는 명시적 작업이다 (CLAUDE.md).
+ */
 export const IANode = z
   .object({
     id: InternalId,
@@ -66,13 +78,51 @@ export const IANode = z
     portal: NonEmptyText.describe('포털'),
     kind: IANodeKind,
     screen_plan_id: InternalId.optional().describe('화면 연결 (kind=screen 일 때; 설계 §6)'),
+    external_id: IaExternalId.optional().describe('발번된 IA 외부 ID (IA-2.3.1). 없으면 미발번'),
+    issued: IdIssuance.optional().describe('external_id 가 있으면 함께 있어야 한다 — 누가·언제·왜'),
+    aliases: z.array(IdAlias).optional().describe('IA 외부 ID 개명 이력'),
+    requirement_ids: z.array(ExternalId).optional().describe('이 노드가 담당하는 요구사항 외부 ID (REQ 1:N; 산출물 ID 표)'),
+    asis_ref: z.string().optional().describe('AS-IS 노드 대응 표기 (산출물 ID 표). 대응이 없으면 비운다'),
+    change_reason: NonEmptyText.optional().describe('IA 변경 사유 (산출물 ID 표: 변경 사유 필수)'),
+    functions: z.array(FunctionEntry).optional().describe('이 노드에 속한 기능(FN). FN 은 IA 1개에만 소속된다'),
   })
   .superRefine((n, ctx) => {
     if (n.kind === 'category' && n.screen_plan_id !== undefined) {
       ctx.addIssue({ code: 'custom', path: ['screen_plan_id'], message: '카테고리 노드는 화면을 직접 연결하지 않는다 (설계 §6 카테고리와 화면 구분)' })
     }
+    if (n.external_id !== undefined && n.issued === undefined) {
+      ctx.addIssue({ code: 'custom', path: ['issued'], message: '외부 ID 가 있으면 발번 기록(누가·언제·왜)이 있어야 한다' })
+    }
+    const fns = n.functions ?? []
+    // FN 외부 ID 의 계층부는 소속 IA 의 번호와 같아야 한다 — FN-1.4.2-01 이 IA-2.3.1 에 매달린 상태를 저장에서 막는다.
+    if (n.external_id !== undefined) {
+      const iaNumber = n.external_id.slice('IA-'.length)
+      for (const [i, fn] of fns.entries()) {
+        if (fn.external_id === undefined) continue
+        const fnNumber = fn.external_id.slice('FN-'.length, fn.external_id.lastIndexOf('-'))
+        if (fnNumber !== iaNumber) {
+          ctx.addIssue({ code: 'custom', path: ['functions', i, 'external_id'], message: `FN 외부 ID 의 계층부(${fnNumber})가 소속 IA(${n.external_id})와 다르다` })
+        }
+      }
+    }
+    const seenFnIds = new Set<string>()
+    const seenFnExternal = new Set<string>()
+    for (const [i, fn] of fns.entries()) {
+      if (seenFnIds.has(fn.id)) ctx.addIssue({ code: 'custom', path: ['functions', i, 'id'], message: '같은 기능 UUID 가 두 번 있다' })
+      seenFnIds.add(fn.id)
+      if (fn.external_id !== undefined) {
+        if (seenFnExternal.has(fn.external_id)) ctx.addIssue({ code: 'custom', path: ['functions', i, 'external_id'], message: `FN 외부 ID ${fn.external_id} 가 이 노드 안에서 중복이다` })
+        seenFnExternal.add(fn.external_id)
+      }
+    }
+    // 예외 기능이 가리키는 정상 기능은 같은 노드 안에 있어야 한다 (FN 은 IA 1개에만 소속되므로).
+    for (const [i, fn] of fns.entries()) {
+      if (fn.base_function_id !== undefined && !seenFnIds.has(fn.base_function_id)) {
+        ctx.addIssue({ code: 'custom', path: ['functions', i, 'base_function_id'], message: '예외 기능이 참조하는 정상 기능이 같은 IA 노드 안에 없다' })
+      }
+    }
   })
-  .describe('IANode (설계 §6)')
+  .describe('IANode (설계 §6 + 산출물 P1-05 추적 체인)')
 
 /** 별칭 이력 항목 — 파일명·화면 ID 변경은 명시적 변경 작업이며 이력을 남긴다 (설계 §6). */
 export const ScreenAlias = z.object({
