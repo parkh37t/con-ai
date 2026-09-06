@@ -115,11 +115,42 @@ export const SEED_SCREENS: ScreenDocument[] = [
 ]
 
 const PORTAL = '파트너 포털'
+/**
+ * IA 트리 — 포털 → 견적 → 화면 3개 (3단).
+ *
+ * `requirement_ids` 는 일부만 연결한다: 목록·상세에는 그 화면의 골든 명세가 선언한 REQ 를 붙이고,
+ * 등록 팝업과 나머지 요구사항은 일부러 비워 둔다. P1-05 화면이 처음부터 「미매핑 · 갭 제안」 을
+ * 보여 주어야 무엇을 하는 화면인지 알 수 있기 때문이다 (기획자 결정, 2026-09-06).
+ * 이 배치는 골든 명세를 참고한 **개발용 합성 값**이지 실제 업무 매핑이 아니다.
+ *
+ * `external_id`(IA-1 …)와 `functions` 는 **한 건도 넣지 않는다.** 발번은 사람이 화면에서
+ * 사유와 함께 누르는 명시적 작업이고, 시드가 미리 박아 두면 그 규칙이 무의미해진다 (CLAUDE.md).
+ */
 export const SEED_IA_NODES: IANode[] = [
   { id: SEED.ia_nodes.portal, project_id: SEED.project_id, parent_id: null, name: PORTAL, order: 0, portal: PORTAL, kind: 'category' },
   { id: SEED.ia_nodes.quote, project_id: SEED.project_id, parent_id: SEED.ia_nodes.portal, name: '견적', order: 0, portal: PORTAL, kind: 'category' },
-  { id: SEED.ia_nodes.list, project_id: SEED.project_id, parent_id: SEED.ia_nodes.quote, name: '견적 목록', order: 0, portal: PORTAL, kind: 'screen', screen_plan_id: SEED.screens['SAMPLE-quote-list'] },
-  { id: SEED.ia_nodes.detail, project_id: SEED.project_id, parent_id: SEED.ia_nodes.quote, name: '견적 상세', order: 1, portal: PORTAL, kind: 'screen', screen_plan_id: SEED.screens['SAMPLE-quote-detail'] },
+  {
+    id: SEED.ia_nodes.list,
+    project_id: SEED.project_id,
+    parent_id: SEED.ia_nodes.quote,
+    name: '견적 목록',
+    order: 0,
+    portal: PORTAL,
+    kind: 'screen',
+    screen_plan_id: SEED.screens['SAMPLE-quote-list'],
+    requirement_ids: ['REQ-QT-001', 'REQ-QT-004'],
+  },
+  {
+    id: SEED.ia_nodes.detail,
+    project_id: SEED.project_id,
+    parent_id: SEED.ia_nodes.quote,
+    name: '견적 상세',
+    order: 1,
+    portal: PORTAL,
+    kind: 'screen',
+    screen_plan_id: SEED.screens['SAMPLE-quote-detail'],
+    requirement_ids: ['REQ-QT-002'],
+  },
   { id: SEED.ia_nodes.create, project_id: SEED.project_id, parent_id: SEED.ia_nodes.quote, name: '견적 등록 팝업', order: 2, portal: PORTAL, kind: 'screen', screen_plan_id: SEED.screens['SAMPLE-quote-create-popup'] },
 ]
 

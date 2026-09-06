@@ -6,11 +6,25 @@ import { randomUUID } from 'node:crypto'
 import { mkdirSync } from 'node:fs'
 import { Hono, type Context } from 'hono'
 import { serveStatic } from '@hono/node-server/serve-static'
-import { DomainRuleError, canMarkReviewReady, evaluateApprovalGate, type RuleReason } from '@con-ai/domain'
+import {
+  DomainRuleError,
+  assertAllowed,
+  canIssueIaExternalId,
+  canMarkReviewReady,
+  computeRtm,
+  evaluateApprovalGate,
+  issueFnExternalId,
+  issueIaExternalId,
+  proposeFnExternalId,
+  proposeIaExternalId,
+  relabelFnExternalId,
+  relabelIaExternalId,
+  type RuleReason,
+} from '@con-ai/domain'
 import type { ModelAdapter } from '@con-ai/model-adapter'
 import type { SliceGenerationRequest } from '@con-ai/prompt-templates'
 import { S2B_LEARNED_PROFILE, type RenderProfile } from '@con-ai/renderer'
-import type { ValidationResult } from '@con-ai/schemas'
+import { IANode as IANodeSchema, type ValidationResult } from '@con-ai/schemas'
 import {
   PipelineError,
   StoreConflictError,
@@ -42,7 +56,8 @@ import { EXPORT_VERSION, exportApprovedRevision, summarizeValidation } from './e
 import { buildMeta, detectPlaywright } from './meta.js'
 import { JobQueue, recoverInterruptedJobs } from './queue.js'
 import { mountWebStatic, notFoundBody } from './runtime.js'
-import { ApprovalBody, AsisCreateBody, AsisPainPointPatchBody, CommentBody, CommentPatchBody, RevisionPromptBody, ScreenCreateBody, ScreenPatchBody, SliceGenerationRequestBody, toSliceRequest } from './schemas.js'
+import { ApprovalBody, AsisCreateBody, AsisPainPointPatchBody, CommentBody, CommentPatchBody, IaNodePatchBody, IdIssueBody, RevisionPromptBody, ScreenCreateBody, ScreenPatchBody, SliceGenerationRequestBody, toSliceRequest } from './schemas.js'
+import { buildRtmInput } from './rtm-adapter.js'
 import { copyDummyForNewScreen, deriveShell, newScreenDocument, nextScreenExternalId } from './screens.js'
 import { checkUrl, lookupResolve, parsePolicy, type SsrfPolicy, type SsrfResolve } from './ssrf.js'
 
@@ -159,6 +174,134 @@ export function createApp(options: AppOptions): ConAiApp {
     const ia_nodes = store.list<IANodeDocument>('ia_node', (d) => d.data.project_id === project.id).map((d) => d.data)
     const screens = store.list<ScreenDocument>('screen', (d) => d.data.project_id === project.id).map((d) => screenSummary(store, d.data))
     return c.json({ project: project.data, requirements, ia_nodes, screens })
+  })
+
+  /**
+   * RTM — 추적 체인 REQ → IA → FN → SCR 의 집계·행·갭 제안 (산출물 P1-05, 읽기 전용).
+   * 저장하지 않고 매번 문서에서 계산한다. 계산 규칙은 packages/domain 의 computeRtm 이 갖는다.
+   */
+  app.get('/api/projects/:id/rtm', (c) => {
+    const project = store.get<ProjectDocument>('project', c.req.param('id'))
+    if (!project) return notFound(c, '프로젝트')
+    return c.json(computeRtm(buildRtmInput(store, project.id)))
+  })
+
+  /**
+   * IA 노드 연결·기능 정의 (발번과 분리).
+   * 요구사항 연결과 기능 추가는 번호가 없어도 할 수 있다 — 번호는 사람이 따로 발번한다.
+   */
+  app.patch('/api/ia-nodes/:id', async (c) => {
+    const doc = store.get<IANodeDocument>('ia_node', c.req.param('id'))
+    if (!doc) return notFound(c, 'IA 노드')
+    const parsed = await parseJson(c, IaNodePatchBody)
+    if ('response' in parsed) return parsed.response
+    const body = parsed.data
+
+    let next: IANodeDocument = { ...doc.data }
+    if (body.requirement_ids !== undefined) {
+      // 존재하지 않는 REQ 를 연결하면 커버리지가 거짓이 된다 — 저장 전에 막는다.
+      const known = new Set(store.list<RequirementDocument>('requirement', (d) => d.data.project_id === doc.data.project_id).map((d) => d.data.external_id))
+      const unknown = body.requirement_ids.filter((r) => !known.has(r))
+      if (unknown.length > 0) {
+        return c.json({ error: 'requirement_not_found', message: '없는 요구사항은 연결할 수 없다', reasons: unknown.map((r) => ({ code: 'rtm.requirement_unknown', message: `${r} 는 이 프로젝트에 없다` })) }, 400)
+      }
+      next = { ...next, requirement_ids: body.requirement_ids, change_reason: body.reason }
+    }
+    if (body.add_function !== undefined) {
+      const fn = body.add_function
+      const entry = { id: randomUUID(), name: fn.name, kind: fn.kind, ...(fn.base_function_id === undefined ? {} : { base_function_id: fn.base_function_id }) }
+      next = { ...next, functions: [...(next.functions ?? []), entry] }
+    }
+
+    const check = IANodeSchema.safeParse(next)
+    if (!check.success) {
+      return c.json({ error: 'invalid_ia_node', message: 'IA 노드 규칙에 어긋난다', reasons: check.error.issues.map((i) => ({ code: 'ia_node.invalid', message: `${i.path.map(String).join('.')}: ${i.message}` })) }, 400)
+    }
+    try {
+      const saved = store.put<IANodeDocument>('ia_node', doc.id, check.data, body.revision)
+      return c.json({ ia_node: saved.data, revision: saved.revision })
+    } catch (e) {
+      if (e instanceof StoreConflictError) return conflict(c, e)
+      throw e
+    }
+  })
+
+  /**
+   * ID 발번 — 사람이 「승인 · ID 발번」 을 눌렀을 때만 온다.
+   * 서버가 번호를 **다시 계산**해 요청값과 다르면 그 사실을 응답에 실어 화면이 알린다
+   * (모델·클라이언트가 계산한 번호를 그대로 박지 않는다).
+   */
+  app.post('/api/ia-nodes/:id/id-issuances', async (c) => {
+    const doc = store.get<IANodeDocument>('ia_node', c.req.param('id'))
+    if (!doc) return notFound(c, 'IA 노드')
+    const parsed = await parseJson(c, IdIssueBody)
+    if ('response' in parsed) return parsed.response
+    const body = parsed.data
+    const nodes = store.list<IANodeDocument>('ia_node', (d) => d.data.project_id === doc.data.project_id).map((d) => d.data)
+    const at = new Date().toISOString()
+
+    // 화면이 본 제안이 그 사이 바뀌었으면 승인하지 않는다 (문서 revision 만으로는 제안 내용 변경을 못 잡는다).
+    if (body.expected_proposal_hash !== undefined) {
+      const kind = body.function_id === undefined ? 'issue_ia_id' : 'issue_fn_id'
+      const current = computeRtm(buildRtmInput(store, doc.data.project_id)).proposals.find((p) => p.kind === kind && p.ia_node_id === doc.id)
+      if (current === undefined || current.proposal_hash !== body.expected_proposal_hash) {
+        return c.json({ error: 'stale_proposal', message: '화면에 보인 제안이 그 사이 바뀌었다. 새로고침 후 다시 확인한다' }, 409)
+      }
+    }
+
+    const input = { external_id: body.external_id, by: body.by, reason: body.reason, at }
+    try {
+      let saved: IANodeDocument
+      let recomputed: string | null
+      if (body.function_id === undefined) {
+        recomputed = proposeIaExternalId(nodes, doc.id)
+        assertAllowed(canIssueIaExternalId(nodes, doc.data, input), 'IA 외부 ID 를 발번할 수 없다')
+        saved = issueIaExternalId(nodes, doc.data, input)
+      } else {
+        recomputed = proposeFnExternalId(doc.data)
+        saved = issueFnExternalId(doc.data, body.function_id, input)
+      }
+      const check = IANodeSchema.safeParse(saved)
+      if (!check.success) {
+        return c.json({ error: 'invalid_ia_node', message: '발번 결과가 IA 노드 규칙에 어긋난다', reasons: check.error.issues.map((i) => ({ code: 'ia_node.invalid', message: `${i.path.map(String).join('.')}: ${i.message}` })) }, 400)
+      }
+      const stored = store.put<IANodeDocument>('ia_node', doc.id, check.data, body.revision)
+      return c.json({
+        ia_node: stored.data,
+        revision: stored.revision,
+        issued_external_id: body.external_id,
+        recomputed_external_id: recomputed,
+        differs: recomputed !== null && recomputed !== body.external_id,
+      })
+    } catch (e) {
+      if (e instanceof StoreConflictError) return conflict(c, e)
+      if (e instanceof DomainRuleError) return c.json({ error: 'id_issuance_rejected', message: e.message, reasons: e.reasons }, 400)
+      throw e
+    }
+  })
+
+  /** ID 개명 — 옛 값을 지우지 않고 별칭으로 내린다. 사유·행위자 필수. */
+  app.post('/api/ia-nodes/:id/id-relabels', async (c) => {
+    const doc = store.get<IANodeDocument>('ia_node', c.req.param('id'))
+    if (!doc) return notFound(c, 'IA 노드')
+    const parsed = await parseJson(c, IdIssueBody)
+    if ('response' in parsed) return parsed.response
+    const body = parsed.data
+    const nodes = store.list<IANodeDocument>('ia_node', (d) => d.data.project_id === doc.data.project_id).map((d) => d.data)
+    const input = { external_id: body.external_id, by: body.by, reason: body.reason, at: new Date().toISOString() }
+    try {
+      const next = body.function_id === undefined ? relabelIaExternalId(nodes, doc.data, input) : relabelFnExternalId(doc.data, body.function_id, input)
+      const check = IANodeSchema.safeParse(next)
+      if (!check.success) {
+        return c.json({ error: 'invalid_ia_node', message: '개명 결과가 IA 노드 규칙에 어긋난다', reasons: check.error.issues.map((i) => ({ code: 'ia_node.invalid', message: `${i.path.map(String).join('.')}: ${i.message}` })) }, 400)
+      }
+      const stored = store.put<IANodeDocument>('ia_node', doc.id, check.data, body.revision)
+      return c.json({ ia_node: stored.data, revision: stored.revision })
+    } catch (e) {
+      if (e instanceof StoreConflictError) return conflict(c, e)
+      if (e instanceof DomainRuleError) return c.json({ error: 'id_relabel_rejected', message: e.message, reasons: e.reasons }, 400)
+      throw e
+    }
   })
 
   app.get('/api/projects/:id/references', (c) => {
@@ -640,6 +783,11 @@ function hostOf(url: string): string {
 
 function notFound(c: Context, what: string): Response {
   return c.json({ error: 'not_found', message: `${what}을(를) 찾을 수 없다` }, 404)
+}
+
+/** 낙관적 잠금 충돌 — 클라이언트가 본 revision 이 낡았다. 저장하지 않고 현재 값을 알려 준다. */
+function conflict(c: Context, err: StoreConflictError): Response {
+  return c.json({ error: 'stale_revision', message: err.message, expected: err.expected, current: err.current }, 409)
 }
 
 /** DB 를 실제로 한 번 읽어본다 (없는 문서 조회 — 인덱스 조회라 비용이 거의 없다). 예외면 'error'. */

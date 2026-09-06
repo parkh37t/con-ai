@@ -92,6 +92,34 @@ export const CommentPatchBody = z.strictObject({
 })
 export type CommentPatchBody = z.infer<typeof CommentPatchBody>
 
+/**
+ * ID 발번·개명 요청 (산출물 P1-05).
+ * `by`·`reason` 이 필수인 것이 이 화면의 핵심 규칙이다 — 사람이 사유와 함께 눌러야 ID 가 생긴다.
+ * `revision` 은 낙관적 잠금, `expected_proposal_hash` 는 화면이 본 제안이 그 사이 바뀌지 않았는지 확인한다.
+ */
+export const IdIssueBody = z.strictObject({
+  external_id: NonEmpty.describe('발번·개명할 외부 ID (사람이 확인한 값)'),
+  by: NonEmpty.describe('행위자'),
+  reason: NonEmpty.describe('사유 — 없으면 발번하지 않는다'),
+  revision: z.int().min(1).describe('클라이언트가 본 IA 노드 문서 revision'),
+  function_id: z.string().optional().describe('FN 발번·개명이면 대상 기능 UUID. 없으면 IA 대상'),
+  expected_proposal_hash: z.string().optional().describe('화면이 본 갭 제안의 해시. 다르면 409 로 거부한다'),
+})
+export type IdIssueBody = z.infer<typeof IdIssueBody>
+
+/** IA 노드의 요구사항 연결·기능 정의 (발번과 분리 — 연결은 번호 없이도 할 수 있다). */
+export const IaNodePatchBody = z.strictObject({
+  revision: z.int().min(1),
+  by: NonEmpty.describe('행위자'),
+  reason: NonEmpty.describe('사유'),
+  requirement_ids: z.array(NonEmpty).optional().describe('이 노드가 담당할 요구사항 외부 ID (통째로 교체)'),
+  add_function: z
+    .strictObject({ name: NonEmpty, kind: z.enum(['normal', 'exception']).default('normal'), base_function_id: z.string().optional() })
+    .optional()
+    .describe('기능 한 건 추가. 발번은 하지 않는다 — 번호는 따로 사람이 누른다'),
+})
+export type IaNodePatchBody = z.infer<typeof IaNodePatchBody>
+
 export const RevisionPromptBody = z.strictObject({
   comment_ids: z.array(z.string()).min(1, '코멘트를 최소 1개 골라야 한다'),
 })
