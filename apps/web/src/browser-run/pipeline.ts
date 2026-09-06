@@ -2,14 +2,20 @@
  * 브라우저 생성 파이프라인 — 서버(workers/generation)와 같은 단계 이름을 쓴다.
  * `context_build → spec_generate → schema_check → render → validate → persist`
  *
+ * 명세를 만드는 방법은 두 가지이며 화면에 구분해 표시한다 (CLAUDE.md: 더미와 실제를 구분한다).
+ * - **anthropic** — 자격 증명이 있으면 브라우저가 api.anthropic.com 을 직접 호출한다. 키·토큰은 사용자 브라우저에만 있다.
+ * - **fixture** — 자격 증명이 없으면 서버의 `MODEL_ADAPTER=fixture` 와 **같은 FixtureAdapter** 를 브라우저에서 돌린다.
+ *   모델만 더미이고 문맥 조립·스키마 검사·렌더·V1·V2 는 모두 실제로 실행된다.
+ *
  * 서버와 다른 점 (docs/plan/브라우저모드.md)
- * - 모델 호출은 브라우저가 직접 한다 (browser-run/anthropic.ts). 키·토큰은 사용자 브라우저에만 있다.
  * - V3(실행 검사)는 브라우저에서 Playwright 를 띄울 수 없어 **실행하지 않는다**. 결과를 `not_run` 으로 기록하고
  *   근거(evidence)에 이유를 적는다. 통과로 위장하지 않으므로 필수 V3 검사가 미실행인 동안 승인(완료 v1.0)은 막힌다.
  * - 더미데이터는 스냅샷에 있는 것만 쓴다. 없으면 빈 배열로 렌더하고 unresolved 에 남긴다 (서버 collectDummy 와 같은 규칙).
  * - artifact hash 는 `crypto.subtle.digest('SHA-256')` 로 계산한다 (서버는 node:crypto).
  */
 import {
+  FIXTURE_MODEL,
+  FixtureAdapter,
   ScreenSpecShape,
   assemblePrompt,
   assembleRevisionPrompt,
@@ -22,7 +28,7 @@ import {
   S2B_LEARNED_PROFILE,
   RENDERER_VERSION,
 } from './deps.js'
-import type { AssembledPrompt, CheckResult, GenerationContext, RenderOutput, ScreenSpecShapeType } from './deps.js'
+import type { AdapterResult, AssembledPrompt, CheckResult, GenerationContext, RenderOutput, ScreenSpecShapeType } from './deps.js'
 import { REVISION_DRAFT_JSON_SCHEMA, SCREEN_OUTPUT_JSON_SCHEMA, callAnthropic, BrowserModelError, DEFAULT_BROWSER_MODEL, type FetchLike } from './anthropic.js'
 import type { StoredCredential } from './credential.js'
 import { sha256Hex } from './hash.js'
@@ -71,7 +77,8 @@ export interface PipelineBaseRevision {
 
 export interface PipelineInput {
   request: SliceGenerationRequest
-  credential: StoredCredential
+  /** 없으면 더미 어댑터(fixture)로 돈다 — 실행되지 않는 것이 아니라 모델만 더미다. */
+  credential?: StoredCredential | undefined
   project: PipelineProject
   screen: PipelineScreen
   /** 프로젝트의 요구사항 전체 (요청의 requirement_ids·criterion_ids 로 걸러낸다). */
@@ -92,14 +99,36 @@ export interface PipelineDeps {
   now?: (() => string) | undefined
   newId?: (() => string) | undefined
   onStage?: ((stage: JobStage) => void) | undefined
+  /**
+   * V3 실행 검사기. 브라우저 화면에서 부르면 격리 iframe 으로 **실제로** 돈다.
+   * 넘기지 않으면 not_run 으로 기록한다 — 통과로 바꾸지 않는다.
+   */
+  runV3?: ((html: string, opts: { artifact_hash: string; validation_run_id: string }) => Promise<CheckResult[]>) | undefined
 }
 
 export interface PipelineResult {
   record: BrowserRevisionRecord
   prompt: AssembledPrompt
   context_summary: string[]
-  usage: { input_tokens: number; output_tokens: number }
+  /** 실제 모델 호출일 때만 있다 (더미 어댑터는 토큰을 쓰지 않는다). */
+  usage?: { input_tokens: number; output_tokens: number } | undefined
+  adapter: BrowserAdapterKind
   model: string
+}
+
+export type BrowserAdapterKind = 'anthropic' | 'fixture'
+
+/** 이번 실행이 실제 호출인지 더미인지 — 자격 증명 유무 하나로 정해진다. */
+export function engineOf(input: { credential?: StoredCredential | undefined; model?: string | undefined }): { adapter: BrowserAdapterKind; model: string } {
+  if (!input.credential) return { adapter: 'fixture', model: FIXTURE_MODEL }
+  return { adapter: 'anthropic', model: input.model ?? DEFAULT_BROWSER_MODEL }
+}
+
+/** 화면·문맥 요약에 그대로 적는 한 줄. 더미를 실제처럼 적지 않는다. */
+export function engineNote(engine: { adapter: BrowserAdapterKind; model: string }): string {
+  return engine.adapter === 'anthropic'
+    ? '브라우저 모드 — 내 브라우저가 api.anthropic.com 을 직접 호출합니다 (서버 없음)'
+    : '브라우저 모드 · 더미 어댑터(fixture) — 모델을 호출하지 않고 규칙으로 명세를 만듭니다. 문맥 조립·스키마 검사·렌더·V1·V2 는 실제로 실행됩니다'
 }
 
 /** 서버 baselineIdOf 와 같은 규칙. */
@@ -172,8 +201,9 @@ export function buildContext(input: PipelineInput): { ctx: GenerationContext; su
   if (input.base_revision) ctx.base_spec = input.base_revision.spec
   if (comments.length > 0) ctx.comments = comments
 
+  const engine = engineOf(input)
   const summary: string[] = [
-    '브라우저 모드 — 내 브라우저가 api.anthropic.com 을 직접 호출합니다 (서버 없음)',
+    engineNote(engine),
     `프로젝트: ${input.project.name} (${input.project.org}, 프로파일 ${input.project.profile_id})`,
     `대상 화면: ${input.screen.external_id} — ${input.screen.title} (${input.screen.shell}, ${req.device})`,
     `작업 유형: ${req.task_type} / 목적: ${req.purpose}`,
@@ -187,7 +217,7 @@ export function buildContext(input: PipelineInput): { ctx: GenerationContext; su
   if (comments.length > 0) summary.push(`반영할 코멘트 ${comments.length}건: ${comments.map((c) => `[${c.role}] ${c.text}`).join(' / ')}`)
   if (req.prompt_override) summary.push('기획자가 직접 쓴 프롬프트를 사용합니다 (문맥은 그대로 첨부)')
   summary.push(`규격 규칙 ${profile_rules.length}개`)
-  summary.push('V3 실행 검사는 브라우저에서 돌릴 수 없어 not_run 으로 기록됩니다')
+  summary.push('V3 실행 검사는 이 브라우저의 격리 iframe 에서 실행됩니다 (파일 저장은 sandbox 가 막으므로 상태 문구로 확인)')
   return { ctx, summary }
 }
 
@@ -270,13 +300,65 @@ export function collectDummy(spec: ScreenSpecShapeType, available: Record<string
   return dummy
 }
 
+/**
+ * spec_generate 단계의 모델 호출 — 자격 증명이 있으면 실제 호출, 없으면 더미 어댑터(fixture).
+ * 어느 쪽이든 출력은 뒤 단계에서 **똑같이** 스키마·참조 검사를 받는다 (모델 판단에 맡기지 않는다).
+ */
+async function generateOutput(args: {
+  input: PipelineInput
+  engine: { adapter: BrowserAdapterKind; model: string }
+  prompt: AssembledPrompt
+  ctx: GenerationContext
+  deps: PipelineDeps
+}): Promise<{ output: unknown; usage?: { input_tokens: number; output_tokens: number } | undefined }> {
+  const { input, engine, prompt, ctx, deps } = args
+  const req = input.request
+  const stage: JobStage = 'spec_generate'
+
+  if (engine.adapter === 'fixture') {
+    const adapter = new FixtureAdapter()
+    let result: AdapterResult
+    try {
+      if (req.task_type === 'edit') {
+        // 수정은 기준 명세가 있어야 한다. buildContext 가 먼저 막지만 어댑터 입력에서도 다시 확인한다.
+        const parsed = ScreenSpecShape.safeParse(input.base_revision?.spec)
+        if (!parsed.success) throw new Error('기준 명세를 읽지 못했습니다 (스키마 불일치)')
+        result = await adapter.reviseSpec({ prompt, ctx, req, current: parsed.data })
+      } else {
+        result = await adapter.generateSpec({ prompt, ctx, req })
+      }
+    } catch (e) {
+      throw new BrowserPipelineError('model_error', `더미 어댑터(fixture) 실행에 실패했습니다: ${messageOf(e)}`, { stage })
+    }
+    if (!result.output || typeof result.output !== 'object') {
+      throw new BrowserPipelineError('model_error', '더미 어댑터가 출력(output)을 돌려주지 않았습니다', { stage })
+    }
+    // 더미 어댑터는 토큰을 쓰지 않는다 — 사용량을 0 으로 지어내지 않고 아예 비운다.
+    return { output: result.output }
+  }
+
+  const credential = input.credential
+  if (!credential) throw new BrowserPipelineError('internal', '자격 증명이 없는데 실제 호출로 들어왔습니다', { stage })
+  try {
+    const call = await callAnthropic<Record<string, unknown>>(
+      { credential, system: prompt.system, user: prompt.user, schema: SCREEN_OUTPUT_JSON_SCHEMA, model: engine.model },
+      { fetch: deps.fetch },
+    )
+    return { output: call.output, usage: call.usage }
+  } catch (e) {
+    const details = e instanceof BrowserModelError ? e.details : []
+    throw new BrowserPipelineError('model_error', `모델 호출에 실패했습니다 (${engine.model}): ${messageOf(e)}`, { stage, details })
+  }
+}
+
 /** 파이프라인 실행. 각 단계 진입 때 onStage 를 부른다. */
 export async function runBrowserPipeline(input: PipelineInput, deps: PipelineDeps = {}): Promise<PipelineResult> {
   const now = deps.now ?? (() => new Date().toISOString())
   const newId = deps.newId ?? (() => crypto.randomUUID())
   const onStage = deps.onStage ?? (() => {})
   const req = input.request
-  const model = input.model ?? DEFAULT_BROWSER_MODEL
+  const engine = engineOf(input)
+  const model = engine.model
 
   // 1. context_build
   onStage('context_build')
@@ -290,16 +372,7 @@ export async function runBrowserPipeline(input: PipelineInput, deps: PipelineDep
   } catch (e) {
     throw new BrowserPipelineError('internal', `프롬프트 조립에 실패했습니다: ${messageOf(e)}`, { stage: 'spec_generate' })
   }
-  let call
-  try {
-    call = await callAnthropic<Record<string, unknown>>(
-      { credential: input.credential, system: prompt.system, user: prompt.user, schema: SCREEN_OUTPUT_JSON_SCHEMA, model },
-      { fetch: deps.fetch },
-    )
-  } catch (e) {
-    const details = e instanceof BrowserModelError ? e.details : []
-    throw new BrowserPipelineError('model_error', `모델 호출에 실패했습니다 (${model}): ${messageOf(e)}`, { stage: 'spec_generate', details })
-  }
+  const call = await generateOutput({ input, engine, prompt, ctx, deps })
 
   // 3. schema_check
   onStage('schema_check')
@@ -319,7 +392,7 @@ export async function runBrowserPipeline(input: PipelineInput, deps: PipelineDep
         screen_title: input.screen.title,
         requirements: ctx.requirements.map((r) => ({ external_id: r.external_id, title: r.title, criterion_ids: r.criteria.map((c) => c.id) })),
         revision_label: `r${input.revision_no}`,
-        generated_by: `anthropic:${model} (브라우저 직접 호출)`,
+        generated_by: engine.adapter === 'anthropic' ? `anthropic:${model} (브라우저 직접 호출)` : `fixture:${model} (브라우저 더미 어댑터)`,
       },
     })
   } catch (e) {
@@ -335,10 +408,13 @@ export async function runBrowserPipeline(input: PipelineInput, deps: PipelineDep
   const runId = newRunId()
   let results: CheckResult[]
   try {
+    const v3 = deps.runV3
+      ? await deps.runV3(rendered.html, { artifact_hash: artifactHash, validation_run_id: runId })
+      : v3NotRunResults(spec, { artifact_hash: artifactHash, validation_run_id: runId })
     results = [
       ...runV1(spec, { required_cases: [...req.cases], artifact_hash: artifactHash, validation_run_id: runId }),
       ...runV2(rendered.html, spec, S2B_LEARNED_PROFILE, { artifact_hash: artifactHash, validation_run_id: runId }),
-      ...v3NotRunResults(spec, { artifact_hash: artifactHash, validation_run_id: runId }),
+      ...v3,
     ]
   } catch (e) {
     throw new BrowserPipelineError('internal', `검증 실행에 실패했습니다: ${messageOf(e)}`, { stage: 'validate' })
@@ -379,9 +455,9 @@ export async function runBrowserPipeline(input: PipelineInput, deps: PipelineDep
     validation_results: results as unknown as ValidationResult[],
     element_index: rendered.element_index.map((e) => ({ element_id: e.element_id, section_id: e.section_id, display_no: e.display_no })),
     html: rendered.html,
-    generated_by: `anthropic:${model}`,
+    generated_by: `${engine.adapter}:${model}`,
   }
-  return { record, prompt, context_summary: summary, usage: call.usage, model: call.model }
+  return { record, prompt, context_summary: summary, ...(call.usage ? { usage: call.usage } : {}), adapter: engine.adapter, model }
 }
 
 /** change_summary 가 없거나 형태가 다르면 목적으로 대체한다 (서버와 같은 방식). */

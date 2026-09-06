@@ -1,0 +1,269 @@
+[
+  {
+    "id": "partner-mall",
+    "label": "레거시 파트너몰",
+    "description": "로그인·견적 현황이 한 화면에 섞여 있고, 레이블 없는 입력과 모호한 버튼 문구가 많다.",
+    "url": "https://sample.local/asis-sample",
+    "captured_at": "2026-09-06T13:02:13.118Z",
+    "structure": {
+      "title": "레거시 파트너몰(데모)",
+      "headings": [
+        {
+          "level": 2,
+          "text": "레거시 파트너몰(데모)"
+        },
+        {
+          "level": 2,
+          "text": "파트너 로그인"
+        },
+        {
+          "level": 2,
+          "text": "이번 달 견적 현황"
+        },
+        {
+          "level": 2,
+          "text": "공지사항"
+        },
+        {
+          "level": 3,
+          "text": "이용 안내"
+        }
+      ],
+      "nav_links": [
+        {
+          "text": "상품조회",
+          "href": "#menu-1"
+        },
+        {
+          "text": "견적요청",
+          "href": "#menu-2"
+        },
+        {
+          "text": "견적내역",
+          "href": "#menu-3"
+        },
+        {
+          "text": "발주관리",
+          "href": "#menu-4"
+        },
+        {
+          "text": "납품확인",
+          "href": "#menu-5"
+        },
+        {
+          "text": "정산내역",
+          "href": "#menu-6"
+        },
+        {
+          "text": "세금계산서",
+          "href": "#menu-7"
+        },
+        {
+          "text": "반품관리",
+          "href": "#menu-8"
+        },
+        {
+          "text": "재고문의",
+          "href": "#menu-9"
+        },
+        {
+          "text": "단가표",
+          "href": "#menu-10"
+        },
+        {
+          "text": "공지사항",
+          "href": "#menu-11"
+        },
+        {
+          "text": "자료실",
+          "href": "#menu-12"
+        },
+        {
+          "text": "자주묻는질문",
+          "href": "#menu-13"
+        },
+        {
+          "text": "1대1문의",
+          "href": "#menu-14"
+        },
+        {
+          "text": "파트너정보",
+          "href": "#menu-15"
+        },
+        {
+          "text": "직원관리",
+          "href": "#menu-16"
+        },
+        {
+          "text": "인증서관리",
+          "href": "#menu-17"
+        },
+        {
+          "text": "사이트맵",
+          "href": "#menu-18"
+        }
+      ],
+      "forms": [
+        {
+          "name": "login",
+          "fields": [
+            {
+              "type": "text",
+              "name": "partner_id"
+            },
+            {
+              "type": "password",
+              "name": "partner_pw"
+            },
+            {
+              "type": "text",
+              "name": "branch_code"
+            }
+          ]
+        }
+      ],
+      "buttons": [
+        "클릭",
+        "여기"
+      ],
+      "counts": {
+        "links": 18,
+        "images": 2,
+        "images_without_alt": 2,
+        "tables": 1,
+        "fields_without_label": 3,
+        "iframes": 1
+      },
+      "lang": "ko"
+    },
+    "screenshots": {
+      "desktop": "2927040d-a4eb-4bb8-bd61-e8756b51dbac-desktop",
+      "mobile": "2927040d-a4eb-4bb8-bd61-e8756b51dbac-mobile"
+    }
+  },
+  {
+    "id": "settlement",
+    "label": "레거시 정산 시스템",
+    "description": "표 중심 화면이고 고정 폭(1180px)이라 모바일에서 가로 스크롤로 봐야 한다.",
+    "url": "https://sample.local/asis-sample-2",
+    "captured_at": "2026-09-06T13:02:14.204Z",
+    "structure": {
+      "title": "레거시 정산 시스템(데모)",
+      "headings": [
+        {
+          "level": 2,
+          "text": "정산 현황 조회"
+        },
+        {
+          "level": 2,
+          "text": "월별 정산 내역"
+        },
+        {
+          "level": 2,
+          "text": "공제 내역"
+        },
+        {
+          "level": 2,
+          "text": "안내"
+        }
+      ],
+      "nav_links": [
+        {
+          "text": "홈",
+          "href": "#s-1"
+        },
+        {
+          "text": "정산현황",
+          "href": "#s-2"
+        },
+        {
+          "text": "세금계산서",
+          "href": "#s-3"
+        },
+        {
+          "text": "입금내역",
+          "href": "#s-4"
+        },
+        {
+          "text": "공제내역",
+          "href": "#s-5"
+        },
+        {
+          "text": "수수료",
+          "href": "#s-6"
+        },
+        {
+          "text": "증빙업로드",
+          "href": "#s-7"
+        },
+        {
+          "text": "이의신청",
+          "href": "#s-8"
+        },
+        {
+          "text": "정산달력",
+          "href": "#s-9"
+        },
+        {
+          "text": "담당자",
+          "href": "#s-10"
+        },
+        {
+          "text": "규정",
+          "href": "#s-11"
+        },
+        {
+          "text": "도움말",
+          "href": "#s-12"
+        }
+      ],
+      "forms": [
+        {
+          "name": "search",
+          "fields": [
+            {
+              "type": "text",
+              "name": "from_ym"
+            },
+            {
+              "type": "text",
+              "name": "to_ym"
+            },
+            {
+              "type": "text",
+              "name": "po_no"
+            },
+            {
+              "type": "select",
+              "name": "state"
+            },
+            {
+              "type": "text",
+              "name": "manager"
+            }
+          ]
+        }
+      ],
+      "buttons": [
+        "확인",
+        "여기",
+        "바로가기",
+        "클릭",
+        "엑셀"
+      ],
+      "counts": {
+        "links": 12,
+        "images": 0,
+        "images_without_alt": 0,
+        "tables": 2,
+        "fields_without_label": 5,
+        "iframes": 2
+      },
+      "lang": "ko"
+    },
+    "screenshots": {
+      "desktop": "5b87ca22-fdcf-4b52-a5fd-f1d9d6ff8245-desktop",
+      "mobile": "5b87ca22-fdcf-4b52-a5fd-f1d9d6ff8245-mobile"
+    }
+  }
+]

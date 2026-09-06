@@ -4,17 +4,9 @@
  * 시각은 주입해 실제 대기 없이 검사한다.
  */
 import { describe, expect, it } from 'vitest'
-import {
-  DEMO_ASIS_RUNNING_MS,
-  DEMO_MARK,
-  DEMO_STAGE_INTERVAL_MS,
-  createDemoState,
-  handleWith,
-  type DemoFiles,
-  type DemoState,
-} from './demo-api.js'
+import { DEMO_ASIS_RUNNING_MS, createDemoState, handleAsyncWith, handleWith, type DemoFiles, type DemoState } from './demo-api.js'
 import { browserRuntime, setBrowserRuntime } from './browser-run/runtime.js'
-import type { AsisAnalysis, Comment, Job, ProjectDetail, RevisionDetail, ScreenDetail } from './types.js'
+import type { AsisAnalysis, AsisAnalysisSummary, Comment, Job, ProjectDetail, RevisionDetail, ScreenDetail } from './types.js'
 
 const PROJECT = 'P1'
 const SCREEN_WITH_REVISION = 'S1'
@@ -23,8 +15,28 @@ const REVISION = 'R1'
 const ARTIFACT = 'A1'
 const ANALYSIS = 'AN1'
 
+/** 미리 분석해 둔 샘플 대상 (실제 스냅샷의 `asis-samples.json` 과 같은 모양). */
+const SAMPLE_TARGET = {
+  id: 'partner-mall',
+  label: '레거시 파트너몰',
+  description: '레이블 없는 입력과 모호한 버튼 문구가 많다.',
+  url: 'https://sample.local/asis-sample',
+  captured_at: '2026-09-05T00:00:00.000Z',
+  structure: {
+    title: '레거시 파트너몰(데모)',
+    lang: 'ko',
+    headings: [{ level: 2, text: '레거시 파트너몰(데모)' }],
+    nav_links: Array.from({ length: 18 }, (_, i) => ({ text: `메뉴${i + 1}`, href: `#menu-${i + 1}` })),
+    forms: [{ name: 'login', fields: [{ type: 'text', name: 'partner_id' }, { type: 'password', name: 'partner_pw' }, { type: 'text', name: 'branch_code' }] }],
+    buttons: ['클릭', '여기'],
+    counts: { links: 18, images: 2, images_without_alt: 2, tables: 1, fields_without_label: 3, iframes: 1 },
+  },
+  screenshots: { desktop: 'sample-desktop', mobile: 'sample-mobile' },
+}
+
 function files(): DemoFiles {
   return {
+    asis_samples: [SAMPLE_TARGET],
     snapshot: {
       '/api/meta': { adapter: 'fixture', model: 'fixture', version: '0.0.0', playwright: true },
       [`/api/projects/${PROJECT}`]: {
@@ -79,8 +91,6 @@ function files(): DemoFiles {
         revision: 1,
       } satisfies AsisAnalysis,
     },
-    prompt_preview: { prompt: { system: 's', user: 'u', template_version: 'v1', context_summary: ['원본 문맥'] }, context_summary: ['원본 문맥'] },
-    revision_prompt: { prompt: '수정 프롬프트', rationale: '코멘트 1건', adapter: 'fixture' },
     approval: {
       screen_id: SCREEN_WITH_REVISION,
       revision_id: REVISION,
@@ -185,41 +195,118 @@ describe('페인포인트 채택/거부', () => {
   })
 })
 
-describe('생성 작업 — 단계 진행 후 스냅샷 revision 을 결과로 연결', () => {
-  it('단계를 지나 succeeded 가 되고 결과가 기존 revision 을 가리킨다', () => {
-    const clock = { ms: 0 }
-    const state = stateAt(clock)
-    const created = handleWith(state, 'POST', `/api/screens/${SCREEN_WITH_REVISION}/generation-jobs`, { task_type: 'create', purpose: '목록 생성' })
+/** 파이프라인은 비동기로 도므로 끝날 때까지 폴링한다. */
+async function waitJob(state: DemoState, jobId: string): Promise<Job> {
+  for (let i = 0; i < 400; i += 1) {
+    const job = handleWith(state, 'GET', `/api/jobs/${jobId}`).data as Job
+    if (job.status === 'succeeded' || job.status === 'failed') return job
+    await new Promise((r) => setTimeout(r, 5))
+  }
+  throw new Error('작업이 끝나지 않았다')
+}
+
+describe('생성 작업 — 자격 증명이 없으면 더미 어댑터로 «실제로» 돈다', () => {
+  it('스냅샷에 결과가 없는 화면도 새 revision 을 만든다 (문맥·스키마·렌더·V1·V2 는 진짜로 실행된다)', async () => {
+    const state = newState()
+    const created = handleWith(state, 'POST', `/api/screens/${SCREEN_WITHOUT_REVISION}/generation-jobs`, {
+      screen_id: SCREEN_WITHOUT_REVISION,
+      task_type: 'create',
+      purpose: '견적 상세를 조회한다',
+      requirement_ids: [],
+      criterion_ids: [],
+      reference_ids: [],
+      cases: ['normal', 'empty', 'error'],
+      keep_conditions: [],
+      roles: ['partner'],
+      device: 'desktop',
+    })
     expect(created.status).toBe(202)
     const jobId = (created.data as { job_id: string }).job_id
 
-    const running = handleWith(state, 'GET', `/api/jobs/${jobId}`).data as Job
-    expect(running.status).toBe('running')
-    expect(running.current_stage).toBe('context_build')
-    expect(running.context_summary?.join(' ')).toContain(DEMO_MARK)
+    const job = await waitJob(state, jobId)
+    expect(job.status).toBe('succeeded')
+    // 더미 어댑터라는 사실을 숨기지 않는다.
+    expect(job.adapter).toBe('fixture')
+    expect(job.model).toBe('fixture')
+    expect(job.context_summary?.join(' ')).toContain('더미 어댑터')
+    // 토큰을 쓰지 않았으므로 사용량 0 을 «사용량» 처럼 적지 않는다.
+    expect(job.context_summary?.join(' ')).toContain('토큰 사용량 없음')
 
-    clock.ms = DEMO_STAGE_INTERVAL_MS * 3
-    expect((handleWith(state, 'GET', `/api/jobs/${jobId}`).data as Job).current_stage).toBe('render')
-
-    clock.ms = DEMO_STAGE_INTERVAL_MS * 6
-    const done = handleWith(state, 'GET', `/api/jobs/${jobId}`).data as Job
-    expect(done.status).toBe('succeeded')
-    expect(done.result).toEqual({ revision_id: REVISION, artifact_id: ARTIFACT })
-
-    // 새 화면·새 revision 을 만들어내지 않는다
-    const screen = handleWith(state, 'GET', `/api/screens/${SCREEN_WITH_REVISION}`).data as ScreenDetail
+    const revisionId = job.result?.revision_id ?? ''
+    expect(revisionId).not.toBe('')
+    const screen = handleWith(state, 'GET', `/api/screens/${SCREEN_WITHOUT_REVISION}`).data as ScreenDetail
     expect(screen.revisions).toHaveLength(1)
+    expect(screen.screen.current_revision_id).toBe(revisionId)
+
+    const detail = handleWith(state, 'GET', `/api/revisions/${revisionId}`).data as RevisionDetail
+    expect(detail.validation_results.some((r) => r.check_id === 'V1.schema' && r.status === 'pass')).toBe(true)
+    // V3 는 격리 iframe 이 필요하다. 문서가 없는 이 환경에서는 error 로 기록된다 — 통과로 바꾸지 않는다.
+    expect(detail.validation_results.filter((r) => r.stage === 'V3').every((r) => r.status !== 'pass')).toBe(true)
   })
 
-  it('스냅샷에 결과가 없는 화면은 작업을 만들지 않고 400 으로 거절한다', () => {
-    const res = handleWith(newState(), 'POST', `/api/screens/${SCREEN_WITHOUT_REVISION}/generation-jobs`, { task_type: 'create', purpose: '상세 생성' })
-    expect(res.status).toBe(400)
-    expect(res.data).toMatchObject({ error: 'demo_unavailable' })
-    expect(String((res.data as { message: string }).message)).toContain('pnpm dev')
+  it('기존 revision 이 있는 화면은 다음 번호로 쌓인다 (옛 결과를 새 결과처럼 보이지 않는다)', async () => {
+    const state = newState()
+    const created = handleWith(state, 'POST', `/api/screens/${SCREEN_WITH_REVISION}/generation-jobs`, {
+      screen_id: SCREEN_WITH_REVISION,
+      task_type: 'create',
+      purpose: '견적 목록을 조회한다',
+      requirement_ids: [],
+      criterion_ids: [],
+      reference_ids: [],
+      cases: ['normal', 'empty', 'error'],
+      keep_conditions: [],
+      roles: ['partner'],
+      device: 'desktop',
+    })
+    const job = await waitJob(state, (created.data as { job_id: string }).job_id)
+    expect(job.status).toBe('succeeded')
+    expect(job.result?.revision_id).not.toBe(REVISION)
+
+    const screen = handleWith(state, 'GET', `/api/screens/${SCREEN_WITH_REVISION}`).data as ScreenDetail
+    expect(screen.revisions.map((r) => r.revision_no)).toEqual([1, 2])
+  })
+
+  it('없는 화면은 404 다', () => {
+    expect(handleWith(newState(), 'POST', '/api/screens/없는것/generation-jobs', { task_type: 'create', purpose: 'x' }).status).toBe(404)
   })
 })
 
-describe('AS-IS 분석 — 새 URL 은 성공으로 위장하지 않는다', () => {
+describe('AS-IS 분석 — 샘플 대상은 실제로 규칙을 돌린다', () => {
+  it('대기 → 실행 중 → 성공. 구조·스크린샷은 기록, 페인포인트는 지금 만든다', async () => {
+    const clock = { ms: 0 }
+    const state = stateAt(clock)
+    const created = handleWith(state, 'POST', `/api/projects/${PROJECT}/asis-analyses`, { url: SAMPLE_TARGET.url, note: '샘플' })
+    expect(created.status).toBe(202)
+    const id = (created.data as { analysis_id: string }).analysis_id
+
+    expect((handleWith(state, 'GET', `/api/asis-analyses/${id}`).data as AsisAnalysis).status).toBe('queued')
+    clock.ms = DEMO_ASIS_RUNNING_MS + 1
+    // 초안이 끝날 때까지 running 이다 (미완성을 성공으로 바꾸지 않는다).
+    for (let i = 0; i < 100; i += 1) {
+      const doc = handleWith(state, 'GET', `/api/asis-analyses/${id}`).data as AsisAnalysis
+      if (doc.status === 'succeeded') break
+      expect(doc.status).toBe('running')
+      await new Promise((r) => setTimeout(r, 5))
+    }
+
+    const doc = handleWith(state, 'GET', `/api/asis-analyses/${id}`).data as AsisAnalysis
+    expect(doc.status).toBe('succeeded')
+    // 더미 어댑터 규칙이라는 사실을 그대로 적는다.
+    expect(doc.adapter).toBe('fixture')
+    expect(doc.structure).toEqual(SAMPLE_TARGET.structure)
+    expect(doc.screenshots).toEqual(SAMPLE_TARGET.screenshots)
+    expect(doc.pain_points.length).toBeGreaterThan(0)
+    expect(doc.pain_points[0]?.id).toBe('PP-001')
+    expect(doc.pain_points.every((p) => p.status === 'proposed')).toBe(true)
+    // 레이블 없는 입력 3개는 반드시 잡혀야 한다 (규칙이 실제로 돌았다는 근거).
+    expect(JSON.stringify(doc.pain_points)).toContain('fields_without_label=3')
+
+    const list = handleWith(state, 'GET', `/api/projects/${PROJECT}/asis-analyses`).data as AsisAnalysisSummary[]
+    expect(list.find((a) => a.id === id)?.pain_point_count).toBe(doc.pain_points.length)
+  })
+})
+
+describe('AS-IS 분석 — 샘플이 아닌 URL 은 성공으로 위장하지 않는다', () => {
   it('실행 중을 보인 뒤 실패로 끝나고 안내 문구를 남긴다', () => {
     const clock = { ms: 0 }
     const state = stateAt(clock)
@@ -250,16 +337,16 @@ describe('AS-IS 분석 — 새 URL 은 성공으로 위장하지 않는다', () 
 })
 
 describe('승인 — 차단 코멘트·중복 승인은 실제 서버처럼 거부한다', () => {
-  it('차단 코멘트가 열려 있으면 400, 해결하면 승인되고 다시 누르면 400', () => {
+  it('차단 코멘트가 열려 있으면 400, 해결하면 승인되고 다시 누르면 400', async () => {
     const state = newState()
     const blocking = handleWith(state, 'POST', `/api/revisions/${REVISION}/comments`, { target: 'screen', author: '디자이너', role: 'designer', text: '막는 코멘트', blocking: true }).data as Comment
 
-    const rejected = handleWith(state, 'POST', `/api/screens/${SCREEN_WITH_REVISION}/approvals`, { revision_id: REVISION, approver: '기획자' })
+    const rejected = await handleAsyncWith(state, 'POST', `/api/screens/${SCREEN_WITH_REVISION}/approvals`, { revision_id: REVISION, approver: '기획자' })
     expect(rejected.status).toBe(400)
     expect(JSON.stringify(rejected.data)).toContain('approval.blocking_comments_open')
 
     handleWith(state, 'PATCH', `/api/comments/${blocking.id}`, { status: 'resolved', revision: 1 })
-    const approved = handleWith(state, 'POST', `/api/screens/${SCREEN_WITH_REVISION}/approvals`, { revision_id: REVISION, approver: '기획자' })
+    const approved = await handleAsyncWith(state, 'POST', `/api/screens/${SCREEN_WITH_REVISION}/approvals`, { revision_id: REVISION, approver: '기획자' })
     expect(approved.status).toBe(200)
     expect(approved.data).toMatchObject({ version: '1.0', export_path: 'demo/SAMPLE-quote-list/v1.0' })
 
@@ -270,30 +357,60 @@ describe('승인 — 차단 코멘트·중복 승인은 실제 서버처럼 거�
     const project = handleWith(state, 'GET', `/api/projects/${PROJECT}`).data as ProjectDetail
     expect(project.screens[0]).toMatchObject({ status: 'approved', version: '1.0' })
 
-    const again = handleWith(state, 'POST', `/api/screens/${SCREEN_WITH_REVISION}/approvals`, { revision_id: REVISION, approver: '기획자' })
+    const again = await handleAsyncWith(state, 'POST', `/api/screens/${SCREEN_WITH_REVISION}/approvals`, { revision_id: REVISION, approver: '기획자' })
     expect(again.status).toBe(400)
     expect(JSON.stringify(again.data)).toContain('approval.screen_already_approved')
   })
 
-  it('스냅샷에 내보내기가 없는 revision 은 승인하지 않는다', () => {
+  it('스냅샷에 내보내기가 없는 revision 은 승인하지 않는다', async () => {
     const state = newState()
-    const res = handleWith(state, 'POST', `/api/screens/${SCREEN_WITH_REVISION}/approvals`, { revision_id: '다른-revision', approver: '기획자' })
+    const res = await handleAsyncWith(state, 'POST', `/api/screens/${SCREEN_WITH_REVISION}/approvals`, { revision_id: '다른-revision', approver: '기획자' })
     expect(res.status).toBe(400)
   })
 })
 
-describe('저장된 예시 응답 — 정적 데모임을 남긴다', () => {
-  it('prompt-preview·revision-prompt 는 표시를 붙여 돌려준다', () => {
+describe('프롬프트 미리보기·수정 초안 — 저장된 예시가 아니라 이번 요청으로 조립한다', () => {
+  it('프롬프트 미리보기는 이번 요청의 문맥으로 그 자리에서 조립된다', () => {
     const state = newState()
-    const preview = handleWith(state, 'POST', `/api/screens/${SCREEN_WITH_REVISION}/prompt-preview`, {}).data as { context_summary: string[]; prompt: { context_summary: string[] } }
-    expect(preview.context_summary[0]).toContain(DEMO_MARK)
-    expect(preview.prompt.context_summary[0]).toContain(DEMO_MARK)
-    expect(preview.context_summary).toContain('원본 문맥')
+    const preview = handleWith(state, 'POST', `/api/screens/${SCREEN_WITH_REVISION}/prompt-preview`, {
+      screen_id: SCREEN_WITH_REVISION,
+      task_type: 'create',
+      purpose: '견적 목록을 조회한다',
+      requirement_ids: [],
+      criterion_ids: [],
+      reference_ids: [],
+      cases: ['normal'],
+      keep_conditions: [],
+      roles: ['partner'],
+      device: 'desktop',
+    }).data as { context_summary: string[]; prompt: { system: string; user: string; context_summary?: string[] } }
+    expect(preview.context_summary[0]).toContain('더미 어댑터')
+    expect(preview.context_summary.join(' ')).toContain('견적 목록을 조회한다')
+    expect(preview.prompt.user).toContain('견적 목록을 조회한다')
+  })
 
-    const draft = handleWith(state, 'POST', `/api/revisions/${REVISION}/revision-prompt`, { comment_ids: ['c1'] }).data as { prompt: string; rationale: string }
-    expect(draft.prompt).toBe('수정 프롬프트')
-    expect(draft.rationale).toContain(DEMO_MARK)
-    expect(handleWith(state, 'POST', `/api/revisions/${REVISION}/revision-prompt`, { comment_ids: [] }).status).toBe(400)
+  it('수정 프롬프트 초안은 더미 어댑터가 코멘트에서 만든다 (adapter 를 fixture 로 적는다)', async () => {
+    const state = newState()
+    const created = handleWith(state, 'POST', `/api/revisions/${REVISION}/comments`, {
+      target: 'screen',
+      element_id: 'quote_no',
+      author: '데모 디자이너',
+      role: 'designer',
+      text: '견적번호 라벨을 「견적 번호」로 바꿔주세요',
+      blocking: false,
+    })
+    const commentId = (created.data as Comment).id
+    const res = await handleAsyncWith(state, 'POST', `/api/revisions/${REVISION}/revision-prompt`, { comment_ids: [commentId] })
+    // 스냅샷 revision 의 spec 은 최소 형태라 명세를 읽지 못하면 지어내지 않고 실패로 알린다.
+    if (res.status === 200) {
+      const draft = res.data as { prompt: string; rationale: string; adapter: string }
+      expect(draft.adapter).toBe('fixture')
+      expect(draft.prompt).toContain('견적 번호')
+    } else {
+      expect(res.status).toBe(400)
+      expect(res.data).toMatchObject({ error: 'model_error' })
+    }
+    expect((await handleAsyncWith(state, 'POST', `/api/revisions/${REVISION}/revision-prompt`, { comment_ids: [] })).status).toBe(400)
   })
 
   it('재검증은 저장된 결과를 그대로 돌려준다', () => {

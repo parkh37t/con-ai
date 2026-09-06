@@ -2,14 +2,32 @@
  * 브라우저 모드 내보내기 — 서버 폴더(`exports/…`)를 쓸 수 없으므로 같은 6개 파일을 브라우저에서 만들어 내려받는다.
  * 파일 구성은 계약 §8·apps/api/src/export.ts 와 같다: index.html, spec.json, trace.json, validation.json, comments.json, manifest.json.
  *
- * 승인(v1.0)과는 다르다 — manifest 에 `mode: 'browser'`, `approved: false` 를 적어 승인 산출물로 오인하지 않게 한다.
+ * 승인 여부는 manifest 에 그대로 적는다. `mode` 는 언제나 `'browser'` 이며(서버 폴더에 쓰지 않았다는 뜻),
+ * 승인 전이면 `approved:false`·`version:null`, 승인 뒤면 `approved:true`·`version:'1.0'`·승인자·시각을 적는다.
  */
 import type { Comment, Criterion, Requirement, ValidationResult, ValidationSummary } from '../types.js'
 import { sha256Hex } from './hash.js'
 import type { BrowserRevisionRecord } from './store.js'
 
 export const BROWSER_EXPORT_NOTE =
-  '브라우저 모드에서 내려받은 산출물입니다. 승인(v1.0) 기록이 아닙니다 — 브라우저에서는 필수 실행 검사(V3)를 돌릴 수 없어 승인 게이트를 통과할 수 없습니다.'
+  '브라우저 모드에서 내려받은 산출물입니다. 아직 승인(v1.0) 기록이 아닙니다 — 완료 처리를 먼저 해야 승인 산출물이 됩니다.'
+
+export const BROWSER_EXPORT_APPROVED_NOTE =
+  '브라우저 모드에서 만든 승인(v1.0) 산출물입니다. 서버 폴더(`exports/…`)에 쓰지 않고 이 브라우저에서 만들어 내려받습니다 — 팀이 함께 쓰는 이관 폴더는 서버 실행에서 만듭니다.'
+
+/** `<adapter>:<model>` 표기를 나눈다. 모르면 지어내지 않고 그대로 둔다. */
+export function splitGeneratedBy(generatedBy: string): { adapter: string; model: string } {
+  const i = generatedBy.indexOf(':')
+  if (i < 0) return { adapter: generatedBy, model: generatedBy }
+  return { adapter: generatedBy.slice(0, i), model: generatedBy.slice(i + 1) }
+}
+
+/** 승인 기록 — 있으면 manifest 가 승인 산출물이 된다. */
+export interface BundleApproval {
+  version: string
+  approved_by: string
+  approved_at: string
+}
 
 export const ALLOWED_DESIGN_TOKENS = ['color', 'font', 'spacing'] as const
 
@@ -83,6 +101,8 @@ export interface BundleInput {
   requirements: readonly Requirement[]
   comments: readonly Comment[]
   generated_at: string
+  /** 승인 뒤에 만들면 그 기록. 없으면 승인 전 산출물이다. */
+  approval?: BundleApproval | undefined
 }
 
 /** 6개 파일을 만든다 (각 파일의 sha256 포함). manifest 는 파일 목록을 담아 마지막에 만든다. */
@@ -99,18 +119,21 @@ export async function buildExportBundle(input: BundleInput): Promise<BundleFile[
   await add('validation.json', 'application/json', pretty({ artifact_hash: record.artifact.content_hash, summary: summarize(record.validation_results), results: record.validation_results }))
   await add('comments.json', 'application/json', pretty({ revision_id: record.revision.id, comments: input.comments }))
 
+  const by = splitGeneratedBy(record.generated_by)
   const manifest = {
     mode: 'browser',
-    approved: false,
-    note: BROWSER_EXPORT_NOTE,
+    approved: input.approval !== undefined,
+    note: input.approval ? BROWSER_EXPORT_APPROVED_NOTE : BROWSER_EXPORT_NOTE,
     project: { id: input.project.id, name: input.project.name, slug: input.project.slug ?? null },
     screen_external_id: record.screen_external_id,
-    version: null,
+    version: input.approval?.version ?? null,
+    approved_by: input.approval?.approved_by ?? null,
+    approved_at: input.approval?.approved_at ?? null,
     artifact_hash: record.artifact.content_hash,
     spec_hash: record.revision.spec_hash,
     generated_at: input.generated_at,
-    adapter: 'anthropic',
-    model: record.generated_by.replace(/^anthropic:/, ''),
+    adapter: by.adapter,
+    model: by.model,
     validation_summary: summarize(record.validation_results),
     design_handoff: {
       screen_revision_id: record.revision.id,

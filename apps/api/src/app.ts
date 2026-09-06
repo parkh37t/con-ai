@@ -51,7 +51,7 @@ import {
   type StoredDocument,
 } from '@con-ai/worker-generation'
 import { recoverInterruptedAsisAnalyses, runAsisAnalysis, type AsisAnalysisDocument, type AsisStore } from './asis-runner.js'
-import { ASIS_SAMPLE_HTML } from './asis-sample.js'
+import { ASIS_SAMPLE_2_HTML, ASIS_SAMPLE_HTML } from './asis-sample.js'
 import { EXPORT_VERSION, exportApprovedRevision, summarizeValidation } from './export.js'
 import { buildMeta, detectPlaywright } from './meta.js'
 import { JobQueue, recoverInterruptedJobs } from './queue.js'
@@ -695,6 +695,11 @@ export function createApp(options: AppOptions): ConAiApp {
   app.get('/asis-sample', (c) => {
     c.header('X-Content-Type-Options', 'nosniff')
     return c.html(ASIS_SAMPLE_HTML)
+  })
+
+  app.get('/asis-sample-2', (c) => {
+    c.header('X-Content-Type-Options', 'nosniff')
+    return c.html(ASIS_SAMPLE_2_HTML)
   })
 
   app.post('/api/projects/:id/asis-analyses', async (c) => {

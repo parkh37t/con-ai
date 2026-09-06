@@ -1,5 +1,8 @@
 /**
- * GET `/asis-sample` — 합성 레거시 데모 페이지 (계약 §12).
+ * GET `/asis-sample`, `/asis-sample-2` — 합성 레거시 데모 페이지 2종 (계약 §12).
+ *
+ * 둘 다 **가상 데이터**다. 실제 고객 사이트를 복제하지 않으며 외부 리소스를 부르지 않는다.
+ * 서로 다른 페인포인트 프로파일을 갖게 만들어, 분석 결과가 대상마다 달라지는 것을 보이게 한다.
  *
  * AS-IS 분석 데모·e2e 대상이 되도록 의도된 페인포인트 신호를 담는다 (전부 가상 데이터, 외부 리소스 없음):
  * - h1 없음 (배너는 h2 만) / 레이블 없는 input 3개 / alt 없는 img 2개 (1px data URI)
@@ -92,6 +95,102 @@ export const ASIS_SAMPLE_HTML = `<!doctype html>
       <p>인증서 만료가 임박한 파트너께서는 인증서관리 메뉴에서 갱신 절차를 진행해 주시기 바랍니다. 갱신하지 않으시면 로그인이 제한될 수 있습니다.
       직원 계정의 추가·삭제는 직원관리 메뉴에서 대표 계정으로만 가능합니다. 본 데모 페이지의 모든 링크는 실제로 이동하지 않는 자리표시자입니다.</p>
     </section>
+  </main>
+</body>
+</html>
+`
+
+/** `/asis-sample-2` — 정산 화면 계열. 표가 많고 모바일 대응이 없으며 버튼 문구가 모호하다. */
+const NAV_ITEMS_2 = [
+  '홈', '정산현황', '세금계산서', '입금내역', '공제내역', '수수료',
+  '증빙업로드', '이의신청', '정산달력', '담당자', '규정', '도움말',
+] as const
+
+const NAV_HTML_2 = NAV_ITEMS_2.map((name, i) => `<a href="#s-${i + 1}">${name}</a>`).join('\n      ')
+
+function settlementRows(count: number): string {
+  const items = ['복사용지', '토너', '사무의자', '책상', '캐비닛', '화이트보드', '프린터', '모니터']
+  const states = ['정산완료', '보류', '이의신청', '검토중']
+  const rows: string[] = []
+  for (let i = 1; i <= count; i += 1) {
+    const item = items[i % items.length]
+    const state = states[i % states.length]
+    rows.push(`<tr><td>2026-0${(i % 9) + 1}</td><td>PO-2026-${String(1000 + i)}</td><td>${item}(데모)</td><td>${(i * 37) % 200}</td><td>${((i * 137) % 900) * 1000}</td><td>${state}</td></tr>`)
+  }
+  return rows.join('\n        ')
+}
+
+export const ASIS_SAMPLE_2_HTML = `<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>레거시 정산 시스템(데모)</title>
+  <style>
+    body { margin: 0; font-family: sans-serif; background: #fff; color: #1c1c1c; min-width: 1180px; }
+    .top { background: #3c3c3c; color: #fff; padding: 10px 20px; font-size: 13px; }
+    nav { background: #f0f0f0; border-bottom: 2px solid #999; padding: 6px 20px; white-space: nowrap; }
+    nav a { margin-right: 14px; font-size: 12px; color: #123; }
+    main { padding: 20px; }
+    .filter { border: 1px solid #bbb; padding: 12px; margin-bottom: 16px; background: #fafafa; }
+    .filter input, .filter select { padding: 4px; margin-right: 6px; }
+    table { border-collapse: collapse; width: 1120px; margin-bottom: 20px; font-size: 12px; }
+    th { background: #ddd; }
+    th, td { border: 1px solid #aaa; padding: 4px 8px; }
+    .btns button { padding: 5px 12px; margin-right: 6px; font-size: 12px; }
+    iframe { border: 1px solid #999; width: 420px; height: 70px; }
+    .foot { font-size: 11px; color: #666; padding: 16px 20px; }
+  </style>
+</head>
+<body>
+  <div class="top">파트너 정산 시스템 (데모) — 최적 해상도 1280×1024</div>
+
+  <nav>
+      ${NAV_HTML_2}
+  </nav>
+
+  <main>
+    <!-- h1 이 없고 h2 가 여러 개 -->
+    <h2>정산 현황 조회</h2>
+
+    <section class="filter">
+      <!-- 레이블 없는 입력 4개 -->
+      <form name="search" action="#search">
+        <input type="text" name="from_ym" placeholder="">
+        <input type="text" name="to_ym" placeholder="">
+        <input type="text" name="po_no" placeholder="">
+        <select name="state"><option>전체</option><option>정산완료</option><option>보류</option></select>
+        <input type="text" name="manager" placeholder="">
+        <button type="button">확인</button>
+        <button type="button">여기</button>
+        <button type="button">바로가기</button>
+      </form>
+    </section>
+
+    <h2>월별 정산 내역</h2>
+    <!-- caption 없는 큰 표 -->
+    <table>
+      <tr><th>정산월</th><th>발주번호</th><th>품목</th><th>수량</th><th>금액</th><th>상태</th></tr>
+        ${settlementRows(24)}
+    </table>
+
+    <h2>공제 내역</h2>
+    <table>
+      <tr><th>구분</th><th>금액</th><th>비고</th></tr>
+      <tr><td>지연배상(데모)</td><td>120,000</td><td>-</td></tr>
+      <tr><td>반품차감(데모)</td><td>340,000</td><td>-</td></tr>
+    </table>
+
+    <h2>안내</h2>
+    <iframe srcdoc="&lt;p style='font-size:12px'&gt;[정산 공지] 매월 5일 마감, 10일 지급 (데모 공지)&lt;/p&gt;"></iframe>
+    <iframe srcdoc="&lt;p style='font-size:12px'&gt;[점검] 매주 화요일 01:00~03:00 (데모 공지)&lt;/p&gt;"></iframe>
+
+    <div class="btns">
+      <button type="button">클릭</button>
+      <button type="button">엑셀</button>
+    </div>
+
+    <p class="foot">본 페이지는 AS-IS 분석 데모용 합성 화면입니다. 실제 정산 데이터·고객 정보와 무관하며 모든 값은 가상입니다.
+    이 화면은 데스크톱 고정 폭(1180px 이상)으로만 만들어져 모바일에서는 가로 스크롤로 봐야 합니다.</p>
   </main>
 </body>
 </html>

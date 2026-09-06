@@ -39,7 +39,7 @@ export function GeneratePage({ screenId, route }: { screenId: string; route: Rou
 
   const jobId = route.query['job'] ?? null
   const poll = useJobPolling(jobId, () => screen.reload())
-  // 정적 배포에서 자격 증명이 없으면 실제 생성이 아니라 스냅샷 동작임을 알린다 (meta.adapter 로 판단).
+  // 정적 배포에서 자격 증명이 없으면 더미 어댑터(fixture)로 돈다는 사실을 알린다 (meta.adapter 로 판단).
   const credentialTick = useCredentialTick()
   const meta = useAsync(() => api.meta(), [credentialTick])
   const hasCredential = meta.data?.adapter === 'anthropic'
@@ -110,7 +110,8 @@ export function GeneratePage({ screenId, route }: { screenId: string; route: Rou
 
       {IS_DEMO && !hasCredential && (
         <div className="notice notice-amber" data-testid="browser-mode-hint">
-          지금은 스냅샷 데모입니다 — 생성 실행은 저장된 결과를 보여줄 뿐입니다. <strong>왼쪽 아래 자격 증명 칩을 눌러 토큰을 넣으면 실제로 생성됩니다</strong> (이 브라우저가 api.anthropic.com 을 직접 호출).
+          지금은 <strong>더미 어댑터(fixture)</strong> 로 돕니다 — 모델을 호출하지 않고 규칙으로 명세를 만듭니다. 문맥 조립·스키마 검사·목업 렌더·V1·V2 검사는 <strong>실제로 실행</strong>됩니다.
+          모델이 쓴 명세를 보려면 <strong>왼쪽 아래 자격 증명 칩을 눌러 토큰을 넣으세요</strong> (이 브라우저가 api.anthropic.com 을 직접 호출).
         </div>
       )}
 

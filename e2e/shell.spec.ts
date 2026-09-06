@@ -42,18 +42,22 @@ test('작업대 셸: 228px 좌측 레일, 단계 4항목, 현재 위치 표시',
   await expect(page.locator('.topbar-nav')).toHaveCount(0)
 })
 
-test('ID 매핑 화면도 레일에서 현재 위치로 표시된다', async ({ page }) => {
+test('ID 매핑·프로토타입 화면도 레일에서 현재 위치로 표시된다', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 })
   await page.goto('/#/trace')
   await expect(page.getByTestId('rail-trace')).toHaveAttribute('aria-current', 'page')
   // 「자료」 그룹에 있고 작업 흐름 4항목은 그대로다
   for (const key of ['asis', 'screens', 'review', 'done']) await expect(page.getByTestId(`rail-${key}`)).toBeVisible()
+
+  await page.goto('/#/prototype')
+  await expect(page.getByTestId('rail-prototype')).toHaveAttribute('aria-current', 'page')
+  await expect(page.getByTestId('rail-trace')).not.toHaveAttribute('aria-current', 'page')
 })
 
 test('어떤 폭에서도 가로로 넘치지 않는다', async ({ page }) => {
   for (const width of WIDTHS) {
     await page.setViewportSize({ width, height: 900 })
-    for (const path of ['/#/', '/#/new', '/#/advanced', '/#/asis', '/#/trace']) {
+    for (const path of ['/#/', '/#/new', '/#/advanced', '/#/asis', '/#/trace', '/#/prototype']) {
       await page.goto(path)
       await page.waitForTimeout(150)
       expect(await overflow(page), `${path} ${width}px 가로 넘침`).toBeLessThanOrEqual(0)

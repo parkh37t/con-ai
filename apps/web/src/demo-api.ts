@@ -14,14 +14,15 @@
  *   approval.json        POST /api/screens/:id/approvals 응답 예시 (대상 화면·revision 포함)
  *   artifacts/·asis/·exports/  정적 파일 (api.ts 가 URL 을 직접 가리킨다)
  */
-import { assemblePrompt, assembleRevisionPrompt } from './browser-run/deps.js'
-import { buildContext, draftRevisionPromptInBrowser, revisionInstruction, runBrowserPipeline, type PipelineInput } from './browser-run/pipeline.js'
-import { browserModeActive, browserRuntime, toJobFailure } from './browser-run/runtime.js'
+import { FixtureAdapter, ScreenSpecShape, assemblePrompt, assembleRevisionPrompt, type PainPointDraftResult } from './browser-run/deps.js'
+import { findAsisSample, loadAsisSamples, type AsisSampleTarget } from './asis-samples.js'
+import { buildContext, draftRevisionPromptInBrowser, engineNote, engineOf, revisionInstruction, runBrowserPipeline, type PipelineInput } from './browser-run/pipeline.js'
+import { browserRuntime, toJobFailure } from './browser-run/runtime.js'
+import { buildExportBundle } from './browser-run/export-bundle.js'
 import { registerArtifactHtml, type BrowserApprovalRecord, type BrowserIaNodeRecord, type BrowserRevisionRecord, type BrowserScreenRecord, type BrowserStore } from './browser-run/store.js'
 import { demoIaNode, demoIssueId, demoPatchIaNode, demoRelabelId, demoRtm } from './demo-rtm.js'
 import { nextScreenExternalId } from './simple-flow.js'
 import { DEMO_BASE } from './demo-mode.js'
-import { JOB_STAGES } from './job-progress.js'
 import { summarizeValidation } from './summary.js'
 import type {
   ApprovalResponse,
@@ -48,16 +49,11 @@ import type {
 
 // ---------------------------------------------------------------- 상수·문구
 
-/** 생성 작업 단계 진행 간격 (작업 상태 폴링 UI 가 실제처럼 보이도록). */
-export const DEMO_STAGE_INTERVAL_MS = 1200
 /** AS-IS 분석: 대기 → 실행 중 → 실패 로 넘어가는 시점. */
 export const DEMO_ASIS_QUEUED_MS = 1200
 export const DEMO_ASIS_RUNNING_MS = 3600
 
-export const DEMO_MARK = '정적 데모'
 export const DEMO_ASIS_FAILURE_MESSAGE = '브라우저에서는 다른 사이트를 캡처할 수 없습니다. AS-IS 분석은 서버 실행(`pnpm serve`)에서 동작합니다.'
-export const DEMO_GENERATION_UNAVAILABLE_MESSAGE =
-  '정적 데모에는 이 화면의 생성 결과가 저장되어 있지 않습니다. 스냅샷에 결과가 있는 화면에서 실행해 보거나, 로컬에서 `pnpm dev` 로 실행하세요.'
 export const DEMO_EXPORT_NOT_CAPTURED_MESSAGE =
   '정적 데모에는 스냅샷을 만들 때 승인한 revision 의 내보내기 산출물만 들어 있습니다. 다른 revision 의 완료 처리는 로컬에서 `pnpm dev` 로 실행하세요.'
 
@@ -78,22 +74,21 @@ export interface DemoApprovalFile {
 
 export interface DemoFiles {
   snapshot: Record<string, unknown>
-  prompt_preview: PromptPreviewResponse
-  revision_prompt: RevisionPromptDraft
+  /** AS-IS 샘플 대상 (미리 분석해 둔 합성 대상). 없으면 빈 배열 — 없는 대상을 지어내지 않는다. */
+  asis_samples: AsisSampleTarget[]
   approval: DemoApprovalFile
-}
-
-interface DemoJobRun {
-  id: string
-  started_ms: number
-  revision_id: string
-  artifact_id: string
 }
 
 interface DemoAsisRun {
   id: string
   started_ms: number
   summary: AsisAnalysisSummary
+  /** 미리 분석해 둔 샘플 대상이면 그 기록. 없으면 이 브라우저가 캡처할 수 없는 대상이다. */
+  sample?: AsisSampleTarget
+  /** 지금 이 브라우저에서 규칙으로 만든 페인포인트 초안 (준비되면 채워진다). */
+  draft?: PainPointDraftResult
+  /** 초안 만들기에 실패한 이유 (성공으로 위장하지 않는다). */
+  draft_error?: string
 }
 
 export interface DemoState {
@@ -102,7 +97,6 @@ export interface DemoState {
   /** 브라우저에서 만든 화면에 붙인 예시 더미데이터 (fixture_id → 행). 스냅샷에는 더미데이터가 없어 여기서 채운다. */
   extra_dummy: Record<string, unknown[]>
   files: DemoFiles
-  jobs: Map<string, DemoJobRun>
   analyses: Map<string, DemoAsisRun>
   /** IA 노드 문서 revision (낙관적 잠금). 스냅샷 노드는 1 에서 시작하고 발번·연결마다 오른다. */
   ia_revisions: Map<string, number>
@@ -218,7 +212,6 @@ export function createDemoState(files: DemoFiles, opts: { now?: () => number; st
     gets,
     extra_dummy: {},
     files: clone(files),
-    jobs: new Map(),
     analyses: new Map(),
     ia_revisions: new Map(),
     seq: 0,
@@ -236,38 +229,37 @@ function nextId(state: DemoState, prefix: string): string {
 
 // ---------------------------------------------------------------- 진행 중 작업·분석
 
-/** 경과 시간으로 단계를 진행시킨다. 마지막 단계를 지나면 스냅샷의 revision 을 결과로 연결하고 succeeded. */
-function advanceJob(state: DemoState, run: DemoJobRun): Job {
-  const job = state.gets.get(`/api/jobs/${run.id}`) as Job
-  if (job.status === 'succeeded') return job
-  const elapsed = state.now() - run.started_ms
-  const index = Math.floor(elapsed / DEMO_STAGE_INTERVAL_MS)
-  if (index >= JOB_STAGES.length) {
-    job.status = 'succeeded'
-    job.current_stage = 'persist'
-    job.stage = 'persist'
-    job.result = { revision_id: run.revision_id, artifact_id: run.artifact_id }
-    job.finished_at = new Date(run.started_ms + JOB_STAGES.length * DEMO_STAGE_INTERVAL_MS).toISOString()
-    return job
-  }
-  const stage = JOB_STAGES[index] ?? 'context_build'
-  job.status = 'running'
-  job.current_stage = stage
-  job.stage = stage
-  return job
-}
-
-/** 대기 → 실행 중 → 실패. 정적 데모는 새 URL 을 실제로 분석할 수 없으므로 성공으로 끝내지 않는다. */
+/**
+ * 대기 → 실행 중 → (샘플 대상이면) 성공 / (그 밖이면) 실패.
+ *
+ * 임의 URL 은 브라우저가 캡처할 수 없으므로 **성공으로 끝내지 않는다**.
+ * 미리 분석해 둔 샘플 대상만 구조·스크린샷을 붙이고, 페인포인트는 지금 이 브라우저가 만든 초안을 넣는다.
+ */
 function advanceAsis(state: DemoState, run: DemoAsisRun): AsisAnalysis {
   const doc = state.gets.get(`/api/asis-analyses/${run.id}`) as AsisAnalysis
-  if (doc.status === 'failed') return doc
+  if (doc.status === 'failed' || doc.status === 'succeeded') return doc
   const elapsed = state.now() - run.started_ms
   if (elapsed < DEMO_ASIS_QUEUED_MS) doc.status = 'queued'
   else if (elapsed < DEMO_ASIS_RUNNING_MS) doc.status = 'running'
-  else {
+  else if (run.sample === undefined) {
     doc.status = 'failed'
     doc.failure = { code: 'browser', message: DEMO_ASIS_FAILURE_MESSAGE }
     doc.finished_at = new Date(run.started_ms + DEMO_ASIS_RUNNING_MS).toISOString()
+  } else if (run.draft_error !== undefined) {
+    doc.status = 'failed'
+    doc.failure = { code: 'internal', message: `페인포인트 초안을 만들지 못했습니다: ${run.draft_error}` }
+    doc.finished_at = nowIso(state)
+  } else if (run.draft !== undefined) {
+    doc.status = 'succeeded'
+    doc.structure = run.sample.structure
+    doc.screenshots = run.sample.screenshots
+    doc.summary = run.draft.summary
+    doc.pain_points = run.draft.pain_points.map((p, i) => ({ ...p, id: `PP-${String(i + 1).padStart(3, '0')}`, status: 'proposed' as const }))
+    doc.finished_at = nowIso(state)
+    run.summary.pain_point_count = doc.pain_points.length
+  } else {
+    // 초안이 아직 안 끝났다 — 끝날 때까지 running 이다 (미완성을 성공으로 바꾸지 않는다).
+    doc.status = 'running'
   }
   run.summary.status = doc.status
   if (doc.finished_at !== undefined) run.summary.finished_at = doc.finished_at
@@ -277,9 +269,9 @@ function advanceAsis(state: DemoState, run: DemoAsisRun): AsisAnalysis {
 // ---------------------------------------------------------------- GET
 
 function handleGet(state: DemoState, path: string): DemoResponse {
-  // 진행 중인 작업·분석은 어느 GET 에서든 시간에 맞춰 진행시킨다
+  // 진행 중인 분석은 어느 GET 에서든 시간에 맞춰 진행시킨다
   // (목록 폴링만 하는 화면에서도 상태가 바뀌어야 하므로 상세 조회에 의존하지 않는다).
-  for (const run of state.jobs.values()) advanceJob(state, run)
+  // 생성 작업은 실제 파이프라인이 단계마다 job 문서를 직접 갱신하므로 여기서 진행시키지 않는다.
   for (const run of state.analyses.values()) advanceAsis(state, run)
 
   if (path === '/api/meta') return { status: 200, data: metaOf(state) }
@@ -356,66 +348,7 @@ function revalidate(state: DemoState, artifactId: string): DemoResponse {
   return notFound('산출물')
 }
 
-function promptPreview(state: DemoState): DemoResponse {
-  const preview = clone(state.files.prompt_preview)
-  const note = `${DEMO_MARK} — 스냅샷에 저장된 예시 프롬프트입니다 (실제 조립은 로컬 실행에서 동작합니다)`
-  const summary = [note, ...(preview.context_summary ?? [])]
-  preview.context_summary = summary
-  if (preview.prompt) preview.prompt.context_summary = summary
-  return { status: 200, data: preview }
-}
-
-function revisionPrompt(state: DemoState, revisionId: string, body: unknown): DemoResponse {
-  if (!revisionDetail(state, revisionId)) return notFound('revision')
-  const ids = asRecord(body)['comment_ids']
-  if (!Array.isArray(ids) || ids.length === 0) {
-    return badRequest('invalid_request', '요청 본문이 올바르지 않습니다', { issues: ['코멘트를 최소 1개 골라야 합니다'] })
-  }
-  const draft = clone(state.files.revision_prompt)
-  draft.rationale = `${draft.rationale} (${DEMO_MARK} — 스냅샷에 저장된 예시 초안입니다)`
-  return { status: 200, data: draft }
-}
-
-function createGenerationJob(state: DemoState, screenId: string, body: unknown): DemoResponse {
-  const detail = screenDetail(state, screenId)
-  if (!detail) return notFound('화면')
-  const latest = [...detail.revisions].sort((a, b) => a.revision_no - b.revision_no).at(-1)
-  // 실제 서버의 문맥 구성 실패(계약 §11)와 같은 형태로 즉시 거절한다 — 작업을 만들지 않는다.
-  if (!latest) return badRequest('demo_unavailable', DEMO_GENERATION_UNAVAILABLE_MESSAGE, { details: [DEMO_GENERATION_UNAVAILABLE_MESSAGE] })
-
-  const request = asRecord(body) as unknown as SliceGenerationRequest
-  const meta = metaOf(state)
-  const id = nextId(state, 'job')
-  const created = nowIso(state)
-  const job: Job = {
-    id,
-    status: 'running',
-    current_stage: 'context_build',
-    stage: 'context_build',
-    adapter: meta.adapter,
-    model: meta.model,
-    job_type: typeof request.task_type === 'string' ? request.task_type : 'create',
-    screen_plan_id: screenId,
-    request,
-    attempt: 1,
-    max_attempts: 1,
-    created_at: created,
-    started_at: created,
-    context_summary: [
-      `${DEMO_MARK} — 실제 모델 호출 없이, 스냅샷에 저장된 revision 을 결과로 연결합니다`,
-      `대상 화면: ${detail.screen.external_id} — ${detail.screen.title}`,
-      `작업 유형: ${typeof request.task_type === 'string' ? request.task_type : 'create'} / 목적: ${typeof request.purpose === 'string' ? request.purpose : '(없음)'}`,
-      `연결할 revision: #${latest.revision_no} (${latest.id}) — 이 작업이 새로 만든 화면이 아닙니다`,
-      '실제 생성·검증·저장은 로컬에서 `pnpm dev` 로 실행하세요',
-    ],
-    prompt_text: `[${DEMO_MARK}] 정적 데모에서는 프롬프트를 조립해 모델에 보내지 않습니다. 저장된 예시는 생성 작업대의 "프롬프트 미리보기" 에서 볼 수 있습니다.`,
-  }
-  state.gets.set(`/api/jobs/${id}`, job)
-  state.jobs.set(id, { id, started_ms: state.now(), revision_id: latest.id, artifact_id: latest.artifact_id })
-  return { status: 202, data: { job_id: id } }
-}
-
-function approve(state: DemoState, screenId: string, body: unknown): DemoResponse {
+async function approve(state: DemoState, screenId: string, body: unknown): Promise<DemoResponse> {
   const detail = screenDetail(state, screenId)
   if (!detail) return notFound('화면')
   const b = asRecord(body)
@@ -454,18 +387,58 @@ function approve(state: DemoState, screenId: string, body: unknown): DemoRespons
   }
   if (reasons.length > 0) return { status: 400, data: { error: 'approval_rejected', reasons } }
 
+  const approvedAt = nowIso(state)
+  const response = isBrowserRevision(revisionId)
+    ? await browserApprovalResponse(state, screenId, revisionId, approver.trim(), approvedAt)
+    : clone(state.files.approval.response)
+
   // 메모리에서 실제로 승인 상태를 반영한다 (홈 목록·완료 화면이 그대로 살아 있게).
-  const response = clone(state.files.approval.response)
   markApproved(state, screenId, revisionId, response.version)
   browserRuntime.store.setApproval({
     screen_id: screenId,
     revision_id: revisionId,
     artifact_hash: revision?.artifact.content_hash ?? target.artifact_hash,
     approved_by: approver.trim(),
-    approved_at: nowIso(state),
+    approved_at: approvedAt,
     version: response.version,
   })
   return { status: 200, data: response }
+}
+
+/**
+ * 브라우저에서 만든 revision 의 승인 응답 — 산출물 6개 파일을 **실제로 만들어** 그 목록·해시를 돌려준다.
+ * 서버 폴더에 쓰지 않으므로 `export_path` 에 그 사실을 그대로 적는다 (없는 폴더 경로를 지어내지 않는다).
+ */
+async function browserApprovalResponse(state: DemoState, screenId: string, revisionId: string, approver: string, approvedAt: string): Promise<ApprovalResponse> {
+  const record = browserRuntime.store.load().revisions.find((r) => r.revision.id === revisionId)
+  if (!record) throw new Error(`브라우저 revision 을 찾을 수 없습니다: ${revisionId}`)
+  const detail = revisionDetail(state, revisionId)
+  const project = projectDetailFor(state, record.project_id)
+  const projectRecord = (project?.project ?? {}) as unknown as Record<string, unknown>
+  const files = await buildExportBundle({
+    record,
+    project: {
+      id: record.project_id,
+      name: project?.project.name ?? '(프로젝트 미상)',
+      ...(typeof projectRecord['slug'] === 'string' ? { slug: projectRecord['slug'] as string } : {}),
+    },
+    requirements: project?.requirements ?? [],
+    comments: detail?.comments ?? [],
+    generated_at: approvedAt,
+    approval: { version: '1.0', approved_by: approver, approved_at: approvedAt },
+  })
+  return {
+    approval: {
+      id: nextId(state, 'approval'),
+      artifact_id: record.artifact.id,
+      artifact_hash: record.artifact.content_hash,
+      approved_by: approver,
+      approved_at: approvedAt,
+    },
+    version: '1.0',
+    export_path: BROWSER_APPROVAL_NOT_SHARED_NOTE,
+    files: files.map((f) => ({ path: f.path, sha256: f.sha256 })),
+  }
 }
 
 function createAsisAnalysis(state: DemoState, projectId: string, body: unknown): DemoResponse {
@@ -478,16 +451,17 @@ function createAsisAnalysis(state: DemoState, projectId: string, body: unknown):
     return badRequest('invalid_request', '요청 본문이 올바르지 않습니다', { issues: ['http/https URL 만 허용합니다'] })
   }
   const note = b['note']
-  const meta = metaOf(state)
   const id = nextId(state, 'asis')
   const created = nowIso(state)
+  const sample = findAsisSample(state.files.asis_samples, url.trim())
   const doc: AsisAnalysis = {
     id,
     project_id: projectId,
     url: url.trim(),
     status: 'queued',
-    adapter: meta.adapter,
-    model: meta.model,
+    // 페인포인트 초안은 언제나 더미 어댑터(fixture) 규칙으로 만든다 — 자격 증명이 있어도 그렇다. 그대로 적는다.
+    adapter: 'fixture',
+    model: 'fixture',
     created_at: created,
     pain_points: [],
     revision: 1,
@@ -496,7 +470,19 @@ function createAsisAnalysis(state: DemoState, projectId: string, body: unknown):
   const summary: AsisAnalysisSummary = { id, url: doc.url, status: 'queued', created_at: created, pain_point_count: 0 }
   state.gets.set(`/api/asis-analyses/${id}`, doc)
   list.push(summary)
-  state.analyses.set(id, { id, started_ms: state.now(), summary })
+  const run: DemoAsisRun = { id, started_ms: state.now(), summary, ...(sample ? { sample } : {}) }
+  state.analyses.set(id, run)
+  if (sample) {
+    // 규칙을 지금 실제로 돌린다 (서버 `MODEL_ADAPTER=fixture` 와 같은 클래스).
+    void new FixtureAdapter()
+      .draftPainPoints({ url: sample.url, structure: sample.structure, ...(doc.note === undefined ? {} : { note: doc.note }) })
+      .then((draft) => {
+        run.draft = draft
+      })
+      .catch((e: unknown) => {
+        run.draft_error = e instanceof Error ? e.message : String(e)
+      })
+  }
   return { status: 202, data: { analysis_id: id } }
 }
 
@@ -520,8 +506,8 @@ function patchPainPoint(state: DemoState, analysisId: string, painPointId: strin
 
 // ---------------------------------------------------------------- 브라우저 모드 (내 토큰으로 실제 호출)
 
-export const BROWSER_APPROVAL_BLOCKED_MESSAGE =
-  '브라우저 모드에서는 완료(v1.0) 승인을 기록할 수 없습니다 — 필수 실행 검사(V3)를 브라우저에서 돌릴 수 없어 미실행이기 때문입니다. 완료 화면의 "산출물 파일 내려받기" 로 이관하거나, 서버 실행(`pnpm serve`)에서 완료하세요.'
+export const BROWSER_APPROVAL_NOT_SHARED_NOTE =
+  '이 승인은 이 브라우저에만 기록됩니다. 팀이 함께 쓰는 이관 폴더(`exports/…`)는 서버 실행(`pnpm serve`)에서 만듭니다 — 여기서는 산출물 6개 파일을 내려받아 넘깁니다.'
 
 /** 승인 상태를 메모리에 반영한다 (화면 목록·검토·완료 화면이 같은 상태를 본다). */
 function markApproved(state: DemoState, screenId: string, revisionId: string, version: string): void {
@@ -548,14 +534,14 @@ export function isBrowserRevision(revisionId: string): boolean {
   return browserRuntime.store.load().revisions.some((r) => r.revision.id === revisionId)
 }
 
-/** 브라우저 revision 의 승인 거부 사유 — 필수 검사 미통과를 그대로 적는다. */
+/**
+ * 브라우저 revision 의 승인 거부 사유 — 서버 승인 게이트와 같은 규칙이다.
+ * **필수 검사가 모두 pass 여야 한다.** V3 를 실제로 실행하므로 미실행·실패·오류는 그대로 거부 사유가 된다.
+ */
 function browserApprovalReasons(revision: RevisionDetail | undefined): Array<{ code: string; message: string }> {
-  const reasons: Array<{ code: string; message: string }> = [{ code: 'browser.v3_not_run', message: BROWSER_APPROVAL_BLOCKED_MESSAGE }]
   const blockers = (revision?.validation_results ?? []).filter((r) => r.required && r.status !== 'pass')
-  if (blockers.length > 0) {
-    reasons.push({ code: 'approval.required_checks', message: `필수 검사 미통과: ${blockers.map((b) => `${b.check_id}(${b.status})`).join(', ')}` })
-  }
-  return reasons
+  if (blockers.length === 0) return []
+  return [{ code: 'approval.required_checks', message: `필수 검사 미통과: ${blockers.map((b) => `${b.check_id}(${b.status})`).join(', ')}` }]
 }
 
 /** 스냅샷 위에 브라우저 저장 데이터를 얹는다 (생성 revision → 코멘트 → 승인 순). */
@@ -639,8 +625,8 @@ function referencesFor(state: DemoState, projectId: string): Reference[] {
 
 /** 요청 하나를 파이프라인 입력으로 옮긴다 (생성 실행과 프롬프트 미리보기가 같은 문맥을 쓰도록). */
 function pipelineInputFor(state: DemoState, screenId: string, body: unknown): { error: DemoResponse } | { input: PipelineInput; base: RevisionDetail | undefined } {
+  // 자격 증명이 없으면 더미 어댑터(fixture)로 돈다 — 실행 자체를 막지 않는다.
   const credential = browserRuntime.credential()
-  if (!credential) return { error: badRequest('no_credential', '자격 증명이 없습니다. 상단 오른쪽 자격 증명 칩을 눌러 API 키나 토큰을 먼저 넣으세요.') }
   const screen = screenDetail(state, screenId)
   if (!screen) return { error: notFound('화면') }
   const project = projectDetailFor(state, screen.screen.project_id)
@@ -657,7 +643,7 @@ function pipelineInputFor(state: DemoState, screenId: string, body: unknown): { 
     base: baseDetail,
     input: {
       request,
-      credential,
+      ...(credential ? { credential } : {}),
       project: {
         id: project.project.id,
         name: project.project.name,
@@ -708,13 +694,14 @@ export function browserCreateJob(state: DemoState, screenId: string, body: unkno
   const request = pipelineInput.request
   const id = nextId(state, 'job')
   const created = nowIso(state)
-  const model = browserRuntime.model
+  const engine = engineOf(pipelineInput)
+  const model = engine.model
   const job: Job = {
     id,
     status: 'queued',
     current_stage: 'context_build',
     stage: 'context_build',
-    adapter: 'anthropic',
+    adapter: engine.adapter,
     model,
     job_type: typeof request.task_type === 'string' ? request.task_type : 'create',
     screen_plan_id: screenId,
@@ -723,7 +710,7 @@ export function browserCreateJob(state: DemoState, screenId: string, body: unkno
     max_attempts: 1,
     created_at: created,
     started_at: created,
-    context_summary: ['브라우저 모드 — 내 브라우저가 api.anthropic.com 을 직접 호출합니다'],
+    context_summary: [engineNote(engine)],
   }
   state.gets.set(`/api/jobs/${id}`, job)
 
@@ -733,6 +720,7 @@ export function browserCreateJob(state: DemoState, screenId: string, body: unkno
         fetch: browserRuntime.fetch,
         now: browserRuntime.now,
         newId: browserRuntime.newId,
+        runV3: browserRuntime.runV3,
         onStage: (stage) => {
           job.status = 'running'
           job.current_stage = stage
@@ -752,7 +740,10 @@ export function browserCreateJob(state: DemoState, screenId: string, body: unkno
       job.prompt_text = `[system]\n${result.prompt.system}\n\n[user]\n${result.prompt.user}`
       job.context_summary = [
         ...result.context_summary,
-        `모델 사용량: 입력 ${result.usage.input_tokens} · 출력 ${result.usage.output_tokens} 토큰`,
+        // 더미 어댑터는 토큰을 쓰지 않는다 — 0 토큰을 «사용량» 인 것처럼 적지 않는다.
+        result.usage
+          ? `모델 사용량: 입력 ${result.usage.input_tokens} · 출력 ${result.usage.output_tokens} 토큰`
+          : '모델을 호출하지 않았습니다 (더미 어댑터) — 토큰 사용량 없음',
         saved ? '결과를 이 브라우저(localStorage)에 저장했습니다' : `브라우저 저장 실패: ${browserRuntime.store.lastError ?? '원인 미상'}`,
       ]
     } catch (e) {
@@ -780,10 +771,12 @@ function resolveEditedComments(state: DemoState, request: SliceGenerationRequest
   if (changed) browserRuntime.store.setComments(base.revision.id, base.comments)
 }
 
-/** 실제 모델로 수정 프롬프트 초안을 만든다 (검토 화면의 "AI 수정 프롬프트 생성"). */
+/**
+ * 수정 프롬프트 초안 (검토 화면의 "AI 수정 프롬프트 생성").
+ * 자격 증명이 있으면 실제 모델, 없으면 서버와 같은 더미 어댑터(fixture)의 규칙으로 만든다 — 둘 다 실제로 실행된다.
+ */
 export async function browserRevisionPrompt(state: DemoState, revisionId: string, body: unknown): Promise<DemoResponse> {
   const credential = browserRuntime.credential()
-  if (!credential) return badRequest('no_credential', '자격 증명이 없습니다. 상단 오른쪽 자격 증명 칩을 눌러 API 키나 토큰을 먼저 넣으세요.')
   const detail = revisionDetail(state, revisionId)
   if (!detail) return notFound('revision')
   const ids = asRecord(body)['comment_ids']
@@ -793,14 +786,17 @@ export async function browserRevisionPrompt(state: DemoState, revisionId: string
   const screen = screenDetail(state, detail.revision.screen_id)
   const project = screen ? projectDetailFor(state, screen.screen.project_id) : undefined
   const wanted = new Set(ids.map(String))
+  const picked = detail.comments.filter((c) => wanted.has(c.id))
+  if (picked.length === 0) return badRequest('reference_invalid', '고른 코멘트를 이 revision 에서 찾을 수 없습니다')
   try {
+    if (!credential) return { status: 200, data: await fixtureRevisionPrompt(detail, screen, project, picked) }
     const draft = await draftRevisionPromptInBrowser(
       {
         credential,
         project: { name: project?.project.name ?? '(프로젝트 미상)' },
         screen: { external_id: screen?.screen.external_id ?? '(화면 미상)', title: screen?.screen.title ?? '' },
         spec: detail.spec,
-        comments: detail.comments.filter((c) => wanted.has(c.id)),
+        comments: picked,
         model: browserRuntime.model,
       },
       { fetch: browserRuntime.fetch },
@@ -810,6 +806,44 @@ export async function browserRevisionPrompt(state: DemoState, revisionId: string
   } catch (e) {
     return badRequest('model_error', `수정 프롬프트 초안 생성에 실패했습니다: ${e instanceof Error ? e.message : String(e)}`)
   }
+}
+
+/**
+ * 더미 어댑터의 수정 프롬프트 초안 — 서버의 `MODEL_ADAPTER=fixture` 와 같은 클래스가 만든다.
+ * 명세를 읽지 못하면 지어내지 않고 실패로 알린다.
+ */
+async function fixtureRevisionPrompt(
+  detail: RevisionDetail,
+  screen: ScreenDetail | undefined,
+  project: ProjectDetail | undefined,
+  comments: Comment[],
+): Promise<RevisionPromptDraft> {
+  const parsed = ScreenSpecShape.safeParse(detail.spec)
+  if (!parsed.success) throw new Error('이 revision 의 화면명세를 읽지 못했습니다 (스키마 불일치)')
+  const ctx = {
+    project: { name: project?.project.name ?? '(프로젝트 미상)', org: project?.project.org ?? '', profile_id: project?.project.profile_id ?? '' },
+    screen: {
+      external_id: screen?.screen.external_id ?? parsed.data.screen_id,
+      title: screen?.screen.title ?? '',
+      shell: screen?.screen.shell ?? parsed.data.shell,
+      device: parsed.data.device,
+    },
+    requirements: [],
+    references: [],
+    profile_rules: [],
+    baseline_id: parsed.data.baseline_id,
+    comments: comments.map((c) => ({
+      id: c.id,
+      role: c.role,
+      author: c.author,
+      text: c.text,
+      target: c.target,
+      ...(c.element_id === undefined ? {} : { element_id: c.element_id }),
+      ...(c.case_id === undefined ? {} : { case_id: c.case_id }),
+    })),
+  }
+  const draft = await new FixtureAdapter().draftRevisionPrompt({ ctx, current: parsed.data, comments: ctx.comments })
+  return { prompt: draft.prompt, rationale: draft.rationale, adapter: 'fixture' }
 }
 
 // ---------------------------------------------------------------- 화면 만들기 (한 줄 입력 흐름)
@@ -990,16 +1024,13 @@ export function handleWith(state: DemoState, method: string, path: string, body?
   if (method === 'GET') return handleGet(state, path)
 
   if (method === 'POST') {
+    // 프롬프트 조립·생성은 언제나 실제로 돈다 (자격 증명이 없으면 더미 어댑터).
     let m = /^\/api\/screens\/([^/]+)\/prompt-preview$/.exec(path)
-    if (m) return screenDetail(state, m[1] ?? '') ? promptPreview(state) : notFound('화면')
+    if (m) return browserPromptPreview(state, m[1] ?? '', body)
     m = /^\/api\/screens\/([^/]+)\/generation-jobs$/.exec(path)
-    if (m) return createGenerationJob(state, m[1] ?? '', body)
-    m = /^\/api\/screens\/([^/]+)\/approvals$/.exec(path)
-    if (m) return approve(state, m[1] ?? '', body)
+    if (m) return browserCreateJob(state, m[1] ?? '', body)
     m = /^\/api\/revisions\/([^/]+)\/comments$/.exec(path)
     if (m) return createComment(state, m[1] ?? '', body)
-    m = /^\/api\/revisions\/([^/]+)\/revision-prompt$/.exec(path)
-    if (m) return revisionPrompt(state, m[1] ?? '', body)
     m = /^\/api\/artifacts\/([^/]+)\/validations$/.exec(path)
     if (m) return revalidate(state, m[1] ?? '')
     m = /^\/api\/projects\/([^/]+)\/asis-analyses$/.exec(path)
@@ -1036,18 +1067,9 @@ async function fetchJson(name: string): Promise<unknown> {
 }
 
 export async function loadDemoFiles(): Promise<DemoFiles> {
-  const [snapshot, prompt_preview, revision_prompt, approval] = await Promise.all([
-    fetchJson('snapshot.json'),
-    fetchJson('prompt-preview.json'),
-    fetchJson('revision-prompt.json'),
-    fetchJson('approval.json'),
-  ])
-  return {
-    snapshot: snapshot as Record<string, unknown>,
-    prompt_preview: prompt_preview as PromptPreviewResponse,
-    revision_prompt: revision_prompt as RevisionPromptDraft,
-    approval: approval as DemoApprovalFile,
-  }
+  // 프롬프트 미리보기·수정 초안은 저장된 예시가 아니라 그 자리에서 실제로 조립하므로 더 이상 읽지 않는다.
+  const [snapshot, approval, samples] = await Promise.all([fetchJson('snapshot.json'), fetchJson('approval.json'), loadAsisSamples()])
+  return { snapshot: snapshot as Record<string, unknown>, approval: approval as DemoApprovalFile, asis_samples: samples }
 }
 
 let statePromise: Promise<DemoState> | null = null
@@ -1065,17 +1087,14 @@ function demoState(): Promise<DemoState> {
   return statePromise
 }
 
-/**
- * 자격 증명이 있으면 실제 모델을 쓰는 요청(생성·수정 프롬프트)만 여기서 가로채고, 나머지는 스냅샷 동작(handleWith)을 그대로 쓴다.
- */
+/** 비동기 처리가 필요한 요청만 여기서 받고, 나머지는 handleWith 가 그대로 처리한다. */
 export async function handleAsyncWith(state: DemoState, method: string, path: string, body?: unknown): Promise<DemoResponse> {
-  if (method === 'POST' && browserModeActive()) {
-    const preview = /^\/api\/screens\/([^/]+)\/prompt-preview$/.exec(path)
-    if (preview) return browserPromptPreview(state, preview[1] ?? '', body)
-    const job = /^\/api\/screens\/([^/]+)\/generation-jobs$/.exec(path)
-    if (job) return browserCreateJob(state, job[1] ?? '', body)
+  if (method === 'POST') {
+    // 비동기인 것: 수정 프롬프트 초안(더미 어댑터도 Promise), 완료 승인(산출물 파일을 실제로 만든다).
     const draft = /^\/api\/revisions\/([^/]+)\/revision-prompt$/.exec(path)
     if (draft) return await browserRevisionPrompt(state, draft[1] ?? '', body)
+    const approval = /^\/api\/screens\/([^/]+)\/approvals$/.exec(path)
+    if (approval) return await approve(state, approval[1] ?? '', body)
   }
   return handleWith(state, method, path, body)
 }

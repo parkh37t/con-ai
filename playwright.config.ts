@@ -26,6 +26,8 @@ export default defineConfig({
   testDir: 'e2e',
   // *.spec.ts 만 검사한다. *.capture.ts(화면 캡처 유틸리티)는 CAPTURE=1 일 때만 포함한다.
   testMatch: process.env['CAPTURE'] ? /\.(spec|capture)\.ts$/ : /\.spec\.ts$/,
+  // demo-*.spec.ts 는 정적 배포(API 없음)를 대상으로 하므로 여기서 돌리지 않는다 → `pnpm e2e:demo`.
+  testIgnore: /demo-.*\.spec\.ts$/,
   timeout: 120_000,
   expect: { timeout: 15_000 },
   retries: 0,

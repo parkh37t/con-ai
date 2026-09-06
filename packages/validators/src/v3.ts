@@ -12,9 +12,10 @@
 import { existsSync } from 'node:fs'
 import { chromium, type Browser, type Page } from 'playwright'
 import { makeResult, newRunId, notRun, type ResultFactoryInput } from './result.js'
+import { V3_CHECKS, v3RequiredFlags } from './v3-checks.js'
 import type { CheckResult, V3Options } from './types.js'
 
-export const V3_CHECKS = ['V3.console_errors', 'V3.case_switch', 'V3.search_filter', 'V3.download'] as const
+export { V3_CHECKS, actionTypesOf, v3RequiredFlags } from './v3-checks.js'
 export const FALLBACK_CHROMIUM_PATH = '/opt/pw-browsers/chromium'
 export const DEFAULT_V3_TIMEOUT_MS = 20000
 
@@ -31,28 +32,6 @@ export function launchPlan(env: NodeJS.ProcessEnv, explicit?: string | undefined
   const plan: LaunchAttempt[] = [{ label: '기본 launch (Playwright 번들 브라우저)' }]
   if (existsSync(FALLBACK_CHROMIUM_PATH)) plan.push({ label: `fallback ${FALLBACK_CHROMIUM_PATH}`, executablePath: FALLBACK_CHROMIUM_PATH })
   return plan
-}
-
-/** 렌더러가 body[data-action-types] 에 적은 명세 동작 종류 (없으면 트리거 표식으로 추정). */
-export function actionTypesOf(html: string): Set<string> {
-  const m = /<body\b[^>]*\bdata-action-types="([^"]*)"/.exec(html)
-  if (m) return new Set((m[1] ?? '').split(/\s+/).filter(Boolean))
-  const found = new Set<string>()
-  const re = /data-action-type="([^"]+)"/g
-  let a: RegExpExecArray | null
-  while ((a = re.exec(html)) !== null) if (a[1] !== undefined) found.add(a[1])
-  return found
-}
-
-/** 검사별 필수 여부 — 조건부 검사는 명세에 해당 동작이 있을 때만 필수 (index.ts requiredChecksFor 와 같은 규칙). */
-export function v3RequiredFlags(html: string): Record<(typeof V3_CHECKS)[number], boolean> {
-  const types = actionTypesOf(html)
-  return {
-    'V3.console_errors': true,
-    'V3.case_switch': true,
-    'V3.search_filter': types.has('filter-fixture'),
-    'V3.download': types.has('download-fixture'),
-  }
 }
 
 class V3Timeout extends Error {

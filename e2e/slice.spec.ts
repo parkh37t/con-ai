@@ -244,21 +244,20 @@ test('세로 조각: 생성 → 검토·코멘트 → 수정 → 완료(v1.0) �
   })
 
   // ---------------------------------------------------------------- (7) 부정 경로
-  await test.step('승인된 화면에 다시 승인 → 거부 이유 표시', async () => {
+  await test.step('승인된 화면은 다시 승인할 수 없다 — 화면은 완료로만 말하고, 서버가 거부한다', async () => {
     await page.goto(`/#/screens/${listScreen.id}/approve?rev=${secondRevisionId}`)
     await expect(page.locator('.notice', { hasText: '이미 완료(v1.0)' })).toBeVisible()
-    await page.getByTestId('approver').fill('e2e 기획자')
-    await page.getByTestId('approve-button').click()
-    const error = page.getByTestId('approve-error')
-    await expect(error).toBeVisible()
-    await expect(error).toContainText('완료 처리가 거부되었습니다')
-    await expect(error).toContainText('approval.screen_already_approved')
-    await expect(error).toContainText('이미 v1.0')
+    // 화면은 완료 사실만 적는다 — 늘 실패할 버튼을 남겨 두지 않는다.
+    await expect(page.getByTestId('precheck')).toContainText('완료됨')
+    await expect(page.getByTestId('approve-button')).toHaveCount(0)
+    await expect(page.getByTestId('approver')).toHaveCount(0)
     await expect(page.getByTestId('export-result')).toHaveCount(0)
+    // 게이트는 화면이 아니라 서버에 있다 — API 로 직접 다시 눌러도 거부한다.
     const again = await request.post(`/api/screens/${listScreen.id}/approvals`, { data: { revision_id: secondRevisionId, approver: 'e2e 기획자' } })
     expect(again.status()).toBe(400)
-    const body = (await again.json()) as { reasons: Array<{ code: string }> }
+    const body = (await again.json()) as { reasons: Array<{ code: string; message: string }> }
     expect(body.reasons.map((r) => r.code)).toContain('approval.screen_already_approved')
+    expect(body.reasons.map((r) => r.message).join(' ')).toContain('이미 v1.0')
   })
 
   expect(consoleErrors, `페이지 오류 없음: ${consoleErrors.join(' | ')}`).toEqual([])

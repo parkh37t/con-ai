@@ -9,7 +9,9 @@
  */
 import { useEffect, useState } from 'react'
 import { api } from '../api.js'
+import { ASIS_SAMPLE_NOTE, loadAsisSamples, type AsisSampleTarget } from '../asis-samples.js'
 import { ASIS_SAMPLE_PATH, ASIS_SAMPLE_URL, asisStatusLabel, asisStatusTone, isTerminalAsis, painPointCountOf, validateAsisUrl } from '../asis.js'
+import { IS_DEMO } from '../demo-mode.js'
 import { Empty, ErrorBox, Loading, formatDateTime } from '../components/common.js'
 import { JOB_POLL_INTERVAL_MS, notifyDataChanged, useAsync } from '../hooks.js'
 import { hrefToAsisDetail } from '../router.js'
@@ -17,6 +19,8 @@ import type { AsisAnalysisSummary, Project } from '../types.js'
 
 export function AsisListPage({ project }: { project: Project }) {
   const list = useAsync(() => api.asisAnalyses(project.id), [project.id])
+  // 정적 배포에서는 다른 사이트를 캡처할 수 없다 — 미리 분석해 둔 샘플 대상을 고를 수 있게 한다.
+  const samples = useAsync(async () => (IS_DEMO ? await loadAsisSamples() : []), [])
   const [url, setUrl] = useState('')
   const [note, setNote] = useState('')
   const [formError, setFormError] = useState<string | null>(null)
@@ -42,21 +46,31 @@ export function AsisListPage({ project }: { project: Project }) {
     return () => clearInterval(timer)
   }, [hasActive, reload])
 
-  const run = async () => {
-    const err = validateAsisUrl(url)
-    setFormError(err)
-    if (err) return
+  const start = async (target: string, memo: string) => {
     setRunning(true)
     setRunError(null)
     try {
-      const trimmedNote = note.trim()
-      await api.createAsisAnalysis(project.id, { url: url.trim(), ...(trimmedNote ? { note: trimmedNote } : {}) })
+      const trimmedNote = memo.trim()
+      await api.createAsisAnalysis(project.id, { url: target, ...(trimmedNote ? { note: trimmedNote } : {}) })
       reload()
     } catch (e) {
       setRunError(e)
     } finally {
       setRunning(false)
     }
+  }
+
+  const run = async () => {
+    const err = validateAsisUrl(url)
+    setFormError(err)
+    if (err) return
+    await start(url.trim(), note)
+  }
+
+  const runSample = async (sample: AsisSampleTarget) => {
+    setFormError(null)
+    setUrl(sample.url)
+    await start(sample.url, note.trim() || sample.label)
   }
 
   const sorted = [...rows].sort((a, b) => (b.created_at ?? '').localeCompare(a.created_at ?? ''))
@@ -100,13 +114,42 @@ export function AsisListPage({ project }: { project: Project }) {
             {running ? '시작 중…' : '분석 실행'}
           </button>
         </div>
-        <p className="asis-run-hint muted small">
-          외부 URL 이 네트워크 정책에 막힐 수 있습니다. 데모 대상{' '}
-          <button type="button" className="link" data-testid="asis-sample-fill" title={`URL 입력칸에 ${ASIS_SAMPLE_URL} 채우기`} onClick={() => setUrl(ASIS_SAMPLE_URL)}>
-            {ASIS_SAMPLE_PATH}
-          </button>{' '}
-          를 누르면 입력칸에 채워집니다.
-        </p>
+        {IS_DEMO ? (
+          <div className="asis-samples" data-testid="asis-samples">
+            <p className="asis-run-hint muted small">
+              이 브라우저는 다른 사이트를 캡처할 수 없습니다 — 위 입력은 <strong>정직하게 실패</strong>합니다. 아래 <strong>샘플 대상</strong>을 고르면 분석이 실제로 돕니다.
+            </p>
+            <div className="asis-sample-grid">
+              {(samples.data ?? []).map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  className="asis-sample-card"
+                  data-testid="asis-sample-card"
+                  data-sample-id={s.id}
+                  disabled={running}
+                  onClick={() => void runSample(s)}
+                >
+                  <strong>{s.label}</strong>
+                  <span className="muted small">{s.description}</span>
+                  <span className="asis-sample-meta muted small">
+                    입력 {s.structure.counts.fields_without_label}개 레이블 없음 · 표 {s.structure.counts.tables}개 · iframe {s.structure.counts.iframes}개
+                  </span>
+                </button>
+              ))}
+              {samples.data !== null && samples.data.length === 0 && <span className="muted small">샘플 대상이 없습니다 (스냅샷에 기록되지 않았습니다).</span>}
+            </div>
+            <p className="muted small">{ASIS_SAMPLE_NOTE}</p>
+          </div>
+        ) : (
+          <p className="asis-run-hint muted small">
+            외부 URL 이 네트워크 정책에 막힐 수 있습니다. 데모 대상{' '}
+            <button type="button" className="link" data-testid="asis-sample-fill" title={`URL 입력칸에 ${ASIS_SAMPLE_URL} 채우기`} onClick={() => setUrl(ASIS_SAMPLE_URL)}>
+              {ASIS_SAMPLE_PATH}
+            </button>{' '}
+            를 누르면 입력칸에 채워집니다.
+          </p>
+        )}
         {/* 메모는 보조 입력 — 실행에 필요하지 않으므로 한 단계 낮춰 둔다. */}
         <label className="asis-note-field muted small">
           <span>메모 (선택)</span>

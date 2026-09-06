@@ -530,11 +530,11 @@ export interface AsisNavLink {
 }
 export interface AsisFormField {
   type: string
-  label?: string
-  name?: string
+  label?: string | undefined
+  name?: string | undefined
 }
 export interface AsisForm {
-  name?: string
+  name?: string | undefined
   fields: AsisFormField[]
 }
 export interface AsisCounts {
@@ -547,8 +547,9 @@ export interface AsisCounts {
 }
 export interface AsisStructure {
   title: string
-  description?: string
-  lang?: string
+  // 계약 §12 의 AsisStructure(모델 어댑터 타입)와 같은 모양이어야 한다 — 브라우저가 그 값을 그대로 넘긴다.
+  description?: string | undefined
+  lang?: string | undefined
   headings: AsisHeading[]
   nav_links: AsisNavLink[]
   forms: AsisForm[]

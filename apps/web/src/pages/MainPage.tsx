@@ -56,6 +56,10 @@ export function MainPage({ project, meta, route }: { project: Project | null; me
                   예시 열어보기 (아직 없음)
                 </span>
               )}
+              {/* 4단계 전체를 한 번 돌려보고 싶은 사람을 위한 입구. 「만들기」 는 ② 한 단계만 한다. */}
+              <a className="main-btn" data-testid="main-prototype" href={hrefTo('prototype')}>
+                4단계 전부 돌려보기
+              </a>
             </div>
             <span className="main-fineprint">설계서는 목업 + 번호 설명이 들어 있는 HTML 파일 하나입니다.</span>
           </div>

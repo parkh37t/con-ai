@@ -86,14 +86,13 @@ function files(): DemoFiles {
     element_index: [{ element_id: 'quote_no', section_id: 'search', display_no: 'a' }],
   }
   return {
+    asis_samples: [],
     snapshot: {
       '/api/meta': { adapter: 'fixture', model: 'fixture', version: '0.0.0', playwright: true },
       [`/api/projects/${PROJECT}`]: project,
       [`/api/screens/${SCREEN_LIST}`]: screen,
       [`/api/revisions/${REVISION}`]: revision,
     },
-    prompt_preview: { prompt: { system: 's', user: 'u', template_version: 'v1', context_summary: [] }, context_summary: [] },
-    revision_prompt: { prompt: '수정', rationale: '사유', adapter: 'fixture' },
     approval: {
       screen_id: SCREEN_LIST,
       revision_id: REVISION,

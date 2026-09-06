@@ -1,7 +1,7 @@
 {
   "screen_external_id": "SAMPLE-quote-list",
   "baseline_id": "baseline-wyliy-partner-quote-sample-1",
-  "spec_hash": "8f091dc2fe10b6a85f1ddd66abb1ae18c3fee9ff64fa6ed3fa3fc4332a7f40d3",
+  "spec_hash": "8ad3ff0c6c308eaf9c3bf91fe0c6081be8f75f091d47a9003879268cd632c7cc",
   "requirements": [
     {
       "id": "REQ-QT-001",

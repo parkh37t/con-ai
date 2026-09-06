@@ -1940,6 +1940,47 @@ textarea {
 .asis-run-hint {
   margin: 7px 0 0;
 }
+
+/* ── 샘플 대상 (정적 배포) — 고르면 분석이 실제로 돈다 ── */
+.asis-samples {
+  margin-top: 10px;
+}
+.asis-sample-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 10px;
+  margin: 10px 0 8px;
+}
+.asis-sample-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--card-soft);
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  transition:
+    border-color 0.12s ease,
+    background 0.12s ease;
+}
+.asis-sample-card:hover:not(:disabled) {
+  border-color: var(--border-strong);
+  background: var(--fill);
+}
+.asis-sample-card:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.asis-sample-card strong {
+  font-size: 13.5px;
+}
+.asis-sample-meta {
+  font-variant-numeric: tabular-nums;
+}
 .asis-note-field {
   display: flex;
   align-items: center;
@@ -3350,5 +3391,159 @@ button.chip:hover,
   .signal {
     flex-direction: column;
     gap: 4px;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   프로토타입 둘러보기 (#/prototype) — 4단계를 순서대로 실행한다
+   ══════════════════════════════════════════════════════════════ */
+.proto-status {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  margin-bottom: 14px;
+}
+.proto-progress {
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--ink);
+}
+.proto-bar {
+  display: inline-flex;
+  gap: 4px;
+}
+.proto-bar-seg {
+  width: 34px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--fill);
+}
+.proto-bar-seg.is-done {
+  background: var(--green);
+}
+.proto-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.proto-step {
+  margin: 0;
+}
+.proto-step.is-ready {
+  border-color: var(--border-strong);
+}
+.proto-step-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.proto-step-no {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-sm);
+  background: var(--ink);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  font-weight: 700;
+}
+.proto-step-title {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.proto-step-title h3 {
+  margin: 0;
+  font-size: 15px;
+}
+.proto-step-title p {
+  margin: 2px 0 0;
+}
+.proto-facts {
+  margin: 0 0 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  background: var(--card-soft);
+  border: 1px solid var(--divider);
+  border-radius: var(--radius);
+}
+.proto-facts > div {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+.proto-facts dt {
+  flex: none;
+  width: 148px;
+  font-size: 11.5px;
+  font-weight: 650;
+  color: var(--muted);
+}
+.proto-facts dd {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--text-2);
+  line-height: 1.6;
+}
+.proto-sample,
+.proto-sample-list {
+  margin: 0 0 10px;
+  font-size: 12.5px;
+  color: var(--text-2);
+  line-height: 1.7;
+}
+.proto-sample-list {
+  padding-left: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.proto-approver {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.proto-approver input {
+  width: 200px;
+}
+.proto-step-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.proto-foot {
+  margin-top: 14px;
+}
+
+@media (max-width: 720px) {
+  .proto-facts > div {
+    flex-direction: column;
+    gap: 2px;
+  }
+  .proto-facts dt {
+    width: auto;
+  }
+  /* 좁은 화면에서는 상태 배지를 아래로 내려 제목이 눌리지 않게 한다. */
+  .proto-step-head {
+    flex-wrap: wrap;
+  }
+  .proto-step-title {
+    flex-basis: calc(100% - 38px);
+  }
+  .proto-step-head > .badge {
+    margin-left: 38px;
   }
 }

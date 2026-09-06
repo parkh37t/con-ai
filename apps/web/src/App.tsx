@@ -21,6 +21,7 @@ import { DesignPage } from './pages/DesignPage.js'
 import { GeneratePage } from './pages/GeneratePage.js'
 import { HomePage } from './pages/HomePage.js'
 import { MainPage } from './pages/MainPage.js'
+import { PrototypePage } from './pages/PrototypePage.js'
 import { ReferencesPage } from './pages/ReferencesPage.js'
 import { ReviewPage } from './pages/ReviewPage.js'
 import { SimpleHomePage } from './pages/SimpleHomePage.js'
@@ -59,6 +60,8 @@ export function App() {
       ? 'asis'
       : route.name === 'references'
         ? 'references'
+        : route.name === 'prototype'
+          ? 'prototype'
         : route.name === 'trace'
           ? 'trace'
         : route.name === 'review'
@@ -95,6 +98,8 @@ export function App() {
     body = <HomePage key={project.id} project={project} projects={projectList} meta={meta.data} route={route} />
   } else if (route.name === 'references') {
     body = <ReferencesPage key={project.id} projectId={project.id} />
+  } else if (route.name === 'prototype') {
+    body = <PrototypePage key={project.id} project={project} />
   } else if (route.name === 'trace') {
     body = <TraceMatrixPage key={project.id} project={project} />
   } else if (route.name === 'asis') {

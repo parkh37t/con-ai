@@ -6,6 +6,8 @@ import { DEFAULT_BROWSER_MODEL, type FetchLike } from './anthropic.js'
 import { credentialStore, describeCredential, type CredentialInfo, type StoredCredential } from './credential.js'
 import { BrowserPipelineError } from './pipeline.js'
 import { browserStore, type BrowserStore } from './store.js'
+import { runV3InBrowser } from './v3-browser.js'
+import type { CheckResult } from './deps.js'
 import type { JobFailure, JobStage } from '../types.js'
 
 export interface BrowserRuntime {
@@ -16,6 +18,8 @@ export interface BrowserRuntime {
   now: () => string
   newId: () => string
   model: string
+  /** V3 실행 검사기 (격리 iframe). 테스트는 이걸 갈아끼워 검사한다. */
+  runV3: (html: string, opts: { artifact_hash: string; validation_run_id: string }) => Promise<CheckResult[]>
 }
 
 export const browserRuntime: BrowserRuntime = {
@@ -25,6 +29,7 @@ export const browserRuntime: BrowserRuntime = {
   now: () => new Date().toISOString(),
   newId: () => crypto.randomUUID(),
   model: DEFAULT_BROWSER_MODEL,
+  runV3: runV3InBrowser,
 }
 
 /** 테스트·설정 변경용. 넘긴 항목만 바꾼다. */

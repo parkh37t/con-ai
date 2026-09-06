@@ -12,7 +12,7 @@ import {
   BLOCKED_IPV4_RANGES,
   DEFAULT_SELF_PORT,
   SELF_ORIGIN_HOSTS,
-  SELF_ORIGIN_PATH,
+  SELF_ORIGIN_PATHS,
   cacheResolve,
   checkUrl,
   hostMatches,
@@ -167,7 +167,7 @@ describe('parsePolicy — 환경변수 해석', () => {
     expect(p.blocked_hosts).toEqual([])
     expect(p.self_origin_hosts).toEqual(SELF_ORIGIN_HOSTS)
     expect(p.self_origin_port).toBe(DEFAULT_SELF_PORT)
-    expect(p.self_origin_path).toBe(SELF_ORIGIN_PATH)
+    expect(p.self_origin_paths).toEqual(SELF_ORIGIN_PATHS)
   })
 
   it.each(['1', 'true', 'TRUE', ' yes ', 'Yes'])('ASIS_ALLOW_PRIVATE=%s 는 허용으로 읽는다', (value) => {
@@ -314,10 +314,14 @@ describe('checkUrl — 기본은 차단, 열려면 명시적으로 연다', () =
   })
 })
 
-describe('checkUrl — 자기 자신(데모 대상) 예외는 /asis-sample 한 경로뿐이다', () => {
+describe('checkUrl — 자기 자신(데모 대상) 예외는 합성 데모 페이지 경로 목록뿐이다', () => {
   const p = parsePolicy({ PORT: '8787' })
 
-  it.each([`http://localhost:8787${SELF_ORIGIN_PATH}`, `http://127.0.0.1:8787${SELF_ORIGIN_PATH}`, `http://[::1]:8787${SELF_ORIGIN_PATH}`])(
+  it.each([
+    ...SELF_ORIGIN_PATHS.map((path) => `http://localhost:8787${path}`),
+    `http://127.0.0.1:8787${SELF_ORIGIN_PATHS[0]}`,
+    `http://[::1]:8787${SELF_ORIGIN_PATHS[0]}`,
+  ])(
     '자기 서버의 데모 페이지는 허용한다: %s',
     async (url) => {
       expect(await checkUrl(url, p, neverResolve)).toEqual({ allowed: true, ips: [] })
@@ -338,8 +342,8 @@ describe('checkUrl — 자기 자신(데모 대상) 예외는 /asis-sample 한 �
 
   it('PORT 를 바꾸면 그 포트가 자기 서버가 된다', async () => {
     const other = parsePolicy({ PORT: '3000' })
-    expect((await checkUrl(`http://localhost:3000${SELF_ORIGIN_PATH}`, other, neverResolve)).allowed).toBe(true)
-    expect((await checkUrl(`http://localhost:8787${SELF_ORIGIN_PATH}`, other, neverResolve)).allowed).toBe(false)
+    expect((await checkUrl(`http://localhost:3000${SELF_ORIGIN_PATHS[0]}`, other, neverResolve)).allowed).toBe(true)
+    expect((await checkUrl(`http://localhost:8787${SELF_ORIGIN_PATHS[0]}`, other, neverResolve)).allowed).toBe(false)
   })
 })
 

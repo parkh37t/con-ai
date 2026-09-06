@@ -1,9 +1,10 @@
 /**
  * 브라우저 모드 내보내기 — 서버 폴더(`exports/…`)가 없으므로 산출물 6개 파일을 브라우저에서 만들어 내려받는다.
- * 승인(v1.0) 기록이 아니라는 점을 화면에 그대로 적는다 (브라우저에서는 필수 실행 검사 V3 가 미실행이라 승인 게이트를 통과할 수 없다).
+ * 승인 전인지 승인 뒤인지를 화면과 manifest 에 **같은 사실**로 적는다 — 승인된 산출물을 「아직 승인이 아니다」로,
+ * 또는 그 반대로 적지 않는다.
  */
 import { useState } from 'react'
-import { BROWSER_EXPORT_NOTE, buildExportBundle, downloadBundleFile, type BundleFile } from '../browser-run/export-bundle.js'
+import { BROWSER_EXPORT_APPROVED_NOTE, BROWSER_EXPORT_NOTE, buildExportBundle, downloadBundleFile, type BundleApproval, type BundleFile } from '../browser-run/export-bundle.js'
 import { browserStore } from '../browser-run/store.js'
 import type { Comment, Project, Requirement } from '../types.js'
 import { Empty, ErrorBox, shortHash } from './common.js'
@@ -13,8 +14,15 @@ export function browserRecordOf(revisionId: string) {
   return browserStore.load().revisions.find((r) => r.revision.id === revisionId) ?? null
 }
 
+/** 이 revision 이 이 브라우저에서 승인(v1.0)됐으면 그 기록. 없으면 null — 승인을 지어내지 않는다. */
+export function browserApprovalOf(revisionId: string): BundleApproval | null {
+  const found = Object.values(browserStore.load().approvals).find((a) => a.revision_id === revisionId)
+  return found ? { version: found.version, approved_by: found.approved_by, approved_at: found.approved_at } : null
+}
+
 export function BrowserExportPanel({ revisionId, project, requirements, comments }: { revisionId: string; project: Project | null; requirements: Requirement[]; comments: Comment[] }) {
   const record = browserRecordOf(revisionId)
+  const approval = browserApprovalOf(revisionId)
   const [files, setFiles] = useState<BundleFile[] | null>(null)
   const [error, setError] = useState<unknown>(null)
   const [busy, setBusy] = useState(false)
@@ -36,6 +44,7 @@ export function BrowserExportPanel({ revisionId, project, requirements, comments
           requirements,
           comments,
           generated_at: new Date().toISOString(),
+          ...(approval ? { approval } : {}),
         }),
       )
     } catch (e) {
@@ -49,12 +58,12 @@ export function BrowserExportPanel({ revisionId, project, requirements, comments
   return (
     <section className="card" data-testid="browser-export">
       <div className="card-head">
-        <h3>산출물 파일 내려받기 (브라우저 모드)</h3>
+        <h3>{approval ? `산출물 파일 내려받기 (v${approval.version})` : '산출물 파일 내려받기 (브라우저 모드)'}</h3>
         <span className="muted small">
           revision #{record.revision.revision_no} · artifact <code>{shortHash(record.artifact.content_hash, 12)}</code>
         </span>
       </div>
-      <p className="notice">{BROWSER_EXPORT_NOTE}</p>
+      <p className="notice" data-testid="browser-export-note">{approval ? BROWSER_EXPORT_APPROVED_NOTE : BROWSER_EXPORT_NOTE}</p>
       <div className="button-row">
         <button type="button" className="btn btn-primary" data-testid="browser-export-build" onClick={() => void build()} disabled={busy}>
           {busy ? '만드는 중…' : files ? '다시 만들기' : '파일 만들기 (6개)'}

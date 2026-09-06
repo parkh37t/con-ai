@@ -73,6 +73,8 @@ function ApprovalWorkbench({ screen, detail, onApproved }: { screen: ScreenDetai
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<unknown>(null)
   const [result, setResult] = useState<ApprovalResponse | null>(null)
+  // 이미 완료된 화면이면 사전 판정을 «승인 불가» 로 읽히게 두지 않는다 — 완료됐다는 사실이 답이다.
+  const approvedVersion = screen.screen.status === 'approved' ? screen.screen.version : undefined
 
   const approve = async () => {
     if (!approver.trim()) {
@@ -96,8 +98,10 @@ function ApprovalWorkbench({ screen, detail, onApproved }: { screen: ScreenDetai
     <>
       <section className="card">
         <div className="card-head">
-          <h3>승인 판정 사전 확인</h3>
-          <span className="muted small">최종 판정은 서버(승인 게이트)가 합니다. 여기 표시는 미리 보는 이유입니다.</span>
+          <h3>{approvedVersion ? '완료된 산출물' : '승인 판정 사전 확인'}</h3>
+          <span className="muted small">
+            {approvedVersion ? '완료본은 제자리에서 고치지 않습니다. 변경은 새 revision 으로 만듭니다.' : '최종 판정은 서버(승인 게이트)가 합니다. 여기 표시는 미리 보는 이유입니다.'}
+          </span>
         </div>
         <dl className="kv">
           <dt>대상 revision</dt>
@@ -114,10 +118,18 @@ function ApprovalWorkbench({ screen, detail, onApproved }: { screen: ScreenDetai
           </dd>
           <dt>열린 차단 코멘트</dt>
           <dd data-testid="open-blocking">{pre.open_blocking > 0 ? <Badge tone="red">{pre.open_blocking}건</Badge> : <Badge tone="green">0건</Badge>}</dd>
-          <dt>사전 판정</dt>
-          <dd data-testid="precheck">{pre.ok ? <Badge tone="green">승인 가능 (사전)</Badge> : <Badge tone="red">승인 불가 사유 {pre.reasons.length}건</Badge>}</dd>
+          <dt>{approvedVersion ? '완료 상태' : '사전 판정'}</dt>
+          <dd data-testid="precheck">
+            {approvedVersion ? (
+              <Badge tone="green">완료됨 · v{approvedVersion}</Badge>
+            ) : pre.ok ? (
+              <Badge tone="green">승인 가능 (사전)</Badge>
+            ) : (
+              <Badge tone="red">승인 불가 사유 {pre.reasons.length}건</Badge>
+            )}
+          </dd>
         </dl>
-        {pre.reasons.length > 0 && (
+        {!approvedVersion && pre.reasons.length > 0 && (
           <ul className="reason-list">
             {pre.reasons.map((r, i) => (
               <li key={i}>{r}</li>
@@ -126,7 +138,8 @@ function ApprovalWorkbench({ screen, detail, onApproved }: { screen: ScreenDetai
         )}
       </section>
 
-      {!result && (
+      {/* 이미 완료된 화면에는 완료 폼을 두지 않는다 — 누를 수 없는 버튼이 「거부될 것」 이라고 말하면 화면이 스스로와 모순된다. */}
+      {!result && !approvedVersion && (
         <section className="card">
           <h3>완료 처리</h3>
           <div className="form-grid">

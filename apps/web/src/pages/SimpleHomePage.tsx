@@ -43,17 +43,12 @@ export function SimpleHomePage({ project, meta, route }: { project: Project; met
   const failed = poll.job?.status === 'failed' || poll.job?.status === 'cancelled'
 
   const credential = credentialStore.describe()
-  // 정적 배포(브라우저 모드)에서만 자격 증명이 필요하다. 서버 모드는 서버 어댑터가 호출한다.
-  const needsCredential = IS_DEMO && credential === null
+  // 자격 증명은 «더 좋은 결과» 를 위한 선택이지 필수가 아니다 — 없으면 더미 어댑터(fixture)로 실제로 만든다.
 
-  const start = async (opts: { skipCredentialCheck?: boolean } = {}) => {
+  const start = async () => {
     const text = sentence.trim()
     if (text.length === 0) {
       setError(new Error('무엇을 만들지 한 줄로 적어주세요.'))
-      return
-    }
-    if (needsCredential && opts.skipCredentialCheck !== true) {
-      setAskCredential(true)
       return
     }
     setStarting(true)
@@ -142,14 +137,14 @@ export function SimpleHomePage({ project, meta, route }: { project: Project; met
 
         {IS_DEMO && !askCredential && (
           <button type="button" className="simple-credlink" data-testid="simple-credential-toggle" onClick={() => setAskCredential(true)}>
-            {credential ? `내 토큰 ····${credential.last4} — 바꾸기` : 'Claude 토큰 넣기'}
+            {credential ? `내 토큰 ····${credential.last4} — 바꾸기` : 'Claude 토큰 넣기 (선택) — 넣으면 모델이 직접 씁니다'}
           </button>
         )}
         {askCredential && (
           <CredentialInline
             onSaved={() => {
               setAskCredential(false)
-              void start({ skipCredentialCheck: true })
+              void start()
             }}
             onCancel={() => setAskCredential(false)}
           />

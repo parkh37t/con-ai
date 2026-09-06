@@ -7,6 +7,8 @@ import { applyBrowserOverlay, createDemoState, handleAsyncWith, handleWith, meta
 import type { AsisAnalysis, Job, Meta, ProjectDetail, PromptPreviewResponse, RevisionDetail, RevisionPromptDraft, ScreenDetail, SliceGenerationRequest } from '../types.js'
 import { browserRuntime, setBrowserRuntime } from './runtime.js'
 import { BrowserStore } from './store.js'
+import { runV3InBrowser } from './v3-browser.js'
+import { V3_CHECKS, makeResult, type CheckResult } from './deps.js'
 import { fakeFetch, modelOutput, modelResponse, snapshotFile, snapshotSpec, MemoryStorage } from './test-helpers.js'
 import type { StoredCredential } from './credential.js'
 
@@ -31,9 +33,8 @@ const REQUEST: SliceGenerationRequest = {
 
 function files(): DemoFiles {
   return {
+    asis_samples: [],
     snapshot: snapshotFile(),
-    prompt_preview: { prompt: { system: 's', user: 'u', template_version: 'v1', context_summary: [] }, context_summary: [] },
-    revision_prompt: { prompt: '스냅샷 수정 프롬프트', rationale: '스냅샷 근거', adapter: 'fixture' },
     approval: { screen_id: SCREEN_LIST, revision_id: 'x', approver: '데모 기획자', response: { approval: { id: 'AP', artifact_id: 'A', artifact_hash: 'h', approved_by: '데모 기획자', approved_at: 'now' }, version: '1.0', export_path: 'p', files: [] } },
   }
 }
@@ -55,8 +56,14 @@ function snapshotOnly(): DemoState {
 }
 
 afterEach(() => {
-  setBrowserRuntime({ credential: () => null, fetch: undefined, store: new BrowserStore(() => new MemoryStorage()), now: () => new Date().toISOString(), newId: () => crypto.randomUUID() })
+  setBrowserRuntime({ credential: () => null, fetch: undefined, store: new BrowserStore(() => new MemoryStorage()), now: () => new Date().toISOString(), newId: () => crypto.randomUUID(), runV3: runV3InBrowser })
 })
+
+/** V3 를 모두 통과로 만든 결과 (승인 게이트 통과 경로 검사용). */
+function passingV3(opts: { artifact_hash: string; validation_run_id: string }): CheckResult[] {
+  const base = { artifact_hash: opts.artifact_hash, validation_run_id: opts.validation_run_id, stage: 'V3' as const }
+  return V3_CHECKS.map((id) => makeResult(base, { check_id: id, status: 'pass', required: true, evidence: ['테스트에서 주입한 통과 결과'] }))
+}
 
 /** 작업이 끝날 때까지 폴링한다 (파이프라인은 비동기로 돈다). */
 async function waitJob(state: DemoState, jobId: string): Promise<Job> {
@@ -98,7 +105,8 @@ describe('생성 — 자격 증명이 있으면 실제 파이프라인이 돈다
     expect(screen.screen.current_revision_id).toBe(job.result?.revision_id)
     const detail = handleWith(state, 'GET', `/api/revisions/${job.result?.revision_id ?? ''}`).data as RevisionDetail
     expect(detail.validation_results.some((r) => r.check_id === 'V1.schema' && r.status === 'pass')).toBe(true)
-    expect(detail.validation_results.filter((r) => r.stage === 'V3').every((r) => r.status === 'not_run')).toBe(true)
+    // V3 는 격리 iframe 이 필요하다. 문서가 없는 이 환경에서는 error 로 기록된다 — 통과로 바꾸지 않는다.
+    expect(detail.validation_results.filter((r) => r.stage === 'V3').every((r) => r.status !== 'pass')).toBe(true)
     // 프로젝트 홈 목록도 갱신된다.
     const project = handleWith(state, 'GET', `/api/projects/${PROJECT}`).data as ProjectDetail
     expect(project.screens.find((s) => s.id === SCREEN_DETAIL)?.revision_count).toBe(1)
@@ -131,11 +139,18 @@ describe('생성 — 자격 증명이 있으면 실제 파이프라인이 돈다
     expect((handleWith(state, 'GET', `/api/screens/${SCREEN_DETAIL}`).data as ScreenDetail).revisions).toHaveLength(0)
   })
 
-  it('자격 증명이 없으면 스냅샷 동작(결과가 없는 화면은 400)을 그대로 유지한다', async () => {
+  it('자격 증명이 없으면 같은 파이프라인이 더미 어댑터(fixture)로 돈다 — 모델만 호출하지 않는다', async () => {
     const state = snapshotOnly()
     const res = await handleAsyncWith(state, 'POST', `/api/screens/${SCREEN_DETAIL}/generation-jobs`, { ...REQUEST, screen_id: SCREEN_DETAIL })
-    expect(res.status).toBe(400)
-    expect(JSON.stringify(res.data)).toContain('정적 데모')
+    expect(res.status).toBe(202)
+    const job = await waitJob(state, (res.data as { job_id: string }).job_id)
+    expect(job.status).toBe('succeeded')
+    expect(job.adapter).toBe('fixture')
+    // 실제 호출과 구분되는 문구를 남긴다.
+    expect(job.context_summary?.join(' ')).toContain('더미 어댑터')
+    expect(job.context_summary?.join(' ')).not.toContain('api.anthropic.com')
+    const screen = handleWith(state, 'GET', `/api/screens/${SCREEN_DETAIL}`).data as ScreenDetail
+    expect(screen.revisions).toHaveLength(1)
   })
 })
 
@@ -186,11 +201,14 @@ describe('프롬프트 미리보기 — 실제로 보낼 프롬프트를 그 자
     expect(JSON.stringify(preview)).not.toContain(TOKEN.value)
   })
 
-  it('자격 증명이 없으면 스냅샷 예시를 그대로 쓴다', async () => {
+  it('자격 증명이 없어도 이번 요청으로 조립한다 — 다만 더미 어댑터라고 적는다', async () => {
     const state = snapshotOnly()
     const res = await handleAsyncWith(state, 'POST', `/api/screens/${SCREEN_LIST}/prompt-preview`, REQUEST)
     expect(res.status).toBe(200)
-    expect(JSON.stringify(res.data)).toContain('정적 데모')
+    const preview = res.data as PromptPreviewResponse
+    expect(preview.prompt.user).toContain('SAMPLE-quote-list')
+    expect(preview.context_summary[0]).toContain('더미 어댑터')
+    expect(preview.context_summary[0]).not.toContain('api.anthropic.com')
   })
 })
 
@@ -224,18 +242,42 @@ describe('브라우저에서 못 하는 일 — 성공으로 위장하지 않는
     expect(id).toBeTruthy()
   })
 
-  it('브라우저에서 만든 revision 은 완료(v1.0) 승인을 거부하고 이유를 알린다', async () => {
+  it('필수 실행 검사(V3)가 통과하지 못하면 완료(v1.0) 승인을 거부하고 이유를 알린다', async () => {
     const { state, store } = browserState([modelResponse(modelOutput({ ...snapshotSpec(), screen_id: 'SAMPLE-quote-detail' }))])
     const created = await handleAsyncWith(state, 'POST', `/api/screens/${SCREEN_DETAIL}/generation-jobs`, { ...REQUEST, screen_id: SCREEN_DETAIL })
     const job = await waitJob(state, (created.data as { job_id: string }).job_id)
     const revisionId = job.result?.revision_id ?? ''
 
-    const res = handleWith(state, 'POST', `/api/screens/${SCREEN_DETAIL}/approvals`, { revision_id: revisionId, approver: '기획자' })
+    // 이 환경에는 문서가 없어 V3 가 error 로 기록된다 — 오류를 통과로 바꾸지 않으므로 승인은 거부된다.
+    const res = await handleAsyncWith(state, 'POST', `/api/screens/${SCREEN_DETAIL}/approvals`, { revision_id: revisionId, approver: '기획자' })
     expect(res.status).toBe(400)
     const body = JSON.stringify(res.data)
+    expect(body).toContain('approval.required_checks')
     expect(body).toContain('V3')
-    expect(body).toContain('산출물 파일 내려받기')
     expect(store.load().approvals).toEqual({})
+  })
+
+  it('V3 가 모두 통과하면 승인되고 산출물 6개 파일을 실제로 만든다 (승인 manifest 로)', async () => {
+    const { state, store } = browserState([modelResponse(modelOutput({ ...snapshotSpec(), screen_id: 'SAMPLE-quote-detail' }))])
+    // V3 실행기를 «모두 통과» 로 갈아끼운다 (실제 iframe 실행은 v3-browser.test.ts 와 e2e 가 확인한다).
+    setBrowserRuntime({ runV3: async (_html, opts) => passingV3(opts) })
+    const created = await handleAsyncWith(state, 'POST', `/api/screens/${SCREEN_DETAIL}/generation-jobs`, { ...REQUEST, screen_id: SCREEN_DETAIL })
+    const job = await waitJob(state, (created.data as { job_id: string }).job_id)
+    const revisionId = job.result?.revision_id ?? ''
+
+    const res = await handleAsyncWith(state, 'POST', `/api/screens/${SCREEN_DETAIL}/approvals`, { revision_id: revisionId, approver: '기획자' })
+    expect(res.status).toBe(200)
+    const approval = res.data as { version: string; export_path: string; files: Array<{ path: string; sha256: string }> }
+    expect(approval.version).toBe('1.0')
+    expect(approval.files.map((f) => f.path).sort()).toEqual(['comments.json', 'index.html', 'manifest.json', 'spec.json', 'trace.json', 'validation.json'])
+    expect(approval.files.every((f) => /^[0-9a-f]{64}$/.test(f.sha256))).toBe(true)
+    // 서버 폴더에 쓰지 않았다는 사실을 그대로 적는다 (없는 경로를 지어내지 않는다).
+    expect(approval.export_path).toContain('이 브라우저')
+    expect(store.load().approvals[SCREEN_DETAIL]?.version).toBe('1.0')
+
+    const screen = handleWith(state, 'GET', `/api/screens/${SCREEN_DETAIL}`).data as ScreenDetail
+    expect(screen.screen.status).toBe('approved')
+    expect(screen.screen.version).toBe('1.0')
   })
 })
 

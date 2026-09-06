@@ -39,6 +39,27 @@ const POLL_INTERVAL_MS = 500
 /** 승인 없이 화면에서 다시 눌러볼 수 있도록, GET 스냅샷은 승인 직전 상태로 찍는다. */
 const APPROVER = '데모 기획자'
 
+/**
+ * AS-IS 샘플 대상 — 서버가 자체 제공하는 합성 레거시 페이지(가상 데이터).
+ * 정적 배포의 「① AS-IS 분석」이 실제로 돌 수 있게 구조·스크린샷을 여기서 기록해 둔다.
+ */
+const ASIS_SAMPLE_TARGETS = [
+  {
+    id: 'partner-mall',
+    path: '/asis-sample',
+    label: '레거시 파트너몰',
+    description: '로그인·견적 현황이 한 화면에 섞여 있고, 레이블 없는 입력과 모호한 버튼 문구가 많다.',
+    note: '합성 레거시 파트너몰 (정적 데모 샘플 대상)',
+  },
+  {
+    id: 'settlement',
+    path: '/asis-sample-2',
+    label: '레거시 정산 시스템',
+    description: '표 중심 화면이고 고정 폭(1180px)이라 모바일에서 가로 스크롤로 봐야 한다.',
+    note: '합성 레거시 정산 시스템 (정적 데모 샘플 대상)',
+  },
+]
+
 // ---------------------------------------------------------------- 유틸
 
 function sleep(ms) {
@@ -231,8 +252,9 @@ async function main() {
       roles: ['planner', 'designer', 'publisher'],
       device: 'desktop',
     }
-    const promptPreview = await call('POST', `/api/screens/${listScreen.id}/prompt-preview`, createRequest)
-    console.log('[demo] 프롬프트 미리보기 저장')
+    // 프롬프트 미리보기는 브라우저가 그 자리에서 조립하므로 저장하지 않는다. 여기서는 서버가 200 을 주는지만 본다.
+    await call('POST', `/api/screens/${listScreen.id}/prompt-preview`, createRequest)
+    console.log('[demo] 프롬프트 미리보기 확인 (저장하지 않음 — 브라우저가 직접 조립한다)')
 
     const { job_id: job1Id } = await call('POST', `/api/screens/${listScreen.id}/generation-jobs`, createRequest)
     const job1 = await waitJob(call, job1Id, JOB_TIMEOUT_MS)
@@ -295,16 +317,20 @@ async function main() {
     if (rev2Id === rev1Id) throw new Error('수정 작업이 새 revision 을 만들지 않았다')
     console.log(`[demo] 수정 작업 성공 — revision 2 = ${rev2Id}`)
 
-    // ---------- 5. AS-IS 분석 1회 ----------
-    const asisUrl = `${base}/asis-sample`
-    const { analysis_id: asisId } = await call('POST', `/api/projects/${project.id}/asis-analyses`, {
-      url: asisUrl,
-      note: '합성 레거시 데모 페이지 (정적 데모 스냅샷)',
-    })
-    const asis = await waitAsis(call, asisId, ASIS_TIMEOUT_MS)
-    if (asis.status !== 'succeeded') throw new Error(`AS-IS 분석이 실패했다: ${asis.failure?.code} ${asis.failure?.message}`)
-    if (!asis.screenshots?.desktop || !asis.screenshots?.mobile) throw new Error('AS-IS 분석에 스크린샷이 없다')
-    console.log(`[demo] AS-IS 분석 성공 — 페인포인트 ${asis.pain_points.length}건, 스크린샷 2장`)
+    // ---------- 5. AS-IS 분석 — 샘플 대상 2건 ----------
+    // 정적 배포에서는 다른 사이트를 캡처할 수 없다. 그래서 여기서 **실제 분석기**로 합성 대상을 분석해
+    // 구조·스크린샷을 기록해 두고, 브라우저는 그 구조에 페인포인트 규칙을 실제로 돌린다.
+    const asisRuns = []
+    for (const target of ASIS_SAMPLE_TARGETS) {
+      const { analysis_id: id } = await call('POST', `/api/projects/${project.id}/asis-analyses`, { url: `${base}${target.path}`, note: target.note })
+      const doc = await waitAsis(call, id, ASIS_TIMEOUT_MS)
+      if (doc.status !== 'succeeded') throw new Error(`AS-IS 분석이 실패했다 (${target.path}): ${doc.failure?.code} ${doc.failure?.message}`)
+      if (!doc.screenshots?.desktop || !doc.screenshots?.mobile) throw new Error(`AS-IS 분석에 스크린샷이 없다 (${target.path})`)
+      asisRuns.push({ target, doc })
+      console.log(`[demo] AS-IS 분석 성공 (${target.path}) — 페인포인트 ${doc.pain_points.length}건, 스크린샷 2장`)
+    }
+    const asis = asisRuns[0].doc
+    const asisId = asis.id
 
     // ---------- 6. GET 스냅샷 (승인 직전 상태) ----------
     await get('/api/meta')
@@ -332,8 +358,6 @@ async function main() {
     await mkdir(join(OUT_DIR, 'exports'), { recursive: true })
 
     await writeFile(join(OUT_DIR, 'snapshot.json'), `${JSON.stringify(snapshot, null, 2)}\n`)
-    await writeFile(join(OUT_DIR, 'prompt-preview.json'), `${JSON.stringify(promptPreview, null, 2)}\n`)
-    await writeFile(join(OUT_DIR, 'revision-prompt.json'), `${JSON.stringify(revisionPrompt, null, 2)}\n`)
     await writeFile(
       join(OUT_DIR, 'approval.json'),
       `${JSON.stringify({ screen_id: listScreen.id, revision_id: rev2Id, approver: APPROVER, response: approval }, null, 2)}\n`,
@@ -343,10 +367,25 @@ async function main() {
       const html = await getBytes(`/api/artifacts/${artifactId}/html`)
       await writeFile(join(OUT_DIR, 'artifacts', `${artifactId}.html`), html)
     }
-    for (const assetId of [asis.screenshots.desktop, asis.screenshots.mobile]) {
-      const png = await getBytes(`/api/asis-assets/${assetId}`)
-      await writeFile(join(OUT_DIR, 'asis', `${assetId}.png`), png)
+    for (const { doc } of asisRuns) {
+      for (const assetId of [doc.screenshots.desktop, doc.screenshots.mobile]) {
+        const png = await getBytes(`/api/asis-assets/${assetId}`)
+        await writeFile(join(OUT_DIR, 'asis', `${assetId}.png`), png)
+      }
     }
+
+    // 샘플 대상 목록 — 브라우저가 이 구조에 페인포인트 규칙을 돌린다 (분석기가 이미 뽑은 값이므로 지어낸 값이 아니다).
+    const asisSamples = asisRuns.map(({ target, doc }) => ({
+      id: target.id,
+      label: target.label,
+      description: target.description,
+      /** 화면이 보여줄 대상 URL. 이 브라우저에서 다시 접속하지는 않는다. */
+      url: `https://sample.local${target.path}`,
+      captured_at: doc.finished_at ?? doc.created_at,
+      structure: doc.structure,
+      screenshots: doc.screenshots,
+    }))
+    await writeFile(join(OUT_DIR, 'asis-samples.json'), `${JSON.stringify(asisSamples, null, 2)}\n`)
     // 내보내기 폴더 구조를 그대로 유지한다 (`demo/exports/<project>/<screen>/v1.0/...`).
     await cp(join(EXPORT_DIR, approval.export_path), join(OUT_DIR, 'exports', approval.export_path), { recursive: true })
 

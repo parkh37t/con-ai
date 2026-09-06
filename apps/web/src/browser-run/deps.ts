@@ -21,7 +21,9 @@ export { DeviceProfile } from '../../../../packages/schemas/src/screen.js'
 
 export { runV1 } from '../../../../packages/validators/src/v1.js'
 export { runV2 } from '../../../../packages/validators/src/v2.js'
-export { CHECKER_VERSION, makeResult, newRunId } from '../../../../packages/validators/src/result.js'
+export { CHECKER_VERSION, makeResult, newRunId, notRun } from '../../../../packages/validators/src/result.js'
+export type { ResultFactoryInput } from '../../../../packages/validators/src/result.js'
+export { V3_CHECKS, v3RequiredFlags } from '../../../../packages/validators/src/v3-checks.js'
 export type { CheckResult } from '../../../../packages/validators/src/types.js'
 
 export {
@@ -40,3 +42,8 @@ export type { RtmInput, RtmSpecIndex, RtmReport as DomainRtmReport } from '../..
 
 export { IANode as IANodeSchema } from '../../../../packages/schemas/src/screen.js'
 export type { IANode as IANodeShape } from '../../../../packages/schemas/src/screen.js'
+
+// 더미 어댑터 — 서버의 `MODEL_ADAPTER=fixture` 와 **같은 클래스**다. 네트워크·시각·난수를 쓰지 않는다.
+// (model-adapter 의 index.ts 는 `node:fs`/`node:path` 를 쓰므로 어댑터 파일에서 직접 가져온다.)
+export { FIXTURE_MODEL, FixtureAdapter } from '../../../../packages/model-adapter/src/fixture-adapter.js'
+export type { AdapterResult, AsisStructure, PainPointDraft, PainPointDraftResult } from '../../../../packages/model-adapter/src/types.js'

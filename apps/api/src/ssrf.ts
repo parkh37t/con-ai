@@ -147,8 +147,11 @@ export function isBlockedIp(ip: string): boolean {
 
 /** 자기 자신(데모 대상) 예외에서 "자기 서버" 로 인정하는 호스트. */
 export const SELF_ORIGIN_HOSTS: readonly string[] = ['localhost', '127.0.0.1', '::1']
-/** 자기 자신 예외로 열어 주는 유일한 경로 — 합성 레거시 데모 페이지 (계약 §12). */
-export const SELF_ORIGIN_PATH = '/asis-sample'
+/**
+ * 자기 자신 예외로 열어 주는 경로 목록 — 이 서버가 직접 주는 합성 레거시 데모 페이지뿐이다 (계약 §12).
+ * 목록에 정확히 있는 경로만 연다. 접두사·와일드카드를 쓰지 않는다 (`/asis-sample/../admin` 같은 우회를 막는다).
+ */
+export const SELF_ORIGIN_PATHS: readonly string[] = ['/asis-sample', '/asis-sample-2']
 /** PORT 가 없을 때의 기본 포트 (server.ts readConfig 와 같은 값). */
 export const DEFAULT_SELF_PORT = 8787
 
@@ -160,14 +163,14 @@ export interface SsrfPolicy {
   /** `ASIS_BLOCKED_HOSTS` — 언제나 차단. allow 보다 우선한다. */
   blocked_hosts: readonly string[]
   /**
-   * 자기 자신(데모 대상) 예외. `/asis-sample` 은 이 서버가 직접 주는 합성 데모 페이지라 루프백이다.
-   * **호스트·포트가 자기 서버이고 경로가 정확히 `/asis-sample` 일 때만** 연다 — 임의의 localhost 경로
+   * 자기 자신(데모 대상) 예외. `/asis-sample*` 은 이 서버가 직접 주는 합성 데모 페이지라 루프백이다.
+   * **호스트·포트가 자기 서버이고 경로가 목록에 정확히 있을 때만** 연다 — 임의의 localhost 경로
    * (내부 API·관리자 페이지)를 여는 것은 막는다. 포트까지 보는 이유: 포트를 보지 않으면 루프백의
    * 어떤 포트가 응답하는지(성공/실패 차이)로 포트 스캔을 할 수 있다.
    */
   self_origin_hosts: readonly string[]
   self_origin_port: number
-  self_origin_path: string
+  self_origin_paths: readonly string[]
 }
 
 function parseHostList(raw: string | undefined): string[] {
@@ -196,7 +199,7 @@ export function parsePolicy(env: NodeJS.ProcessEnv): SsrfPolicy {
     blocked_hosts: parseHostList(env.ASIS_BLOCKED_HOSTS),
     self_origin_hosts: SELF_ORIGIN_HOSTS,
     self_origin_port: Number.isFinite(port) && port > 0 ? port : DEFAULT_SELF_PORT,
-    self_origin_path: SELF_ORIGIN_PATH,
+    self_origin_paths: SELF_ORIGIN_PATHS,
   }
 }
 
@@ -263,8 +266,8 @@ export async function checkUrl(url: string, policy: SsrfPolicy, resolve: SsrfRes
   if (hostMatches(host, policy.blocked_hosts)) {
     return { allowed: false, code: 'host_blocked', reason: `차단 목록(ASIS_BLOCKED_HOSTS)에 있는 호스트다: ${host}` }
   }
-  // 자기 자신(데모 대상) — 호스트·포트가 이 서버이고 경로가 정확히 /asis-sample 일 때만.
-  if (hostMatches(host, policy.self_origin_hosts) && effectivePort(parsed) === policy.self_origin_port && parsed.pathname === policy.self_origin_path) {
+  // 자기 자신(데모 대상) — 호스트·포트가 이 서버이고 경로가 허용 목록에 정확히 있을 때만.
+  if (hostMatches(host, policy.self_origin_hosts) && effectivePort(parsed) === policy.self_origin_port && policy.self_origin_paths.includes(parsed.pathname)) {
     return { allowed: true, ips: [] }
   }
   if (hostMatches(host, policy.allowed_hosts)) return { allowed: true, ips: [] } // 사내 스테이징 허용 — IP 검사를 건너뛴다
