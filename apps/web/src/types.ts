@@ -161,6 +161,8 @@ export interface IdIssueResponse {
   issued_external_id: string
   recomputed_external_id: string | null
   differs: boolean
+  /** 정적 데모 전용 — 이 브라우저에 저장하지 못했을 때만 온다 (새로고침하면 사라진다는 뜻). */
+  storage_warning?: string
 }
 
 export type ScreenStatus = 'draft' | 'review' | 'approved'

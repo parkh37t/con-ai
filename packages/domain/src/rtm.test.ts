@@ -242,6 +242,29 @@ describe('갭 제안 — 저장하지 않고 계산한다', () => {
     expect(r.proposals.some((x) => x.kind === 'issue_ia_id')).toBe(false)
   })
 
+  it('발번 제안에는 계산된 다음 번호를 초안으로 담는다 (사람이 고칠 수 있고, 저장할 때 다시 계산한다)', () => {
+    const portal = uuid()
+    const r = computeRtm({ requirements: [req('REQ-1', 1)], ia_nodes: [node({ id: portal, requirement_ids: ['REQ-1'] })], screens: [] })
+    expect(r.proposals.find((x) => x.kind === 'issue_ia_id' && x.ia_node_id === portal)?.suggested_value).toBe('IA-1')
+  })
+
+  it('하위 노드는 포털부터 이어 센다 (초안일 뿐이며 저장할 때 다시 계산한다)', () => {
+    const portal = uuid()
+    const child = uuid()
+    const nodes = [node({ id: portal }), node({ id: child, parent_id: portal, kind: 'screen', requirement_ids: ['REQ-1'] })]
+    const r = computeRtm({ requirements: [req('REQ-1', 1)], ia_nodes: nodes, screens: [] })
+    const p = r.proposals.find((x) => x.kind === 'issue_ia_id' && x.ia_node_id === child)
+    expect(p?.suggested_value).toBe('IA-1.1')
+    expect(p?.rationale).toContain('IA-1.1')
+  })
+
+  it('FN 발번 제안에는 소속 IA 아래의 다음 번호를 담는다', () => {
+    const nid = uuid()
+    const nodes = [node({ id: nid, external_id: 'IA-1', issued: issued(), requirement_ids: ['REQ-1'], functions: [{ id: uuid(), name: 'f', kind: 'normal' }] })]
+    const r = computeRtm({ requirements: [req('REQ-1', 1)], ia_nodes: nodes, screens: [] })
+    expect(r.proposals.find((x) => x.kind === 'issue_fn_id')?.suggested_value).toBe('FN-1-01')
+  })
+
   it('mapped 행에는 제안을 만들지 않는다', () => {
     const sid = uuid()
     const nodes = [

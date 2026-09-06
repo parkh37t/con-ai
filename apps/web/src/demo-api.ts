@@ -17,7 +17,8 @@
 import { assemblePrompt, assembleRevisionPrompt } from './browser-run/deps.js'
 import { buildContext, draftRevisionPromptInBrowser, revisionInstruction, runBrowserPipeline, type PipelineInput } from './browser-run/pipeline.js'
 import { browserModeActive, browserRuntime, toJobFailure } from './browser-run/runtime.js'
-import { registerArtifactHtml, type BrowserApprovalRecord, type BrowserRevisionRecord, type BrowserScreenRecord, type BrowserStore } from './browser-run/store.js'
+import { registerArtifactHtml, type BrowserApprovalRecord, type BrowserIaNodeRecord, type BrowserRevisionRecord, type BrowserScreenRecord, type BrowserStore } from './browser-run/store.js'
+import { demoIaNode, demoIssueId, demoPatchIaNode, demoRelabelId, demoRtm } from './demo-rtm.js'
 import { nextScreenExternalId } from './simple-flow.js'
 import { DEMO_BASE } from './demo-mode.js'
 import { JOB_STAGES } from './job-progress.js'
@@ -103,6 +104,8 @@ export interface DemoState {
   files: DemoFiles
   jobs: Map<string, DemoJobRun>
   analyses: Map<string, DemoAsisRun>
+  /** IA 노드 문서 revision (낙관적 잠금). 스냅샷 노드는 1 에서 시작하고 발번·연결마다 오른다. */
+  ia_revisions: Map<string, number>
   seq: number
   now: () => number
 }
@@ -217,6 +220,7 @@ export function createDemoState(files: DemoFiles, opts: { now?: () => number; st
     files: clone(files),
     jobs: new Map(),
     analyses: new Map(),
+    ia_revisions: new Map(),
     seq: 0,
     now: opts.now ?? (() => Date.now()),
   }
@@ -279,6 +283,11 @@ function handleGet(state: DemoState, path: string): DemoResponse {
   for (const run of state.analyses.values()) advanceAsis(state, run)
 
   if (path === '/api/meta') return { status: 200, data: metaOf(state) }
+  // 추적 체인·IA 노드는 스냅샷에 저장된 응답이 아니라 지금 상태에서 계산·조회한다.
+  let m = /^\/api\/projects\/([^/]+)\/rtm$/.exec(path)
+  if (m) return demoRtm(state, m[1] ?? '')
+  m = /^\/api\/ia-nodes\/([^/]+)$/.exec(path)
+  if (m) return demoIaNode(state, m[1] ?? '')
   const found = state.gets.get(path)
   if (found === undefined) return notFound(`경로 ${path}`)
   return { status: 200, data: found }
@@ -560,6 +569,8 @@ export function applyBrowserOverlay(state: DemoState, store: BrowserStore): void
     if (detail) detail.comments = comments.map((c) => ({ ...c }))
   }
   for (const [screenId, title] of Object.entries(data.titles)) applyStoredTitle(state, screenId, title)
+  // ID 매핑 화면에서 사람이 발번·연결한 IA 노드 (새로고침 후에도 이어진다).
+  for (const record of Object.values(data.ia_nodes)) applyStoredIaNode(state, record)
   for (const approval of Object.values(data.approvals) as BrowserApprovalRecord[]) {
     markApproved(state, approval.screen_id, approval.revision_id, approval.version)
   }
@@ -903,6 +914,20 @@ function registerBrowserScreen(state: DemoState, record: BrowserScreenRecord): v
   }
 }
 
+/**
+ * 저장해 둔 IA 노드(요구사항 연결·기능 정의·ID 발번)를 스냅샷 위에 얹는다.
+ * 스냅샷에 없는 노드는 무시한다 — 저장 데이터가 스냅샷보다 오래돼 없는 노드를 되살리지 않는다.
+ */
+function applyStoredIaNode(state: DemoState, record: BrowserIaNodeRecord): void {
+  for (const project of allProjectDetails(state)) {
+    const index = project.ia_nodes.findIndex((n) => n.id === record.node.id)
+    if (index === -1) continue
+    project.ia_nodes[index] = record.node
+    state.ia_revisions.set(record.node.id, record.revision)
+    return
+  }
+}
+
 /** 저장해 둔 제목을 화면 상세·프로젝트 목록에 반영한다. */
 function applyStoredTitle(state: DemoState, screenId: string, title: string): void {
   const detail = screenDetail(state, screenId)
@@ -981,6 +1006,10 @@ export function handleWith(state: DemoState, method: string, path: string, body?
     if (m) return createAsisAnalysis(state, m[1] ?? '', body)
     m = /^\/api\/projects\/([^/]+)\/screens$/.exec(path)
     if (m) return createScreen(state, m[1] ?? '', body)
+    m = /^\/api\/ia-nodes\/([^/]+)\/id-issuances$/.exec(path)
+    if (m) return demoIssueId(state, m[1] ?? '', body)
+    m = /^\/api\/ia-nodes\/([^/]+)\/id-relabels$/.exec(path)
+    if (m) return demoRelabelId(state, m[1] ?? '', body)
   }
 
   if (method === 'PATCH') {
@@ -990,6 +1019,8 @@ export function handleWith(state: DemoState, method: string, path: string, body?
     if (m) return patchScreen(state, m[1] ?? '', body)
     m = /^\/api\/asis-analyses\/([^/]+)\/pain-points\/([^/]+)$/.exec(path)
     if (m) return patchPainPoint(state, m[1] ?? '', m[2] ?? '', body)
+    m = /^\/api\/ia-nodes\/([^/]+)$/.exec(path)
+    if (m) return demoPatchIaNode(state, m[1] ?? '', body)
   }
 
   return { status: 404, data: { error: 'not_found', message: `정적 데모가 처리하지 않는 요청입니다: ${method} ${path}` } }

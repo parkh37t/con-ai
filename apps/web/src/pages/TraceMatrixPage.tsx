@@ -18,24 +18,12 @@ import { hrefTo, hrefToScreen } from '../router.js'
 import type { IdIssueResponse, Project, RtmGapProposal, RtmReport } from '../types.js'
 
 export function TraceMatrixPage({ project }: { project: Project }) {
-  const rtm = useAsync(() => (IS_DEMO ? null : api.rtm(project.id)), [project.id])
+  const rtm = useAsync(() => api.rtm(project.id), [project.id])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<unknown>(null)
   const [notice, setNotice] = useState<string | null>(null)
   // 행위자 이름은 브라우저에 남긴다 (코멘트 작성자와 같은 방식). 사유는 매번 새로 쓴다.
   const [by, setBy] = useStoredValue('con-ai.author', '')
-
-  if (IS_DEMO) {
-    return (
-      <div className="page page-reading">
-        <TraceHeader project={project} />
-        <div className="notice" data-testid="trace-demo-note">
-          이 화면은 <strong>서버 실행에서만</strong> 동작합니다. 추적 체인 계산과 ID 발번은 저장소에 쓰는 작업이라 스냅샷 데모에는 없습니다.
-          로컬·사내 서버(<code>pnpm serve</code>)에서 열어 주세요. 여기서 가짜 숫자를 보여 주지 않습니다.
-        </div>
-      </div>
-    )
-  }
 
   /**
    * 쓰기 동작 하나를 실행한다.
@@ -61,6 +49,12 @@ export function TraceMatrixPage({ project }: { project: Project }) {
   return (
     <div className="page page-reading">
       <TraceHeader project={project} />
+      {IS_DEMO && (
+        <div className="notice" data-testid="trace-demo-note">
+          정적 배포에서는 이 화면이 <strong>이 브라우저 안에서</strong> 동작합니다. 커버리지 계산·발번 판정은 서버와 <strong>같은 규칙</strong>(<code>@con-ai/domain</code>)을 쓰지만,
+          발번·연결 결과는 이 브라우저에만 저장되고 다른 사람에게는 보이지 않습니다. 팀이 함께 쓰는 값으로 남기려면 서버 실행(<code>pnpm serve</code>)에서 하세요.
+        </div>
+      )}
       {rtm.error ? <ErrorBox error={rtm.error} title="추적 체인을 읽지 못했습니다" /> : null}
       {rtm.loading && !rtm.data && <Loading text="추적 체인을 계산하는 중…" />}
       {rtm.data && (
@@ -375,11 +369,14 @@ function findUnissuedFunctionId(report: RtmReport | null): string | undefined {
   return report?.rows.flatMap((r) => r.fn).find((f) => f.external_id === undefined)?.id
 }
 
-/** 발번 알림 문구. 서버가 다시 계산한 번호가 요청값과 다르면 그 사실을 반드시 적는다. */
+/**
+ * 발번 알림 문구. 다시 계산한 번호가 요청값과 다르면 그 사실을 반드시 적고,
+ * 정적 데모에서 이 브라우저에 저장하지 못했으면 그것도 함께 적는다 (조용히 성공으로 보이게 두지 않는다).
+ */
 export function issuanceNotice(res: IdIssueResponse, name?: string): string {
-  if (res.differs) {
-    return `${name ?? '대상'}에 ${res.issued_external_id} 를 발번했습니다 — 트리 위치로 다시 계산한 번호는 ${res.recomputed_external_id ?? '(계산 불가)'} 입니다. 확인해 주세요.`
-  }
-  return `${res.issued_external_id} 를 발번했습니다.`
+  const head = res.differs
+    ? `${name ?? '대상'}에 ${res.issued_external_id} 를 발번했습니다 — 트리 위치로 다시 계산한 번호는 ${res.recomputed_external_id ?? '(계산 불가)'} 입니다. 확인해 주세요.`
+    : `${res.issued_external_id} 를 발번했습니다.`
+  return res.storage_warning === undefined ? head : `${head} ${res.storage_warning}`
 }
 

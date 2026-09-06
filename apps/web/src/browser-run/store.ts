@@ -1,14 +1,14 @@
 /**
  * 브라우저 저장소 — 스냅샷을 초기 상태로 두고, 브라우저에서 만든 결과만 localStorage 에 누적한다.
  *
- * 키 접두사 `con-ai:browser:`. 담는 것: 생성한 revision(명세·검증 결과·HTML), 코멘트, 승인(완료) 기록.
+ * 키 접두사 `con-ai:browser:`. 담는 것: 생성한 revision(명세·검증 결과·HTML), 코멘트, 승인(완료) 기록, ID 발번한 IA 노드.
  * 스냅샷 자체는 저장하지 않는다 (public/demo 정적 파일이 원본).
  *
  * - 용량 초과(QuotaExceededError)는 삼키지 않고 마지막 오류로 남겨 화면이 알린다. 저장에 실패해도 현재 탭의 화면은 계속 동작한다.
  * - 자격 증명 값은 여기에 절대 넣지 않는다 (browser-run/credential.ts 가 따로 보관한다).
  * - 저장 데이터는 이 브라우저 밖으로 나가지 않는다 — 다른 사람과 공유되지 않는다.
  */
-import type { Artifact, Comment, ElementIndexEntry, Screen, ScreenRevision, ScreenSpecLike, ValidationResult } from '../types.js'
+import type { Artifact, Comment, ElementIndexEntry, IANode, Screen, ScreenRevision, ScreenSpecLike, ValidationResult } from '../types.js'
 import type { StorageLike } from './credential.js'
 
 export { browserArtifactUrl, registerArtifactHtml, releaseArtifactUrls } from './artifact-urls.js'
@@ -42,6 +42,16 @@ export interface BrowserApprovalRecord {
   version: string
 }
 
+/**
+ * ID 매핑 화면에서 사람이 발번·연결한 IA 노드 하나.
+ * 스냅샷 노드를 **덮어쓰는** 형태로 담는다 (원본 스냅샷 파일은 그대로 둔다).
+ * `revision` 은 낙관적 잠금 값이라 함께 남긴다 — 새로고침 후에도 같은 번호에서 이어져야 한다.
+ */
+export interface BrowserIaNodeRecord {
+  node: IANode
+  revision: number
+}
+
 /** 브라우저에서 만든 화면 하나 (한 줄 입력 흐름). 스냅샷에 없는 화면이라 이 브라우저에만 있다. */
 export interface BrowserScreenRecord {
   screen: Screen
@@ -60,10 +70,12 @@ export interface BrowserStoreData {
   comments: Record<string, Comment[]>
   /** 화면 id → 완료 기록. */
   approvals: Record<string, BrowserApprovalRecord>
+  /** IA 노드 id → 이 브라우저에서 바뀐 노드 (요구사항 연결·기능 정의·ID 발번). */
+  ia_nodes: Record<string, BrowserIaNodeRecord>
 }
 
 export function emptyStoreData(): BrowserStoreData {
-  return { version: BROWSER_STORE_VERSION, revisions: [], screens: [], titles: {}, comments: {}, approvals: {} }
+  return { version: BROWSER_STORE_VERSION, revisions: [], screens: [], titles: {}, comments: {}, approvals: {}, ia_nodes: {} }
 }
 
 function localStorageOrNull(): StorageLike | null {
@@ -150,6 +162,12 @@ export class BrowserStore {
     return this.save({ ...data, approvals: { ...data.approvals, [record.screen_id]: record } })
   }
 
+  /** ID 매핑 화면의 저장 — 노드 하나를 통째로 덮어쓴다 (별칭·발번 기록이 노드 안에 있으므로 부분 저장하지 않는다). */
+  setIaNode(node: IANode, revision: number): boolean {
+    const data = this.load()
+    return this.save({ ...data, ia_nodes: { ...data.ia_nodes, [node.id]: { node, revision } } })
+  }
+
   /** 브라우저에 쌓인 결과를 모두 지운다 (스냅샷 데모는 그대로 남는다). */
   reset(): void {
     this.#cache = emptyStoreData()
@@ -165,7 +183,14 @@ export class BrowserStore {
 
   isEmpty(): boolean {
     const d = this.load()
-    return d.revisions.length === 0 && d.screens.length === 0 && Object.keys(d.titles).length === 0 && Object.keys(d.comments).length === 0 && Object.keys(d.approvals).length === 0
+    return (
+      d.revisions.length === 0 &&
+      d.screens.length === 0 &&
+      Object.keys(d.titles).length === 0 &&
+      Object.keys(d.comments).length === 0 &&
+      Object.keys(d.approvals).length === 0 &&
+      Object.keys(d.ia_nodes).length === 0
+    )
   }
 
   /** 대략적인 저장 용량 (바이트) — 화면에 안내용으로 보여준다. */
@@ -202,10 +227,27 @@ export function parseStoreData(raw: string | null): BrowserStoreData {
     const titles = typeof rec['titles'] === 'object' && rec['titles'] !== null ? (rec['titles'] as Record<string, string>) : {}
     const comments = typeof rec['comments'] === 'object' && rec['comments'] !== null ? (rec['comments'] as Record<string, Comment[]>) : {}
     const approvals = typeof rec['approvals'] === 'object' && rec['approvals'] !== null ? (rec['approvals'] as Record<string, BrowserApprovalRecord>) : {}
-    return { version: BROWSER_STORE_VERSION, revisions, screens, titles, comments, approvals }
+    // ia_nodes 도 나중에 추가된 항목이다. 모양이 깨진 항목은 버린다 — 깨진 노드를 사람이 발번한 값처럼 쓰지 않는다.
+    const ia_nodes: Record<string, BrowserIaNodeRecord> = {}
+    const rawNodes = rec['ia_nodes']
+    if (typeof rawNodes === 'object' && rawNodes !== null) {
+      for (const [id, value] of Object.entries(rawNodes as Record<string, unknown>)) {
+        if (isIaNodeRecord(value)) ia_nodes[id] = value
+      }
+    }
+    return { version: BROWSER_STORE_VERSION, revisions, screens, titles, comments, approvals, ia_nodes }
   } catch {
     return emptyStoreData()
   }
+}
+
+function isIaNodeRecord(v: unknown): v is BrowserIaNodeRecord {
+  if (typeof v !== 'object' || v === null) return false
+  const r = v as Record<string, unknown>
+  const node = r['node']
+  if (typeof node !== 'object' || node === null) return false
+  const n = node as Record<string, unknown>
+  return typeof n['id'] === 'string' && typeof n['project_id'] === 'string' && typeof r['revision'] === 'number' && Number.isInteger(r['revision']) && (r['revision'] as number) >= 1
 }
 
 function isScreenRecord(v: unknown): v is BrowserScreenRecord {
