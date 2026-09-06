@@ -48,7 +48,9 @@ test('세로 조각: 생성 → 검토·코멘트 → 수정 → 완료(v1.0) �
     await page.goto('/#/advanced')
     await page.locator(`[data-testid="screen-row"][data-external-id="SAMPLE-quote-list"]`).getByTestId('link-generate').click()
     await expect(page).toHaveURL(new RegExp(`#/screens/${listScreen.id}/generate`))
-    await expect(page.getByRole('heading', { level: 2 })).toContainText('SAMPLE-quote-list')
+    // 화면 이름·외부 ID·단계 탭은 컨텍스트 헤더가 갖는다 (생성·검토·완료가 같은 머리를 쓴다)
+    await expect(page.locator('.ctxhead code')).toHaveText('SAMPLE-quote-list')
+    await expect(page.getByTestId('ctxtab-generate')).toHaveAttribute('aria-current', 'page')
 
     await page.getByTestId('purpose').fill('파트너가 견적 요청 목록을 조회하고 상태별로 검색한다 (e2e)')
     // 요구사항 REQ-QT-001 의 수용조건 2개 체크 (접힌 목록을 연다)

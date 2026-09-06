@@ -1,10 +1,18 @@
-/** 앱 루트 — 해시 라우팅, 메타·프로젝트 로딩, 상단 바. */
+/**
+ * 앱 루트 — 해시 라우팅, 메타·프로젝트 로딩, 셸 두 종류.
+ *
+ * 설계 산출물 screens-v1 을 따라 셸을 둘로 나눈다:
+ *  - 진입 셸: 메인 · 만들기 · 설계서 결과 — 60px 얇은 상단 바 하나, 흰 바탕.
+ *  - 작업대 셸: 프로젝트 홈 · 생성 · 검토 · 완료 · AS-IS · 레퍼런스 — 228px 좌측 레일 + 회색 캔버스.
+ * 가로 메뉴는 두지 않는다. 작업대에서는 레일이 단계 순서와 현재 위치를 함께 보여준다.
+ */
 import { useEffect, useState, type ReactNode } from 'react'
 import { api } from './api.js'
+import { AppTopBar } from './components/AppTopBar.js'
 import { ErrorBox, Loading } from './components/common.js'
 import { CredentialChip, CredentialPanel } from './components/CredentialPanel.js'
-import { TopBar, type TopBarSection } from './components/TopBar.js'
-import { DEMO_BANNER_TEXT, DEMO_REPO_URL, IS_DEMO } from './demo-mode.js'
+import { WorkspaceRail, type RailSection } from './components/WorkspaceRail.js'
+import { IS_DEMO } from './demo-mode.js'
 import { useAsync, useHashRoute } from './hooks.js'
 import { ApprovePage } from './pages/ApprovePage.js'
 import { AsisDetailPage } from './pages/AsisDetailPage.js'
@@ -16,6 +24,7 @@ import { MainPage } from './pages/MainPage.js'
 import { ReferencesPage } from './pages/ReferencesPage.js'
 import { ReviewPage } from './pages/ReviewPage.js'
 import { SimpleHomePage } from './pages/SimpleHomePage.js'
+import { stageCounts } from './project-nav.js'
 import { hrefTo } from './router.js'
 
 export function App() {
@@ -27,8 +36,13 @@ export function App() {
   const projectList = projects.data ?? []
   const project = (requestedProject ? projectList.find((p) => p.id === requestedProject) : undefined) ?? projectList[0] ?? null
 
-  // 메인·만들기·설계서 결과는 자체 상단 바를 가진다 — 앱 상단 바·자격 증명 패널 없이 화면만 보여준다 (UI 를 단순하게 유지).
-  const simpleShell = route.name === 'main' || route.name === 'create' || route.name === 'design'
+  // 메인·만들기·설계서 결과는 진입 셸(얇은 상단 바)을 쓴다. 나머지는 작업대 셸(좌측 레일).
+  const entryShell = route.name === 'main' || route.name === 'create' || route.name === 'design'
+
+  // 레일의 4단계 건수. 작업대 셸에서만 필요하므로 그때만 읽는다.
+  const detail = useAsync(async () => (project && !entryShell ? api.project(project.id) : null), [project?.id, entryShell])
+  const analyses = useAsync(async () => (project && !entryShell ? api.asisAnalyses(project.id) : null), [project?.id, entryShell])
+  const counts = stageCounts({ screens: detail.data?.screens ?? null, analyses: analyses.data ?? null })
 
   // 자격 증명 패널은 기본으로 접혀 있다. 칩을 누르거나, 패널을 열려는 기존 진입(`?help=key` / `?cred=open`)이면 열린 채로 온다.
   const credentialRequested = route.query['help'] === 'key' || route.query['cred'] === 'open'
@@ -37,16 +51,18 @@ export function App() {
     if (credentialRequested) setCredentialOpen(true)
   }, [credentialRequested])
 
-  const current: TopBarSection =
-    route.name === 'advanced'
-      ? 'home'
+  const railSection: RailSection =
+    route.name === 'asis' || route.name === 'asis_detail'
+      ? 'asis'
       : route.name === 'references'
         ? 'references'
-        : route.name === 'asis' || route.name === 'asis_detail'
-          ? 'asis'
-          : route.name === 'not_found'
-            ? 'other'
-            : 'screen'
+        : route.name === 'review'
+          ? 'review'
+          : route.name === 'approve'
+            ? 'done'
+            : route.name === 'advanced' || route.name === 'generate'
+              ? 'screens'
+              : 'other'
 
   let body: ReactNode
   if (projects.error) {
@@ -71,7 +87,7 @@ export function App() {
   } else if (route.name === 'create') {
     body = <SimpleHomePage key={project.id} project={project} meta={meta.data} route={route} />
   } else if (route.name === 'advanced') {
-    body = <HomePage key={project.id} project={project} projects={projectList} meta={meta.data} />
+    body = <HomePage key={project.id} project={project} projects={projectList} meta={meta.data} route={route} />
   } else if (route.name === 'references') {
     body = <ReferencesPage key={project.id} projectId={project.id} />
   } else if (route.name === 'asis') {
@@ -84,43 +100,28 @@ export function App() {
     )
   }
 
-  if (simpleShell) {
+  const credentialChip = IS_DEMO ? <CredentialChip open={credentialOpen} onToggle={() => setCredentialOpen((v) => !v)} /> : null
+  const credentialPanel = IS_DEMO ? <CredentialPanel open={credentialOpen} onClose={() => setCredentialOpen(false)} onChanged={() => meta.reload()} /> : null
+
+  if (entryShell) {
     return (
-      <div className={`app app-simple${route.name === 'main' ? ' app-main' : ''}`}>
-        <DemoBanner />
-        <main className="main main-simple">{body}</main>
+      <div className={`app app-entry${route.name === 'main' ? ' app-main' : ''}`}>
+        <div className="topdock">
+          <AppTopBar meta={meta.data} metaError={meta.error} credentialChip={credentialChip} />
+          {credentialPanel}
+        </div>
+        <main className="main main-entry">{body}</main>
       </div>
     )
   }
 
   return (
-    <div className="app">
-      {/* 상단 도크 — 내비 한 줄이 기준선이고, 자격 증명 패널은 그 아래로 필요할 때만 펼쳐진다.
-          데모 안내는 별도 띠가 아니라 내비 오른쪽 칩으로 흡수해 상단 겹침(배너+패널+내비+헤더)을 없앴다. */}
-      <div className="topdock">
-        <TopBar
-          meta={meta.data}
-          metaError={meta.error}
-          current={current}
-          /* 정적 배포에서만 자격 증명을 다룬다. 서버 모드에서는 모델 호출이 서버 어댑터의 몫이라 화면에 인증정보를 두지 않는다. */
-          credentialChip={IS_DEMO ? <CredentialChip open={credentialOpen} onToggle={() => setCredentialOpen((v) => !v)} /> : null}
-        />
-        {IS_DEMO && <CredentialPanel open={credentialOpen} onClose={() => setCredentialOpen(false)} onChanged={() => meta.reload()} />}
+    <div className="app app-workspace">
+      <WorkspaceRail project={project} meta={meta.data} metaError={meta.error} counts={counts} current={railSection} credentialChip={credentialChip} />
+      <div className="workspace-body">
+        {credentialPanel}
+        <main className="main">{body}</main>
       </div>
-      <main className="main">{body}</main>
-    </div>
-  )
-}
-
-/** 정적 데모(GitHub Pages) 안내 — 자체 상단 바를 쓰는 화면(메인·만들기·설계서)에서만 한 줄 띠로 남긴다. */
-function DemoBanner() {
-  if (!IS_DEMO) return null
-  return (
-    <div className="demo-banner" data-testid="demo-banner" role="note">
-      <span>{DEMO_BANNER_TEXT}</span>
-      <a href={DEMO_REPO_URL} target="_blank" rel="noreferrer noopener">
-        저장소 parkh37t/con-ai
-      </a>
     </div>
   )
 }

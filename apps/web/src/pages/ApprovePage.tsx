@@ -8,7 +8,8 @@ import { BrowserExportPanel, browserRecordOf } from '../components/BrowserExport
 import { ArtifactStatusBadge, Badge, Empty, ErrorBox, Loading, ValidationSummaryBadges, formatDateTime, shortHash } from '../components/common.js'
 import { exportDirUrl, exportFileUrl, fileBasename } from '../export-paths.js'
 import { useAsync, useStoredValue } from '../hooks.js'
-import { hrefTo, hrefToScreen, type Route } from '../router.js'
+import { ScreenContextHeader } from '../components/ScreenContextHeader.js'
+import { hrefToScreen, type Route } from '../router.js'
 import { approvalPrecheck } from '../summary.js'
 import type { ApprovalResponse, ExportManifest, RevisionDetail, ScreenDetail } from '../types.js'
 
@@ -25,22 +26,20 @@ export function ApprovePage({ screenId, route }: { screenId: string; route: Rout
 
   return (
     <div className="page">
-      <nav className="breadcrumb" aria-label="경로">
-        <a href={hrefTo('advanced')}>프로젝트 홈</a> › <code>{s.external_id}</code> › 완료·내보내기
-      </nav>
+      <ScreenContextHeader
+        screen={s}
+        current="approve"
+        revisionCount={revisions.length}
+        {...(selectedRevId ? { revisionQuery: selectedRevId } : {})}
+        actions={
+          selectedRevId ? (
+            <a className="btn btn-small" href={hrefToScreen('review', screenId, { rev: selectedRevId })}>
+              검토 화면
+            </a>
+          ) : null
+        }
+      />
       <section className="card">
-        <div className="card-head">
-          <h2>
-            완료·내보내기 — {s.title} <code>{s.external_id}</code>
-          </h2>
-          <span className="actions">
-            {selectedRevId && (
-              <a className="btn btn-small" href={hrefToScreen('review', screenId, { rev: selectedRevId })}>
-                검토 화면
-              </a>
-            )}
-          </span>
-        </div>
         {s.status === 'approved' && s.version && (
           <div className="notice">
             이 화면은 이미 완료(v{s.version}) 상태입니다. 승인본은 제자리에서 고치지 않으며, 변경은 새 revision 으로 만듭니다.

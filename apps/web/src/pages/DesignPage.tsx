@@ -20,6 +20,10 @@ export function DesignPage({ revisionId, route }: { revisionId: string; route: R
   const [instruction, setInstruction] = useState('')
   const [starting, setStarting] = useState(false)
   const [error, setError] = useState<unknown>(null)
+  // 미리보기 폭 — 화면의 기본 기기를 따라가되 여기서 바꿔 볼 수 있다.
+  const [previewOverride, setPreviewOverride] = useState<Device | null>(null)
+  // 「방금 만들어졌다」는 만들기 화면이 붙여 주는 표시다. 없으면 적지 않는다.
+  const created = route.query['created'] === '1'
 
   const jobId = route.query['job'] ?? null
   const poll = useJobPolling(jobId, (job) => {
@@ -37,6 +41,8 @@ export function DesignPage({ revisionId, route }: { revisionId: string; route: R
   const versionNo = current?.revision_no ?? detail.revision.revision_no
   const externalId = screen.data?.screen.external_id ?? detail.spec.screen_id ?? ''
   const device: Device = screen.data?.screen.device ?? (detail.spec.device === 'mobile' ? 'mobile' : 'desktop')
+  const preview: Device = previewOverride ?? device
+  const setPreview = (d: Device) => setPreviewOverride(d)
 
   const runEdit = async () => {
     const text = instruction.trim()
@@ -65,13 +71,11 @@ export function DesignPage({ revisionId, route }: { revisionId: string; route: R
   return (
     <div className="design-page">
       <header className="design-top">
-        <a className="btn btn-small" data-testid="design-back" href={hrefTo('create')}>
+        <a className="design-back" data-testid="design-back" href={hrefTo('create')}>
           ← 새로 만들기
         </a>
-        <a className="btn btn-small" data-testid="design-main" href={hrefTo('main')}>
-          메인
-        </a>
         <TitleField screenId={screenId} title={screen.data?.screen.title ?? ''} onSaved={() => screen.reload()} />
+        {externalId && <code className="design-extid">{externalId}</code>}
         <span className="design-versions" role="group" aria-label="버전">
           {versions.length <= 1 ? (
             <span className="chip" data-testid="design-version" data-version={versionNo} data-current="true">
@@ -95,18 +99,36 @@ export function DesignPage({ revisionId, route }: { revisionId: string; route: R
           )}
         </span>
         <span className="design-top-right">
+          {/* 미리보기 폭만 바꾼다 — 설계서 자체는 그대로다(다시 만들지 않는다). */}
+          <span className="device-toggle" role="group" aria-label="미리보기 폭">
+            <button type="button" className={`btn btn-small${preview === 'desktop' ? ' active' : ''}`} data-testid="design-preview-desktop" onClick={() => setPreview('desktop')}>
+              PC
+            </button>
+            <button type="button" className={`btn btn-small${preview === 'mobile' ? ' active' : ''}`} data-testid="design-preview-mobile" onClick={() => setPreview('mobile')}>
+              모바일
+            </button>
+          </span>
           <a className="btn btn-small" data-testid="design-download" href={api.artifactHtmlUrl(detail.artifact.id)} download={`${externalId || 'screen'}-v${versionNo}.html`}>
             HTML 다운로드
           </a>
           {screenId && (
-            <a className="btn btn-small" data-testid="design-detail" href={hrefToScreen('review', screenId, { rev: revisionId })}>
-              자세히
+            <a className="btn btn-small btn-primary" data-testid="design-detail" href={hrefToScreen('review', screenId, { rev: revisionId })}>
+              자세히 →
             </a>
           )}
         </span>
       </header>
 
-      <div className="design-frame">
+      {created && (
+        <div className="design-created" role="status" data-testid="design-created">
+          <span className="design-created-mark" aria-hidden="true">
+            ✓
+          </span>
+          새 설계서가 만들어졌습니다 — v{versionNo}. 아래에서 한 줄로 고치면 새 버전이 쌓이고, 「자세히」에서 팀이 코멘트를 남길 수 있습니다.
+        </div>
+      )}
+
+      <div className={`design-frame design-frame-${preview}`}>
         <iframe
           key={detail.artifact.id}
           data-testid="design-iframe"

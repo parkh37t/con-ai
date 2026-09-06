@@ -7,12 +7,11 @@
 import { useState } from 'react'
 import { api } from '../api.js'
 import { credentialStore } from '../browser-run/credential.js'
-import { AdapterChip } from '../components/AdapterChip.js'
 import { ErrorBox } from '../components/common.js'
 import { IS_DEMO } from '../demo-mode.js'
 import { CREDENTIAL_EVENT, navigate, useAsync, useCredentialTick, useJobPolling } from '../hooks.js'
 import { isTerminalJob } from '../job-progress.js'
-import { hrefTo, hrefToDesign, withQuery, type Route } from '../router.js'
+import { hrefToDesign, withQuery, type Route } from '../router.js'
 import { autoReferenceIds, buildSimpleCreateRequest, deriveShell, deriveTitle, failureLine, progressLine, recentDesigns } from '../simple-flow.js'
 import type { Device, Meta, Project, ScreenCreateInput } from '../types.js'
 
@@ -38,7 +37,7 @@ export function SimpleHomePage({ project, meta, route }: { project: Project; met
   // 작업 id 는 주소에 남긴다 — 새로고침해도 진행 상태를 다시 읽는다.
   const jobId = route.query['job'] ?? null
   const poll = useJobPolling(jobId, (job) => {
-    if (job.status === 'succeeded' && job.result) navigate(hrefToDesign(job.result.revision_id))
+    if (job.status === 'succeeded' && job.result) navigate(hrefToDesign(job.result.revision_id, { created: '1' }))
   })
   const running = starting || (jobId !== null && (poll.job === null || !isTerminalJob(poll.job.status)))
   const failed = poll.job?.status === 'failed' || poll.job?.status === 'cancelled'
@@ -86,49 +85,66 @@ export function SimpleHomePage({ project, meta, route }: { project: Project; met
 
   return (
     <div className="simple-page">
-      <header className="simple-top">
-        <a className="simple-brand" data-testid="simple-home" href={hrefTo('main')}>
-          ← AI 기획 에이전트
-        </a>
-        <span className="simple-top-right">
-          <AdapterChip meta={meta} credential={credential !== null} testId="simple-adapter" />
-          {IS_DEMO && (
-            <button type="button" className="btn btn-small" data-testid="simple-credential-toggle" onClick={() => setAskCredential((v) => !v)}>
-              {credential ? `내 토큰 ····${credential.last4}` : 'Claude 토큰 넣기'}
-            </button>
-          )}
-          <a className="simple-advanced" data-testid="link-advanced" href={hrefTo('advanced')}>
-            고급
-          </a>
-        </span>
-      </header>
-
       <section className="simple-hero">
+        <span className="simple-kicker">② 생성 · 새 설계서</span>
         <h1>어떤 화면을 만들까요?</h1>
-        <textarea
-          className="simple-input"
-          data-testid="simple-input"
-          rows={5}
-          value={sentence}
-          placeholder={PLACEHOLDER}
-          aria-label="만들 화면 설명"
-          disabled={running}
-          onChange={(e) => setSentence(e.target.value)}
-        />
-        <div className="simple-actions">
-          <div className="device-toggle" role="group" aria-label="기기">
-            <button type="button" className={`btn btn-small${device === 'desktop' ? ' active' : ''}`} data-testid="simple-device-desktop" onClick={() => setDevice('desktop')}>
-              PC
-            </button>
-            <button type="button" className={`btn btn-small${device === 'mobile' ? ' active' : ''}`} data-testid="simple-device-mobile" onClick={() => setDevice('mobile')}>
-              모바일
-            </button>
+        <p className="simple-sub">기획자의 말로 한 문단만 쓰면 됩니다. 요구사항·IA·참고 화면은 프로젝트에서 자동으로 붙습니다.</p>
+
+        {/* 입력창과 실행 줄은 한 상자다 — 「무엇을 자동으로 채우는지」가 버튼 바로 옆에 보인다. */}
+        <div className="simple-box">
+          <textarea
+            className="simple-input"
+            data-testid="simple-input"
+            rows={5}
+            value={sentence}
+            placeholder={PLACEHOLDER}
+            aria-label="만들 화면 설명"
+            disabled={running}
+            onChange={(e) => setSentence(e.target.value)}
+          />
+          <div className="simple-boxfoot">
+            <span className="simple-auto-chips">
+              <span className="simple-auto-label">자동</span>
+              {preview ? (
+                <>
+                  <span className="simple-auto-chip">
+                    <span>제목</span>
+                    {deriveTitle(sentence)}
+                  </span>
+                  <span className="simple-auto-chip">
+                    <span>형태</span>
+                    {deriveShell(sentence, detail.data?.screens ?? [])}
+                  </span>
+                  <span className="simple-auto-chip">
+                    <span>참고</span>
+                    {autoReferenceIds(sentence, references.data ?? []).length}건
+                  </span>
+                </>
+              ) : (
+                <span className="simple-auto-empty">문장을 쓰면 제목·형태·참고 화면을 여기서 정합니다</span>
+              )}
+            </span>
+            <span className="simple-boxfoot-right">
+              <span className="device-toggle" role="group" aria-label="기기">
+                <button type="button" className={`btn btn-small${device === 'desktop' ? ' active' : ''}`} data-testid="simple-device-desktop" onClick={() => setDevice('desktop')}>
+                  PC
+                </button>
+                <button type="button" className={`btn btn-small${device === 'mobile' ? ' active' : ''}`} data-testid="simple-device-mobile" onClick={() => setDevice('mobile')}>
+                  모바일
+                </button>
+              </span>
+              <button type="button" className="btn btn-primary btn-big" data-testid="simple-create" onClick={() => void start()} disabled={running}>
+                {running ? '만드는 중…' : '설계서 만들기'}
+              </button>
+            </span>
           </div>
-          <button type="button" className="btn btn-primary btn-big" data-testid="simple-create" onClick={() => void start()} disabled={running}>
-            {running ? '만드는 중…' : '설계서 만들기'}
-          </button>
         </div>
 
+        {IS_DEMO && !askCredential && (
+          <button type="button" className="simple-credlink" data-testid="simple-credential-toggle" onClick={() => setAskCredential(true)}>
+            {credential ? `내 토큰 ····${credential.last4} — 바꾸기` : 'Claude 토큰 넣기'}
+          </button>
+        )}
         {askCredential && (
           <CredentialInline
             onSaved={() => {

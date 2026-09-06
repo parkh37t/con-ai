@@ -9,7 +9,8 @@ import { JobStatusPanel } from '../components/JobStatusPanel.js'
 import { buildEditRequest } from '../generation-form.js'
 import { navigate, useAsync, useJobPolling, useStoredValue } from '../hooks.js'
 import { DEVICE_LABELS, DEVICE_WIDTHS, describeTarget, highlightMessage, parseElementClick, setCaseMessage, type ElementClick } from '../preview-messages.js'
-import { hrefTo, hrefToScreen, withQuery, type Route } from '../router.js'
+import { ScreenContextHeader } from '../components/ScreenContextHeader.js'
+import { hrefToScreen, withQuery, type Route } from '../router.js'
 import { caseButtons, countOpenComments, summarizeValidation } from '../summary.js'
 import type { Comment, CommentInput, CommentRole, CommentStatus, CommentTarget, Device, RevisionDetail, RevisionListItem, ScreenDetail, SliceCase, ValidationResult } from '../types.js'
 
@@ -32,25 +33,20 @@ export function ReviewPage({ screenId, route }: { screenId: string; route: Route
 
   return (
     <div className="page page-wide">
-      <nav className="breadcrumb" aria-label="경로">
-        <a href={hrefTo('advanced')}>프로젝트 홈</a> › <code>{s.external_id}</code> › 화면 검토
-      </nav>
-      <section className="card">
-        <div className="card-head">
-          <h2>
-            화면 검토 — {s.title} <code>{s.external_id}</code>
-          </h2>
-          <span className="actions">
-            <a className="btn btn-small" href={hrefToScreen('generate', screenId)}>
-              생성 작업대
+      <ScreenContextHeader
+        screen={s}
+        current="review"
+        revisionCount={revisions.length}
+        {...(selectedRevId ? { revisionQuery: selectedRevId } : {})}
+        actions={
+          selectedRevId ? (
+            <a className="btn btn-small btn-primary" data-testid="link-approve" href={hrefToScreen('approve', screenId, { rev: selectedRevId })}>
+              완료·내보내기
             </a>
-            {selectedRevId && (
-              <a className="btn btn-small btn-primary" data-testid="link-approve" href={hrefToScreen('approve', screenId, { rev: selectedRevId })}>
-                완료·내보내기
-              </a>
-            )}
-          </span>
-        </div>
+          ) : null
+        }
+      />
+      <section className="card">
         <RevisionList revisions={revisions} selectedId={selectedRevId} route={route} />
       </section>
 

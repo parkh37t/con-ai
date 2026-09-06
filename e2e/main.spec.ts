@@ -22,9 +22,10 @@ test('메인: 4단계 프로세스 → 설계서 만들기 → 결과 → 예시
   // ---------------------------------------------------------------- (1) 메인
   await test.step('메인 화면 — 히어로·4단계 카드·시작 안내', async () => {
     await page.goto('/#/')
-    await expect(page.getByRole('heading', { level: 1 })).toContainText('화면설계서 HTML 이 나옵니다')
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('화면설계서가 나옵니다')
     await expect(page.getByTestId('main-create')).toHaveAttribute('href', '#/new')
-    await expect(page.getByTestId('main-link-advanced')).toHaveAttribute('href', '#/advanced')
+    // 프로젝트 홈 링크는 진입 셸의 얇은 상단 바가 가진다 (화면마다 따로 두지 않는다)
+    await expect(page.getByTestId('link-advanced')).toHaveAttribute('href', '#/advanced')
 
     // 4단계 카드 4장 — 번호·링크가 프로세스 순서와 같다
     const steps = page.getByTestId('main-step')
@@ -80,7 +81,8 @@ test('메인: 4단계 프로세스 → 설계서 만들기 → 결과 → 예시
 
   // ---------------------------------------------------------------- (4) 예시 열어보기
   await test.step('자격 증명 없이 «예시 열어보기» 가 설계서를 연다', async () => {
-    await page.getByTestId('design-main').click()
+    // 메인으로 돌아가는 길은 상단 바의 제품명이다
+    await page.locator('.apptop .brand').click()
     await expect(page).toHaveURL(/#\/$/)
 
     // 이 브라우저에 저장된 자격 증명이 없다는 것을 확인한 뒤 연다

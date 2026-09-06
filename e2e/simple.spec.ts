@@ -25,11 +25,11 @@ test('만들기: 한 줄 입력 → 설계서 HTML → 한 줄 수정 → v2 →
     await expect(page.getByTestId('simple-input')).toBeVisible()
     await expect(page.getByTestId('simple-create')).toBeVisible()
     await expect(page.getByTestId('simple-device-desktop')).toHaveClass(/active/)
-    // 어댑터 표시(더미/실제)는 기본 화면에서도 숨기지 않는다
-    await expect(page.getByTestId('simple-adapter')).toContainText('더미')
+    // 어댑터 표시(더미/실제)는 기본 화면에서도 숨기지 않는다 — 진입 셸의 상단 바가 가진다
+    await expect(page.getByTestId('adapter-badge')).toContainText('더미')
     // 고급 화면 링크와 메인으로 돌아가는 링크는 남아 있다
     await expect(page.getByTestId('link-advanced')).toHaveAttribute('href', '#/advanced')
-    await expect(page.getByTestId('simple-home')).toHaveAttribute('href', '#/')
+    await expect(page.locator('.apptop .brand')).toHaveAttribute('href', '#/')
     // 생성 작업대의 항목(요구사항 체크·CASE·프롬프트 미리보기)은 기본 화면에 없다
     await expect(page.getByTestId('case-normal')).toHaveCount(0)
     await expect(page.getByTestId('preview-button')).toHaveCount(0)

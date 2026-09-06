@@ -10,7 +10,8 @@ import { ReferenceCard } from '../components/ReferenceCard.js'
 import { ALL_CASES, TASK_TYPE_LABELS, buildRequest, initialFormState, toggleIn, validateForm, type GenerationFormState } from '../generation-form.js'
 import { IS_DEMO } from '../demo-mode.js'
 import { navigate, useAsync, useCredentialTick, useJobPolling } from '../hooks.js'
-import { hrefTo, hrefToScreen, withQuery, type Route } from '../router.js'
+import { ScreenContextHeader } from '../components/ScreenContextHeader.js'
+import { hrefToScreen, withQuery, type Route } from '../router.js'
 import { CASE_LABELS } from '../summary.js'
 import type { PromptPreviewResponse, Requirement, SliceTaskType } from '../types.js'
 
@@ -84,26 +85,19 @@ export function GeneratePage({ screenId, route }: { screenId: string; route: Rou
 
   return (
     <div className="page">
-      <nav className="breadcrumb" aria-label="경로">
-        <a href={hrefTo('advanced')}>프로젝트 홈</a> › <code>{s.external_id}</code> › 생성 작업대
-      </nav>
-      <section className="card">
-        <div className="card-head">
-          <h2>
-            생성 작업대 — {s.title} <code>{s.external_id}</code>
-          </h2>
-          <span className="actions">
-            {revisions.length > 0 && (
-              <a className="btn btn-small" href={hrefToScreen('review', screenId, s.current_revision_id ? { rev: s.current_revision_id } : undefined)}>
-                검토 화면
-              </a>
-            )}
-          </span>
-        </div>
-        <div className="muted small">
-          shell {s.shell} · 기기 {s.device === 'mobile' ? '모바일' : 'PC'} · 상태 {s.status} · revision {revisions.length}개
-        </div>
-      </section>
+      <ScreenContextHeader
+        screen={s}
+        current="generate"
+        revisionCount={revisions.length}
+        {...(s.current_revision_id ? { revisionQuery: s.current_revision_id } : {})}
+        actions={
+          revisions.length > 0 ? (
+            <a className="btn btn-small" href={hrefToScreen('review', screenId, s.current_revision_id ? { rev: s.current_revision_id } : undefined)}>
+              검토 화면
+            </a>
+          ) : null
+        }
+      />
 
       {jobId && <JobStatusPanel jobId={jobId} job={poll.job} error={poll.error} polling={poll.polling} screenId={screenId} />}
       {jobId && (
