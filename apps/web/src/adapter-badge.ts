@@ -23,7 +23,9 @@ export function adapterBadgeText(meta: Pick<Meta, 'adapter' | 'model' | 'auth'>,
 export function realModelHint(meta: Pick<Meta, 'adapter'> | null, opts: { demo?: boolean } = {}): string | null {
   if (!meta || meta.adapter !== 'fixture') return null
   if (opts.demo === true) {
-    return '지금은 스냅샷 데모입니다(모델 호출 없음). 상단 오른쪽 자격 증명 칩을 눌러 자격 증명 패널에 Claude API 키나 토큰을 넣으면 이 브라우저가 직접 모델을 호출해 실제로 생성합니다.'
+    // 화면은 실제로 돈다 — 더미인 것은 «명세를 쓰는 모델» 뿐이다. 그 하나만 정확히 적는다.
+    // 칩 위치는 셸마다 다르므로(작업대는 좌측 레일 아래, 진입 화면은 상단 바) 위치를 못박지 않는다.
+    return '지금은 더미 어댑터(fixture)입니다 — 모델을 호출하지 않고 규칙으로 명세를 만듭니다. 문맥 조립·스키마 검사·목업 렌더·V1·V2·V3 검사는 실제로 실행됩니다. 자격 증명 칩에 Claude API 키나 토큰을 넣으면 명세도 모델이 직접 씁니다.'
   }
   return '지금은 fixture 더미 어댑터입니다. 실제 모델을 쓰려면 .env 에 MODEL_ADAPTER=anthropic 과 ANTHROPIC_API_KEY 또는 ANTHROPIC_AUTH_TOKEN 을 설정하고 API 를 재시작하세요.'
 }

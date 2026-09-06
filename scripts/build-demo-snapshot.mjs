@@ -342,7 +342,8 @@ async function main() {
     const revisionIds = [rev1Id, rev2Id]
     for (const id of revisionIds) await get(`/api/revisions/${id}`)
     for (const id of [job1Id, job2Id]) await get(`/api/jobs/${id}`)
-    await get(`/api/asis-analyses/${asisId}`)
+    // 목록에 두 건이 보이므로 **두 건 다** 문서를 담는다 (하나만 담으면 목록의 다른 행이 404 가 된다).
+    for (const { doc } of asisRuns) await get(`/api/asis-analyses/${doc.id}`)
 
     // 산출물 HTML — 각 revision 의 artifact
     const artifactIds = revisionIds.map((id) => snapshot[`/api/revisions/${id}`].artifact.id)
@@ -352,6 +353,7 @@ async function main() {
     console.log(`[demo] 승인 v${approval.version} — 내보내기 ${approval.files.length}파일 (${approval.export_path})`)
 
     // ---------- 저장 ----------
+    normalizeAsisUrls(snapshot, base)
     await rm(OUT_DIR, { recursive: true, force: true })
     await mkdir(join(OUT_DIR, 'artifacts'), { recursive: true })
     await mkdir(join(OUT_DIR, 'asis'), { recursive: true })
@@ -394,6 +396,22 @@ async function main() {
   } finally {
     await stopServer(server)
     await rm(TMP_DIR, { recursive: true, force: true })
+  }
+}
+
+/**
+ * 기록된 AS-IS 대상 URL 을 안정된 표기로 바꾼다.
+ *
+ * 분석은 이 스크립트가 띄운 임시 서버(`http://127.0.0.1:<임의 포트>`)의 합성 페이지를 **실제로** 방문해 수행했다.
+ * 그 주소는 이 실행에서만 존재하므로 배포된 화면에 그대로 두면 보는 사람에게 아무 뜻이 없고 오히려 오해를 준다.
+ * 그래서 합성 대상임을 드러내는 고정 표기(`https://sample.local/…`)로 바꾼다. 대상이 합성 페이지라는 사실은
+ * 각 분석의 메모와 화면 안내 문구에 그대로 적혀 있다. **구조·스크린샷·페인포인트는 손대지 않는다.**
+ */
+function normalizeAsisUrls(snapshot, base) {
+  const fix = (url) => (typeof url === 'string' && url.startsWith(base) ? `https://sample.local${url.slice(base.length)}` : url)
+  for (const [path, value] of Object.entries(snapshot)) {
+    if (path.startsWith('/api/asis-analyses/') && value && typeof value === 'object') value.url = fix(value.url)
+    if (path.endsWith('/asis-analyses') && Array.isArray(value)) for (const row of value) row.url = fix(row.url)
   }
 }
 

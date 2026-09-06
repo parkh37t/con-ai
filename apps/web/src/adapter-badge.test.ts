@@ -28,9 +28,12 @@ describe('realModelHint — fixture 일 때만 안내', () => {
     expect(realModelHint({ adapter: 'anthropic' })).toBeNull()
     expect(realModelHint(null)).toBeNull()
   })
-  it('정적 배포(브라우저 모드)에서는 서버 .env 대신 자격 증명 패널을 안내한다', () => {
+  it('정적 배포(브라우저 모드)에서는 서버 .env 대신 자격 증명 칩을 안내한다', () => {
     const hint = realModelHint({ adapter: 'fixture' }, { demo: true })
-    expect(hint).toContain('자격 증명 패널')
+    expect(hint).toContain('자격 증명 칩')
     expect(hint).not.toContain('MODEL_ADAPTER')
+    // 더미인 것은 모델뿐이고 나머지는 실제로 돈다 — 「아무것도 안 돈다」로 읽히게 두지 않는다.
+    expect(hint).toContain('더미 어댑터(fixture)')
+    expect(hint).toContain('실제로 실행')
   })
 })
