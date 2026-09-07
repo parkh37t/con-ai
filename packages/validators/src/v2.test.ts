@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { EXAMPLE_ORDER_LIST_EXTENDED, type ScreenSpecInput } from '@con-ai/schemas'
+import { EXAMPLE_ORDER_LIST_EXTENDED, EXAMPLE_PORTAL_MAIN, type ScreenSpecInput } from '@con-ai/schemas'
 import { S2B_LEARNED_PROFILE } from '@con-ai/renderer'
-import { findExternalRefs, runV2, scanTags, V2_CHECKS } from './v2.js'
+import { elementRegion, findExternalRefs, runV2, scanTags, V2_CHECKS } from './v2.js'
 import { byId, expectSchemaConform, loadFixtureSpec, renderFixture, statusOf } from './test-helpers.js'
 
 const valid = renderFixture(loadFixtureSpec('valid'))
@@ -13,10 +13,10 @@ function replaceOnce(html: string, from: string, to: string): string {
 }
 
 describe('V2 렌더 구조 검사 — 정상 HTML (설계 §10 V2)', () => {
-  it('valid 명세를 렌더한 HTML 은 다섯 검사 모두 pass', () => {
+  it('valid 명세를 렌더한 HTML 은 여섯 검사 모두 pass', () => {
     const results = runV2(valid.html, valid.spec, S2B_LEARNED_PROFILE, { artifact_hash: valid.artifact_hash })
     expect(results.map((r) => r.check_id)).toEqual([...V2_CHECKS])
-    expect(statusOf(results)).toEqual({ 'V2.shell': 'pass', 'V2.description_order': 'pass', 'V2.element_ids': 'pass', 'V2.display_numbers': 'pass', 'V2.no_external_refs': 'pass' })
+    expect(statusOf(results)).toEqual({ 'V2.shell': 'pass', 'V2.description_order': 'pass', 'V2.element_ids': 'pass', 'V2.display_numbers': 'pass', 'V2.no_external_refs': 'pass', 'V2.component_content': 'pass' })
     expect(results.every((r) => r.required && r.stage === 'V2' && r.artifact_hash === valid.artifact_hash)).toBe(true)
     expect(byId(results, 'V2.display_numbers').evidence).toEqual(['search=1', 'query=a', 'period=b', 'status-filter=c', 'search-button=d', 'results=2', 'order-table=a', 'download-button=b', 'pager=c'])
     expect(byId(results, 'V2.description_order').evidence).toEqual(['order=screen_id → overview → cases → flow → policy → data_mapping → sections → messages'])
@@ -27,7 +27,7 @@ describe('V2 렌더 구조 검사 — 정상 HTML (설계 §10 V2)', () => {
     const spec: ScreenSpecInput = { ...structuredClone(EXAMPLE_ORDER_LIST_EXTENDED), shell: 'buyer-popup' }
     const popup = renderFixture(spec)
     const results = runV2(popup.html, popup.spec, S2B_LEARNED_PROFILE, { artifact_hash: popup.artifact_hash })
-    expect(statusOf(results)).toEqual({ 'V2.shell': 'pass', 'V2.description_order': 'pass', 'V2.element_ids': 'pass', 'V2.display_numbers': 'pass', 'V2.no_external_refs': 'pass' })
+    expect(statusOf(results)).toEqual({ 'V2.shell': 'pass', 'V2.description_order': 'pass', 'V2.element_ids': 'pass', 'V2.display_numbers': 'pass', 'V2.no_external_refs': 'pass', 'V2.component_content': 'pass' })
     expect(byId(results, 'V2.shell').evidence).toContain('root=.popup-shell')
   })
 
@@ -108,5 +108,49 @@ describe('V2 렌더 구조 검사 — 훼손 HTML', () => {
     expect(tags.map((t) => t.name)).toEqual(['div', 'span'])
     expect(tags[0]?.attrs).toEqual({ class: 'a b', id: 'x', hidden: '', 'data-n': '3' })
     expect(tags[1]?.attrs).toEqual({ 'data-element-id': 'q' })
+  })
+})
+
+describe('V2.component_content — 내용 표현 요소가 목업에 실제로 그려졌는가', () => {
+  const main = renderFixture(EXAMPLE_PORTAL_MAIN)
+
+  it('히어로·KPI·카드가 그려진 메인 화면은 pass 하고, 무엇을 몇 개 확인했는지 증거로 남는다', () => {
+    const r = byId(runV2(main.html, main.spec, S2B_LEARNED_PROFILE, { artifact_hash: main.artifact_hash }), 'V2.component_content')
+    expect(r.status).toBe('pass')
+    expect(r.evidence?.[0]).toContain('요소 3개')
+    // 히어로는 필드 6개지만 두 줄 카피가 줄 단위로 갈리므로 확인 개수가 그보다 많다.
+    const hero = r.evidence?.find((e) => e.startsWith('hero(hero)='))
+    expect(hero, r.evidence?.join(' | ')).toBeDefined()
+    expect(Number(/=(\d+)개$/.exec(hero ?? '')?.[1] ?? 0)).toBeGreaterThanOrEqual(7)
+  })
+
+  it('대상 요소가 없으면 «대상 없음» 이라고 적는다 — 확인했다고 말하지 않는다', () => {
+    const r = byId(runV2(valid.html, valid.spec, S2B_LEARNED_PROFILE, { artifact_hash: valid.artifact_hash }), 'V2.component_content')
+    expect(r.status).toBe('pass')
+    expect(r.evidence).toEqual(['대상 요소 없음 (hero·stat-strip·card-grid 미사용)'])
+  })
+
+  it('목업에서 카피가 사라지면 fail — 렌더러가 빈 상자를 내면 잡는다', () => {
+    const broken = replaceOnce(main.html, '필요한 것을<br>한 곳에서', '')
+    const r = byId(runV2(broken, main.spec, S2B_LEARNED_PROFILE, { artifact_hash: main.artifact_hash }), 'V2.component_content')
+    expect(r.status).toBe('fail')
+    expect(r.evidence?.join(' ')).toContain('필요한 것을')
+  })
+
+  it('옆 요소의 글자를 빌려 통과하지 못한다 — 요소가 그려진 자리만 본다', () => {
+    // 카드 제목을 히어로 쪽 문구로 바꾸면, 화면 어딘가에는 그 글자가 있어도 카드 자리에는 없으므로 fail 이어야 한다.
+    const broken = replaceOnce(main.html, '<p class="card-title">주문 조회</p>', '<p class="card-title">한 곳에서</p>')
+    const r = byId(runV2(broken, main.spec, S2B_LEARNED_PROFILE, { artifact_hash: main.artifact_hash }), 'V2.component_content')
+    expect(r.status).toBe('fail')
+    expect(r.evidence?.join(' ')).toContain('주문 조회')
+  })
+
+  it('elementRegion 은 그 요소 태그부터 다음 요소 앞까지만 자른다', () => {
+    const screen = main.html.slice(main.html.indexOf('data-region="screen"'), main.html.indexOf('data-region="description"'))
+    const region = elementRegion(screen, 'kpi')
+    expect(region).toBeDefined()
+    expect(region).toContain('128건')
+    expect(region).not.toContain('주문 조회')
+    expect(elementRegion(screen, '없는요소')).toBeUndefined()
   })
 })

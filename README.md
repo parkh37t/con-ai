@@ -90,4 +90,13 @@ pnpm test             # vitest run (테스트 파일이 없으면 실패한다)
 pnpm check            # 위 둘을 순서대로
 ```
 
+모델이 실제로 무엇을 만드는지 보는 검사는 `pnpm check` 에 넣지 않는다 (비결정적이고 유료다). 따로 돌린다:
+
+```bash
+set -a; source .env; set +a                 # ANTHROPIC_API_KEY 또는 ANTHROPIC_AUTH_TOKEN
+MODEL_ADAPTER=anthropic pnpm probe:vocab    # 모델이 히어로·KPI 인포스트립·카드 그리드를 실제로 쓰는지
+```
+
+자격 증명이 없으면 전 항목을 `not_run` 으로 적고 끝난다 — 돌지 않은 검사를 통과로 표시하지 않는다.
+
 검사 결과는 `pass / fail / error / not_run` 을 구분한다. 실행되지 않은 검사(예: 검토 데이터가 없어 건너뛴 테스트)는 통과로 표시하지 않는다.

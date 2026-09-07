@@ -24,7 +24,26 @@ export const SCREEN_SPEC_SCHEMA_VERSION = '1.0' as const
 
 /** 허용 컴포넌트 (설계 §9: 렌더러는 승인된 컴포넌트 목록만 사용). 초안 목록. */
 export const ElementType = z
-  .enum(['text-input', 'number-input', 'textarea', 'select', 'radio', 'checkbox', 'date-input', 'date-range', 'button', 'table', 'text', 'link', 'pagination'])
+  .enum([
+    'text-input',
+    'number-input',
+    'textarea',
+    'select',
+    'radio',
+    'checkbox',
+    'date-input',
+    'date-range',
+    'button',
+    'table',
+    'text',
+    'link',
+    'pagination',
+    // 내용 표현 3종 — 목록·상세·폼 밖의 «메인/홈» 화면을 만들 수 있게 넓힌 어휘.
+    // 입력 컨트롤이 아니라 «무엇을 보여주는 자리인가» 를 말한다.
+    'hero',
+    'stat-strip',
+    'card-grid',
+  ])
   .describe('허용 컴포넌트 (설계 §9)')
 
 /**
@@ -78,10 +97,53 @@ export const ElementOption = z.strictObject({
   label: NonEmptyText,
 })
 
+/**
+ * 히어로 — 화면 머리의 큰 카피 자리 (type='hero').
+ * 검색창을 넣으려면 `search_placeholder` 를 채운다. 여기 있는 이유: 「타입 ↔ 내용 키」를 1:1 로 묶어 두기 위해서다
+ * (공용 `placeholder` 를 빌려 쓰면 카드 그리드에 붙여도 아무도 불평하지 않는 예외가 생긴다).
+ * 이미지는 두지 않는다. 키비주얼 자리는 렌더러가 CSS 도형으로 그린다 (V2.no_external_refs: 외부 이미지 금지).
+ */
+export const HeroContent = z
+  .strictObject({
+    eyebrow: NonEmptyText.optional().describe('머리 위 작은 라벨 (예: 브랜드명·영문 표기)'),
+    headline: NonEmptyText.describe('큰 카피. 줄바꿈은 `\n` 으로 나눈다. 2줄 이내를 권장한다'),
+    subcopy: NonEmptyText.optional().describe('카피 아래 보조 문장 (2문장 이내)'),
+    search_placeholder: NonEmptyText.optional().describe('통합검색 입력의 안내 문구. 채우면 히어로 안에 검색 입력과 버튼이 그려진다. 없으면 검색 없는 히어로다'),
+    chips: z.array(NonEmptyText).optional().describe('검색창 아래 인기어 칩. **4개 이하**. 클릭 동작은 없다 (표시용)'),
+    visual_note: NonEmptyText.optional().describe('키비주얼 자리에 «무엇이 들어가는지» 설명 (예: "대표 이미지·브랜드 필름"). 자리표시 문구는 렌더러가 따로 붙이므로 여기 적지 않는다. 이미지 주소는 넣지 않는다'),
+  })
+  .describe('히어로 내용 (type=hero)')
+
+/** KPI 인포스트립의 숫자 한 칸 (type='stat-strip'). 값은 명세에 적힌 **예시 값**이며 실제 시세·실적이 아니다. */
+export const StatItem = z
+  .strictObject({
+    label: NonEmptyText.describe('항목명 (예: 시가총액)'),
+    value: NonEmptyText.describe('표시값 (예: 5조 5,394억). 예시 값이며 실제 데이터가 아니다'),
+    delta: NonEmptyText.optional().describe('증감 표기 (예: +150 (+0.85%)). 앞의 +/▲ 는 상승, -/▼ 는 하락 색으로 그린다'),
+    caption: NonEmptyText.optional().describe('아래 작은 설명 (예: 20분 지연 시세)'),
+  })
+  .describe('KPI 한 칸 (type=stat-strip)')
+
+/** 카드 그리드의 카드 하나 (type='card-grid'). */
+export const CardItem = z
+  .strictObject({
+    title: NonEmptyText.describe('카드 제목'),
+    desc: NonEmptyText.optional().describe('카드 본문 한 줄'),
+    badge: NonEmptyText.optional().describe('카드 위 분류 배지 (예: 보도자료)'),
+    meta: NonEmptyText.optional().describe('카드 아래 보조 정보 (예: 날짜·용량)'),
+  })
+  .describe('카드 하나 (type=card-grid)')
+
 const OPTION_TYPES = new Set<string>(['select', 'radio', 'checkbox'])
 
-/** 요소 — 영역 안의 컴포넌트 하나 (설계 §9 "필드"). */
-export const Element = z
+/** 내용 표현 3종 — 입력이 아니라 «보여주는» 컴포넌트. */
+const CONTENT_TYPES = new Set<string>(['hero', 'stat-strip', 'card-grid'])
+
+/**
+ * 요소의 필드 (superRefine 전). wire 스키마와 **키가 같은지** 보는 검사가 이 모양을 본다
+ * (ScreenSpecShape / ScreenSpec 과 같은 두 층 구조).
+ */
+export const ElementShape = z
   .strictObject({
     id: LocalId.describe('요소 로컬 ID (화면명세 안에서 유일; 표시 번호와 구분)'),
     type: ElementType,
@@ -91,6 +153,9 @@ export const Element = z
     placeholder: z.string().optional(),
     options: z.array(ElementOption).optional().describe('선택지 (select/radio/checkbox)'),
     columns: z.array(TableColumn).optional().describe('표 컬럼 (type=table)'),
+    hero: HeroContent.optional().describe('히어로 내용 (type=hero 전용, 필수)'),
+    stats: z.array(StatItem).optional().describe('KPI 항목 (type=stat-strip 전용, 1개 이상 6개 이하)'),
+    cards: z.array(CardItem).optional().describe('카드 (type=card-grid 전용, 1개 이상 12개 이하)'),
     default_sort: DefaultSort.optional().describe('기본 정렬 (type=table; 설계 §9 정렬=명세 기본 정렬)'),
     max_length: z.int().min(1).optional().describe('글자수 제한'),
     validations: z.array(FieldValidation).optional().describe('검증 규칙 (설계 §9)'),
@@ -98,6 +163,10 @@ export const Element = z
     locked: z.boolean().optional().describe('잠긴 요소 표시 (설계 §12). 목록은 locked_elements 가 정본'),
     note: z.string().optional().describe('영역·필드 설명 (우측 설명용)'),
   })
+  .describe('요소 필드 (설계 §9)')
+
+/** 요소 — 영역 안의 컴포넌트 하나 (설계 §9 "필드"). 구조 + 타입별 내용 규칙. */
+export const Element = ElementShape
   .superRefine((el, ctx) => {
     if (el.type === 'table') {
       if (!el.columns || el.columns.length === 0) {
@@ -122,6 +191,26 @@ export const Element = z
       }
     } else if (el.options !== undefined) {
       ctx.addIssue({ code: 'custom', path: ['options'], message: `options 는 select/radio/checkbox 에만 쓴다 (type=${el.type})` })
+    }
+    // 내용 표현 3종 — 타입과 내용 키를 1:1 로 묶는다. 내용 없는 hero/stat-strip/card-grid 는 빈 상자로 렌더되므로 여기서 막는다.
+    if (el.type === 'hero') {
+      if (el.hero === undefined) ctx.addIssue({ code: 'custom', path: ['hero'], message: 'hero 요소에는 hero 내용(headline)이 필요하다' })
+    } else if (el.hero !== undefined) {
+      ctx.addIssue({ code: 'custom', path: ['hero'], message: `hero 는 hero 요소에만 쓴다 (type=${el.type})` })
+    }
+    if (el.type === 'stat-strip') {
+      if (!el.stats || el.stats.length === 0) ctx.addIssue({ code: 'custom', path: ['stats'], message: 'stat-strip 요소에는 stats 가 최소 1개 필요하다' })
+    } else if (el.stats !== undefined) {
+      ctx.addIssue({ code: 'custom', path: ['stats'], message: `stats 는 stat-strip 요소에만 쓴다 (type=${el.type})` })
+    }
+    if (el.type === 'card-grid') {
+      if (!el.cards || el.cards.length === 0) ctx.addIssue({ code: 'custom', path: ['cards'], message: 'card-grid 요소에는 cards 가 최소 1개 필요하다' })
+    } else if (el.cards !== undefined) {
+      ctx.addIssue({ code: 'custom', path: ['cards'], message: `cards 는 card-grid 요소에만 쓴다 (type=${el.type})` })
+    }
+    // 내용 표현 3종은 입력 컨트롤이 아니다. 히어로의 검색 안내 문구는 hero.search_placeholder 로만 적는다.
+    if (CONTENT_TYPES.has(el.type) && el.placeholder !== undefined) {
+      ctx.addIssue({ code: 'custom', path: ['placeholder'], message: `placeholder 는 입력 컴포넌트에만 쓴다 (type=${el.type}). 히어로의 검색 안내 문구는 hero.search_placeholder 다` })
     }
   })
   .describe('요소 (설계 §9)')
@@ -242,6 +331,9 @@ export const ScreenSpecShape = z
 export type ScreenSpecShape = z.infer<typeof ScreenSpecShape>
 export type ScreenSpecInput = z.input<typeof ScreenSpecShape>
 export type Element = z.infer<typeof Element>
+export type HeroContent = z.infer<typeof HeroContent>
+export type StatItem = z.infer<typeof StatItem>
+export type CardItem = z.infer<typeof CardItem>
 export type Section = z.infer<typeof Section>
 export type Action = z.infer<typeof Action>
 export type ScreenState = z.infer<typeof ScreenState>

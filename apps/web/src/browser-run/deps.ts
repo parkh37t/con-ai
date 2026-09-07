@@ -18,6 +18,8 @@ export type { RenderOutput, RenderProfile } from '../../../../packages/renderer/
 export { ActionType, CaseKind, ColumnFormat, ElementType, MessageKind, ScreenSpecShape, SortDirection, UnresolvedKind, ValidationRule, checkScreenSpecReferences } from '../../../../packages/schemas/src/screen-spec.js'
 export type { ScreenSpecShape as ScreenSpecShapeType } from '../../../../packages/schemas/src/screen-spec.js'
 export { DeviceProfile } from '../../../../packages/schemas/src/screen.js'
+// 화면 종류 짐작 — 「만들기」 화면과 더미 어댑터가 같은 판정을 쓴다 (schemas/screen-kind.ts).
+export { guessScreenKind, looksLikeMainScreen, SCREEN_KIND_WORDS } from '../../../../packages/schemas/src/screen-kind.js'
 
 export { runV1 } from '../../../../packages/validators/src/v1.js'
 export { runV2 } from '../../../../packages/validators/src/v2.js'

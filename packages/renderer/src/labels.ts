@@ -14,6 +14,9 @@ export const ELEMENT_TYPE_LABELS: Record<string, string> = {
   text: '텍스트',
   link: '링크',
   pagination: '페이지 이동',
+  hero: '히어로(큰 카피)',
+  'stat-strip': 'KPI 인포스트립',
+  'card-grid': '카드 그리드',
 }
 
 export const ACTION_TYPE_LABELS: Record<string, string> = {

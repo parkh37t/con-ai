@@ -48,6 +48,11 @@ function refOf(numbering: Numbering, id: string | undefined): { element_id: stri
   return { element_id: id, display_no: entry.display_no }
 }
 
+/** 여러 줄 카피를 설명 한 줄로 (줄바꿈만 공백으로 바꾼다 — 글자는 그대로 둔다). */
+function oneLine(text: string): string {
+  return text.replace(/\r?\n/g, ' ')
+}
+
 function joinParts(parts: Array<string | undefined>): string {
   return parts.filter((p): p is string => p !== undefined && p !== '').join(' · ')
 }
@@ -65,6 +70,26 @@ export function describeElement(el: SpecElement, locked: boolean): string {
       const col = el.columns.find((c) => c.id === el.default_sort?.column_id)
       parts.push(`기본 정렬: ${col?.label ?? el.default_sort.column_id} ${el.default_sort.direction === 'desc' ? '내림차순' : '오름차순'}`)
     }
+  }
+  // 내용 표현 3종 — 설명에도 «무엇이 쓰여 있는가» 를 **빠짐없이** 옮긴다.
+  // 필드 목록은 content.ts contentTexts 와 같아야 한다 (render.test 가 한 글자도 빠지지 않았는지 본다).
+  if (el.hero) {
+    const h = el.hero
+    if (h.eyebrow !== undefined) parts.push(`머리말: ${h.eyebrow}`)
+    parts.push(`카피: ${oneLine(h.headline)}`)
+    if (h.subcopy !== undefined) parts.push(`보조 문장: ${oneLine(h.subcopy)}`)
+    if (h.search_placeholder !== undefined) parts.push(`통합검색 입력: ${h.search_placeholder}`)
+    if (h.chips && h.chips.length > 0) parts.push(`인기어: ${h.chips.join(' / ')}`)
+    if (h.visual_note !== undefined) parts.push(`키비주얼 자리: ${h.visual_note} (이미지 미포함)`)
+  }
+  if (el.stats && el.stats.length > 0) {
+    const items = el.stats.map((x) => joinParts([`${x.label} ${x.value}`, x.delta, x.caption]))
+    parts.push(`KPI ${el.stats.length}칸 — ${items.join(' / ')}`)
+    parts.push('표시값은 명세의 예시 값 · 실제 데이터 미연결')
+  }
+  if (el.cards && el.cards.length > 0) {
+    const items = el.cards.map((c) => joinParts([c.badge === undefined ? undefined : `[${c.badge}]`, c.title, c.desc, c.meta]))
+    parts.push(`카드 ${el.cards.length}장 — ${items.join(' / ')}`)
   }
   if (el.trace && el.trace.length > 0) parts.push(`수용조건: ${el.trace.join(', ')}`)
   if (locked || el.locked) parts.push('잠긴 요소')

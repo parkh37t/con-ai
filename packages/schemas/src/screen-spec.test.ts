@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { DESIGN_EXAMPLE_ORDER_LIST, EXAMPLE_ANCHOR_ID, EXAMPLE_ORDER_LIST, EXAMPLE_ORDER_LIST_EXTENDED } from './examples.js'
+import { DESIGN_EXAMPLE_ORDER_LIST, EXAMPLE_ANCHOR_ID, EXAMPLE_ORDER_LIST, EXAMPLE_ORDER_LIST_EXTENDED, EXAMPLE_PORTAL_MAIN } from './examples.js'
 import { ActionType, ElementType, ScreenSpec, ScreenSpecShape, checkScreenSpecReferences, type ScreenSpecInput } from './screen-spec.js'
 import { at, issueMessages, issuePaths, unrecognizedKeys } from './test-utils.js'
 
@@ -158,5 +158,52 @@ describe('ScreenSpec — 동작·요소 규칙 (설계 §9 제한된 동작·표
     const { unresolved: _omitted, ...withoutUnresolved } = extended()
     expect(issuePaths(ScreenSpec.safeParse(withoutUnresolved))).toEqual(['unresolved'])
     expect(unrecognizedKeys(ScreenSpec.safeParse({ ...extended(), html: '<div/>' }))).toEqual(['html'])
+  })
+})
+
+describe('내용 표현 3종 — 히어로 · KPI 인포스트립 · 카드 그리드', () => {
+  const main = (): ScreenSpecInput => structuredClone(EXAMPLE_PORTAL_MAIN)
+  const firstElement = (spec: ScreenSpecInput, section: number, element: number) => at(at(spec.sections, section).elements, element) as Record<string, unknown>
+
+  it('허용 컴포넌트에 세 값이 있고 메인 골든이 참조 검사까지 통과한다', () => {
+    for (const t of ['hero', 'stat-strip', 'card-grid']) expect(ElementType.safeParse(t).success, t).toBe(true)
+    const r = ScreenSpec.safeParse(EXAMPLE_PORTAL_MAIN)
+    expect(r.success, r.success ? '' : JSON.stringify(r.error.issues)).toBe(true)
+  })
+
+  it('내용 없는 요소는 거부한다 — 빈 상자를 «만들었다» 고 하지 않는다', () => {
+    const noHero = main()
+    delete firstElement(noHero, 0, 0)['hero']
+    expect(issuePaths(ScreenSpec.safeParse(noHero))).toContain('sections.0.elements.0.hero')
+
+    const emptyStats = main()
+    firstElement(emptyStats, 1, 0)['stats'] = []
+    expect(issuePaths(ScreenSpec.safeParse(emptyStats))).toContain('sections.1.elements.0.stats')
+
+    const emptyCards = main()
+    firstElement(emptyCards, 2, 0)['cards'] = []
+    expect(issuePaths(ScreenSpec.safeParse(emptyCards))).toContain('sections.2.elements.0.cards')
+
+    const noHeadline = main()
+    firstElement(noHeadline, 0, 0)['hero'] = { subcopy: '헤드라인 없음' }
+    expect(issuePaths(ScreenSpec.safeParse(noHeadline))).toContain('sections.0.elements.0.hero.headline')
+  })
+
+  it('내용 키를 다른 타입에 붙이면 거부한다 (타입 ↔ 내용은 1:1)', () => {
+    const wrong = main()
+    firstElement(wrong, 1, 0)['hero'] = { headline: '엉뚱한 히어로' }
+    firstElement(wrong, 2, 0)['stats'] = [{ label: 'x', value: '1' }]
+    firstElement(wrong, 0, 0)['cards'] = [{ title: 'x' }]
+    expect(issuePaths(ScreenSpec.safeParse(wrong))).toEqual(
+      expect.arrayContaining(['sections.1.elements.0.hero', 'sections.2.elements.0.stats', 'sections.0.elements.0.cards']),
+    )
+  })
+
+  it('히어로의 검색 안내 문구는 hero.search_placeholder 다 — 공용 placeholder 를 빌려 쓰지 않는다', () => {
+    const borrowed = main()
+    firstElement(borrowed, 0, 0)['placeholder'] = '통합검색'
+    const r = ScreenSpec.safeParse(borrowed)
+    expect(issuePaths(r)).toContain('sections.0.elements.0.placeholder')
+    expect(issueMessages(r).join(' ')).toContain('hero.search_placeholder')
   })
 })

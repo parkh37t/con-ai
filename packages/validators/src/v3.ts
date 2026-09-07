@@ -180,8 +180,12 @@ async function fillSearchInput(s: Session, value: string): Promise<string> {
       const el = document.querySelector(`[data-input-for="${id.replace(/["\\]/g, '\\$&')}"]`)
       if (el && textTypes.includes(el.getAttribute('data-input-type') ?? '')) return `[data-input-for="${id}"]`
     }
-    const any = document.querySelector('[data-region="screen"] input[type="text"][data-input-for]')
-    if (any) return `[data-input-for="${any.getAttribute('data-input-for') ?? ''}"]`
+    // 폴백도 **명세가 검색에 연결한 입력** 안에서만 고른다. 화면 첫 텍스트 입력을 아무거나 집으면
+    // (예: 메인 히어로의 통합검색) 필터가 아무것도 거르지 않아 검사가 엉뚱하게 실패한다.
+    for (const id of inputs) {
+      const el = document.querySelector(`[data-region="screen"] input[type="text"][data-input-for="${id.replace(/["\\]/g, '\\$&')}"]`)
+      if (el) return `[data-input-for="${id}"]`
+    }
     return ''
   })
   if (selector === '') throw new Error('검색 동작에 연결된 텍스트 입력이 없다')

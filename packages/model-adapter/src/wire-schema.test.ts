@@ -107,6 +107,9 @@ describe('구조화 출력 선택 파라미터 상한', () => {
       placeholder: null,
       options: null,
       columns: null,
+      hero: null,
+      stats: null,
+      cards: null,
       default_sort: null,
       max_length: null,
       validations: null,
@@ -114,6 +117,8 @@ describe('구조화 출력 선택 파라미터 상한', () => {
       locked: null,
       note: null,
     }
+    // 이 객체가 WireElement 의 «모든» 키를 덮는지 먼저 본다 — 키가 늘었는데 여기만 안 고치면 검사가 헛돈다.
+    expect(Object.keys(asModelSends).sort()).toEqual(Object.keys(WireElement.shape).sort())
     expect(variant.safeParse(asModelSends).success).toBe(true)
     // 키를 빠뜨리면 거부한다 — 선택이 사라진 것이 아니라 «필수 + null 허용» 이 됐기 때문이다.
     const { note: _note, ...missingKey } = asModelSends

@@ -103,7 +103,22 @@ body[data-screen-id][data-shell][data-shell-kind][data-case][data-action-types]
 
 ### 컴포넌트
 
-`text-input`, `number-input`, `textarea`, `select`, `radio`, `checkbox`, `date-input`, `date-range`, `button`, `table`, `text`, `link`, `pagination`. 입력 컨트롤에는 `data-input-for=<요소 id>`, `data-input-type`; 동작을 일으키는 버튼·링크에는 `data-action-trigger`, `data-action-id`, `data-action-type`. 표는 `table.grid[data-table-id]`, 헤더 `th[data-column-id][data-sortable]`, 본문 `tbody[data-tbody-for]` 의 `tr[data-row]`.
+허용 목록은 `@con-ai/schemas` 의 `ElementType.options` 하나가 정본이다 (여기 적힌 것을 손으로 고치지 말고 그쪽을 본다). 지금은 입력·표 계열 `text-input`, `number-input`, `textarea`, `select`, `radio`, `checkbox`, `date-input`, `date-range`, `button`, `table`, `text`, `link`, `pagination` 과 내용 표현 계열 `hero`, `stat-strip`, `card-grid` 다. 입력 컨트롤에는 `data-input-for=<요소 id>`, `data-input-type`; 동작을 일으키는 버튼·링크에는 `data-action-trigger`, `data-action-id`, `data-action-type`. 표는 `table.grid[data-table-id]`, 헤더 `th[data-column-id][data-sortable]`, 본문 `tbody[data-tbody-for]` 의 `tr[data-row]`.
+
+#### 내용 표현 3종 (`hero` · `stat-strip` · `card-grid`)
+
+목록·상세·폼 밖의 «메인/홈» 화면을 만들기 위한 어휘다. 입력을 받지 않고 **무엇을 보여주는 자리인가**를 말한다.
+
+| 타입 | 명세의 내용 키 | 렌더 |
+|---|---|---|
+| `hero` | `hero={eyebrow?, headline, subcopy?, search_placeholder?, chips?, visual_note?}` (필수) | `.hero` — 큰 카피(`\n` → `<br>`), `search_placeholder` 가 있으면 `.hero-search` 의 검색 입력+버튼, 인기어 칩, CSS 그러데이션 키비주얼 자리 |
+| `stat-strip` | `stats=[{label, value, delta?, caption?}]` (1개 이상) | `.stat-strip` — `delta` 가 `+/▲` 로 시작하면 상승색, `-/▼` 면 하락색, 나머지는 중립 |
+| `card-grid` | `cards=[{title, desc?, badge?, meta?}]` (1개 이상) | `.card-grid` — 열 수는 명세가 아니라 CSS(`auto-fill minmax`)가 정한다 |
+
+- 히어로의 검색 안내 문구는 요소의 공용 `placeholder` 가 아니라 `hero.search_placeholder` 다 (스키마가 공용 키를 거부한다).
+- 표시값은 **명세에 적힌 예시 값**이다. KPI·카드 아래에 그 사실을 적는 문구를 렌더러가 붙인다. 오류·빈값 CASE 에서는 흐리게 그려 「오류인데 숫자는 멀쩡하다」로 읽히지 않게 한다.
+- 이미지·웹폰트를 쓰지 않는다. 키비주얼 자리는 CSS 도형이고 `visual_note` 는 그 자리에 무엇이 들어가는지 적는 문장이다.
+- 화면에 그려야 하는 문구 목록은 `contentTexts()`(content.ts) 하나이며 우측 설명과 `V2.component_content` 검사가 같은 목록을 쓴다.
 
 ### 동작 (실제 API 호출 없음)
 

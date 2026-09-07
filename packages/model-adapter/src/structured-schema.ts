@@ -121,7 +121,7 @@ export const SCREEN_OUTPUT_JSON_SCHEMA: StructuredJsonSchema = {
                     },
                     "type": {
                       "type": "string",
-                      "description": "허용 컴포넌트 (설계 §9)\n\n{enum: [\"text-input\",\"number-input\",\"textarea\",\"select\",\"radio\",\"checkbox\",\"date-input\",\"date-range\",\"button\",\"table\",\"text\",\"link\",\"pagination\"]}"
+                      "description": "허용 컴포넌트 (설계 §9)\n\n{enum: [\"text-input\",\"number-input\",\"textarea\",\"select\",\"radio\",\"checkbox\",\"date-input\",\"date-range\",\"button\",\"table\",\"text\",\"link\",\"pagination\",\"hero\",\"stat-strip\",\"card-grid\"]}"
                     },
                     "label": {
                       "type": "string"
@@ -214,6 +214,150 @@ export const SCREEN_OUTPUT_JSON_SCHEMA: StructuredJsonSchema = {
                               "sortable",
                               "downloadable",
                               "format"
+                            ]
+                          }
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "hero": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "eyebrow": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "headline": {
+                              "type": "string"
+                            },
+                            "subcopy": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "search_placeholder": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "chips": {
+                              "anyOf": [
+                                {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "visual_note": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          },
+                          "additionalProperties": false,
+                          "required": [
+                            "eyebrow",
+                            "headline",
+                            "subcopy",
+                            "search_placeholder",
+                            "chips",
+                            "visual_note"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "stats": {
+                      "anyOf": [
+                        {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "label": {
+                                "type": "string"
+                              },
+                              "value": {
+                                "type": "string"
+                              },
+                              "delta": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "caption": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            },
+                            "additionalProperties": false,
+                            "required": [
+                              "label",
+                              "value",
+                              "delta",
+                              "caption"
+                            ]
+                          }
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "cards": {
+                      "anyOf": [
+                        {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "title": {
+                                "type": "string"
+                              },
+                              "desc": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "badge": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "meta": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            },
+                            "additionalProperties": false,
+                            "required": [
+                              "title",
+                              "desc",
+                              "badge",
+                              "meta"
                             ]
                           }
                         },
@@ -331,6 +475,9 @@ export const SCREEN_OUTPUT_JSON_SCHEMA: StructuredJsonSchema = {
                     "placeholder",
                     "options",
                     "columns",
+                    "hero",
+                    "stats",
+                    "cards",
                     "default_sort",
                     "max_length",
                     "validations",

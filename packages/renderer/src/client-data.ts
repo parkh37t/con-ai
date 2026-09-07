@@ -74,7 +74,8 @@ function lookupOf(spec: ScreenSpecShape): Lookup {
         tables.push(e.id)
         tableIds.add(e.id)
       }
-      if (INPUT_TYPES.has(e.type)) inputs.push(e.id)
+      // 히어로의 통합검색도 검색 입력이다 (hero.search_placeholder 가 있을 때만 입력이 그려진다 — html.ts renderHero).
+      if (INPUT_TYPES.has(e.type) || (e.type === 'hero' && e.hero?.search_placeholder !== undefined && e.hero.search_placeholder !== '')) inputs.push(e.id)
     }
     tablesInSection.set(s.id, tables)
     inputsInSection.set(s.id, inputs)

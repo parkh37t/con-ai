@@ -1,10 +1,11 @@
 import vm from 'node:vm'
 import { describe, expect, it } from 'vitest'
-import { EXAMPLE_ORDER_LIST, EXAMPLE_ORDER_LIST_EXTENDED, type ScreenSpecInput } from '@con-ai/schemas'
+import { ElementType, EXAMPLE_ORDER_LIST, EXAMPLE_ORDER_LIST_EXTENDED, EXAMPLE_PORTAL_MAIN, ScreenSpecShape, type ScreenSpecInput } from '@con-ai/schemas'
 import { DESCRIPTION_TITLES, buildDescription } from './description.js'
 import { buildElementIndex, buildNumbering, toAlpha } from './element-index.js'
 import { S2B_LEARNED_PROFILE } from './profile.js'
 import { renderScreen } from './render.js'
+import { contentTexts } from './content.js'
 import { BRAND_THEMES, DEFAULT_BRAND_THEME, isSafeColor, themeStyle } from './theme.js'
 import { EXAMPLE_META, at, loadFixtureSpec, renderInputOf } from './test-helpers.js'
 
@@ -325,8 +326,9 @@ describe('renderScreen — 팝업 shell·모바일·이스케이프·컴포넌�
     expect(html.match(/<\/script>/g)).toHaveLength(2)
   })
 
-  it('허용 컴포넌트 13종을 모두 렌더한다', () => {
-    const types = ['text-input', 'number-input', 'textarea', 'select', 'radio', 'checkbox', 'date-input', 'date-range', 'button', 'table', 'text', 'link', 'pagination'] as const
+  it('허용 컴포넌트를 하나도 빠짐없이 렌더한다 (목록은 ElementType.options 에서 온다)', () => {
+    // 손으로 적은 배열을 쓰면 enum 이 늘어도 초록불이 유지된다. 목록을 스키마에서 가져와 «모두» 를 참말로 만든다.
+    const types = ElementType.options
     const spec: ScreenSpecInput = {
       schema_version: '1.0',
       screen_id: 'EXAMPLE-all-types',
@@ -343,6 +345,9 @@ describe('renderScreen — 팝업 shell·모바일·이스케이프·컴포넌�
             const base = { id: `el-${type}`, type, label: `라벨 ${type}` }
             if (type === 'select' || type === 'radio' || type === 'checkbox') return { ...base, options: [{ value: 'v1', label: '값1' }, { value: 'v2', label: '값2' }] }
             if (type === 'table') return { ...base, columns: [{ id: 'c1', label: '컬럼1' }], trace: ['EXAMPLE-AC-09'] }
+            if (type === 'hero') return { ...base, hero: { headline: `카피 ${type}`, search_placeholder: '검색어' } }
+            if (type === 'stat-strip') return { ...base, stats: [{ label: '지표', value: '1건' }] }
+            if (type === 'card-grid') return { ...base, cards: [{ title: '카드1' }] }
             return base
           }),
         },
@@ -413,5 +418,71 @@ describe('브랜드 테마', () => {
     expect(html).toMatch(/<span class="pill is-\w+">[A-Z_]+<\/span>/)
     // 클라이언트가 CASE 를 바꿔 다시 그릴 때도 같은 규칙을 쓴다 (한쪽만 고치면 색이 달라진다).
     expect(html).toContain("pill.className = 'pill ' + statusTone(text)")
+  })
+})
+
+describe('내용 표현 3종 — 히어로 · KPI 인포스트립 · 카드 그리드', () => {
+  const mainInput = () => renderInputOf(EXAMPLE_PORTAL_MAIN, { meta: { ...EXAMPLE_META, screen_title: '포털 메인', theme_id: 'partner' } })
+
+  it('히어로는 머리말·큰 카피·보조 문장·검색·인기어 칩·키비주얼 자리를 그린다', () => {
+    const { html } = renderScreen(mainInput())
+    expect(html).toContain('class="hero-eyebrow">EXAMPLE PORTAL<')
+    // 줄바꿈은 <br> 로 나뉜다 (문자열 그대로 넣지 않는다).
+    expect(html).toMatch(/<p class="hero-headline">필요한 것을<br>한 곳에서<\/p>/)
+    expect(html).toContain('class="hero-sub">')
+    expect(html).toContain('placeholder="무엇을 찾으시나요? (더미 검색)"')
+    expect(html).toContain('<span class="chip">공지사항</span>')
+    expect(html).toContain('class="hero-visual"')
+  })
+
+  it('KPI 인포스트립은 값·증감·설명을 그리고 증감 부호로 색을 고른다', () => {
+    const { html } = renderScreen(mainInput())
+    expect(html).toContain('class="stat-value">128건<')
+    expect(html).toContain('<span class="stat-delta is-up">+12</span>')
+    expect(html).toContain('<span class="stat-delta is-down">-1건</span>')
+    // 부호가 없으면 중립이다 — 모르는 값을 상승으로 칠하지 않는다.
+    expect(html).not.toContain('<span class="stat-delta is-up">1.4일')
+    expect(html).toContain('표시값은 명세에 적힌 예시 값 · 실제 데이터 미연결')
+  })
+
+  it('카드 그리드는 배지·제목·본문·보조 정보를 그리고 열 수를 명세에 두지 않는다', () => {
+    const { html } = renderScreen(mainInput())
+    expect(html).toContain('<span class="card-badge">자주 씀</span>')
+    expect(html).toContain('class="card-title">주문 조회<')
+    expect(html).toContain('class="card-desc">기간·상태로 주문을 찾는다.<')
+    expect(html).toContain('class="card-meta">2026.09.01<')
+    expect(html).toContain('카드 내용은 명세에 적힌 예시 값 · 실제 데이터 미연결')
+    // 열 수는 CSS 가 정한다 (명세에 grid_columns 같은 키를 두지 않는다).
+    expect(html).toContain('.card-grid{display:grid;grid-template-columns:repeat(auto-fill')
+  })
+
+  it('명세의 내용이 우측 설명에도 한 조각도 빠지지 않고 옮겨진다 (명세가 UI 와 설명의 공통 원본)', () => {
+    const input = mainInput()
+    const numbering = buildNumbering(input.spec, input.profile)
+    const description = buildDescription(input, numbering)
+    const descText = description.sections.flatMap((s) => s.items.map((i) => `${i.label} ${i.text}`)).join('\n')
+    const oneLine = (t: string) => t.replace(/\r?\n/g, ' ')
+    for (const el of input.spec.sections.flatMap((s) => s.elements)) {
+      for (const text of contentTexts(el)) expect(oneLine(descText), `${el.id}: ${text}`).toContain(oneLine(text))
+    }
+  })
+
+  it('내용 표현 3종을 써도 외부 자원을 끌어오지 않는다 (V2.no_external_refs)', () => {
+    const { html } = renderScreen(mainInput())
+    expect(html).not.toMatch(/@import|url\(|<link|https?:\/\//)
+  })
+
+  it('CASE 를 바꿔도 히어로·KPI·카드는 지워지지 않는다 (클라이언트는 표 본문만 다시 그린다)', () => {
+    const { html } = renderScreen(mainInput())
+    // 클라이언트 스크립트가 다시 그리는 대상은 표 본문뿐이다 — 여기가 늘어나면 이 단언이 먼저 깨진다.
+    expect(html).toContain('data-tbody-for=')
+    expect(html).not.toContain("qs('.hero').innerHTML")
+    for (const marker of ['class="hero"', 'class="stat-strip"', 'class="card-grid"']) expect(html).toContain(marker)
+  })
+
+  it('내용 없는 hero·stat-strip·card-grid 는 스키마가 막는다 (빈 상자를 만들지 않는다)', () => {
+    const broken = structuredClone(EXAMPLE_PORTAL_MAIN) as { sections: Array<{ elements: Array<Record<string, unknown>> }> }
+    delete at(at(broken.sections, 0).elements, 0)['hero']
+    expect(ScreenSpecShape.safeParse(broken).success).toBe(false)
   })
 })

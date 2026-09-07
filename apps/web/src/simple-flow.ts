@@ -4,34 +4,21 @@
  * 기획자는 문장 하나만 쓴다. 나머지 항목(작업 유형·CASE·참고 화면·역할·유지 조건)은 여기서 기본값으로 채운다.
  * 자동으로 채운 값과 그 근거는 화면(`autoFillNotes`)과 작업 문맥에 그대로 보여 준다 — 숨기지 않는다.
  */
+import { guessScreenKind } from './browser-run/deps.js'
 import type { Device, ProjectDetail, Reference, ScreenSpecLike, ScreenSummary, SliceCase, SliceGenerationRequest } from './types.js'
 
 /** 자동으로 넣는 CASE — 정상·빈값·오류 (설계서에 최소한 이 세 가지는 있어야 검토가 된다). */
 export const DEFAULT_CASES: readonly SliceCase[] = ['normal', 'empty', 'error']
 
-/** 화면 종류를 짐작하는 낱말. 문장에서 **먼저 나온** 낱말이 이긴다 (같은 자리면 이 순서). */
-const KIND_WORDS: ReadonlyArray<{ category: Reference['category']; words: readonly string[] }> = [
-  { category: 'popup', words: ['팝업', '모달', '레이어', 'popup', 'modal'] },
-  { category: 'form', words: ['등록', '입력', '작성', '신청', '수정 폼', '폼'] },
-  { category: 'detail', words: ['상세', '보기', '조회 화면', '디테일', 'detail'] },
-  { category: 'list', words: ['목록', '리스트', '조회', '검색', '내역', 'list'] },
-]
-
 /**
  * 문장에서 짐작한 화면 종류 (기본 목록).
  * "견적 목록을 조회하고 상세로 이동" 처럼 여러 낱말이 나오면 먼저 나온 쪽(= 문장의 주어)을 고른다.
+ *
+ * 판정 규칙은 `@con-ai/schemas` 의 guessScreenKind 하나를 쓴다 — 화면과 더미 어댑터가 다르게 짐작하면
+ * 사용자는 「목록으로 짐작」이라는 안내를 보고 히어로 화면을 받는다.
  */
 export function guessCategory(sentence: string): Reference['category'] {
-  const lower = sentence.toLowerCase()
-  let best: { category: Reference['category']; at: number } | null = null
-  for (const { category, words } of KIND_WORDS) {
-    for (const w of words) {
-      const at = lower.indexOf(w)
-      if (at === -1) continue
-      if (best === null || at < best.at) best = { category, at }
-    }
-  }
-  return best?.category ?? 'list'
+  return guessScreenKind(sentence).kind
 }
 
 /**

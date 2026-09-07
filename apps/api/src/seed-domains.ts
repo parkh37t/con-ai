@@ -109,6 +109,30 @@ interface DomainSeed {
     line_rows: Array<Record<string, unknown>>
     error_text: string
   }
+  /**
+   * 메인(홈) 화면 — 목록·상세와 **다른 어휘**(히어로·KPI 인포스트립·카드 그리드)를 쓰는 화면.
+   * 모든 도메인에 있지는 않다 (지금은 뱅킹에만 둔다). 없으면 그 도메인은 화면 2개 그대로다.
+   */
+  main?: {
+    screen_uuid: string
+    reference_uuid: string
+    ia_id: string
+    external_id: string
+    reference_id: string
+    title: string
+    purpose: string
+    /** 이 화면이 지원하는 요구사항 (requirements 안에 있어야 하고 UI 수용조건 4개가 필요하다). */
+    requirement_id: string
+    hero: { eyebrow: string; headline: string; subcopy: string; chips: string[]; visual_note: string; search_placeholder: string }
+    /** KPI 한 줄. 값은 표시 문자열이며 합성 예시다. */
+    stats: Array<{ label: string; value: string; delta?: string; caption?: string }>
+    cards: Array<{ title: string; desc?: string; badge?: string; meta?: string }>
+    notice_columns: DomainColumn[]
+    notice_rows: Array<Record<string, unknown>>
+    empty_text: string
+    error_text: string
+    assumption: string
+  }
 }
 
 // ---------------------------------------------------------------- 명세 만들기
@@ -133,6 +157,115 @@ function filterElement(f: DomainFilter, no: string, trace: string[]): SpecElemen
 }
 
 const LETTERS = 'abcdefghijklmnop'
+
+/**
+ * 메인(홈) 화면 명세 — 히어로(큰 카피 + 통합검색) · KPI 인포스트립 · 카드 그리드 · 공지 표.
+ *
+ * 왜 따로 있나: 목록·상세·폼 어휘만으로는 «포털 첫 화면» 을 만들 수 없다. 이 명세가 넓힌 어휘
+ * (hero / stat-strip / card-grid)를 실제로 쓰는 골든 예시이자, 프로토타입이 만들어 보는 대상이다.
+ * 표시값은 모두 합성 예시이며 실제 계좌·시세·실적이 아니다.
+ */
+export function domainMainSpec(d: DomainSeed, screenId: string, fixturePrefix: string): ScreenSpecInput {
+  const m = d.main
+  if (m === undefined) throw new Error(`${d.key} 도메인에는 메인 화면 정의(main)가 없다`)
+  const req = d.requirements.find((r) => r.external_id === m.requirement_id)
+  if (req === undefined) throw new Error(`${d.key} 메인 화면의 요구사항 ${m.requirement_id} 를 requirements 에서 찾지 못했다`)
+  const ui = req.criteria.filter((c) => c.kind === 'ui').map((c) => c.id)
+  const [acHero, acStats, acCards, acNotice] = ui
+  if (acHero === undefined || acStats === undefined || acCards === undefined || acNotice === undefined) {
+    throw new Error(`${d.key} 메인 화면 요구사항에는 UI 수용조건이 4개 필요하다 (지금 ${ui.length}개)`)
+  }
+  const sortColumn = m.notice_columns.find((c) => c.sortable === true) ?? m.notice_columns[0]
+  if (sortColumn === undefined) throw new Error(`${d.key} 메인 화면에는 공지 표 컬럼이 필요하다`)
+  return {
+    schema_version: '1.0',
+    screen_id: screenId,
+    baseline_id: d.baseline_id,
+    purpose: m.purpose,
+    shell: d.shell,
+    device: d.device,
+    roles: [d.role],
+    requirements: [{ id: req.external_id, criterion_ids: ui }],
+    sections: [
+      {
+        id: 'hero-area',
+        title: '히어로',
+        display_no: '1',
+        elements: [
+          {
+            id: 'hero',
+            type: 'hero',
+            label: '대표 카피 · 통합검색',
+            display_no: 'a',
+            hero: {
+              eyebrow: m.hero.eyebrow,
+              headline: m.hero.headline,
+              subcopy: m.hero.subcopy,
+              search_placeholder: m.hero.search_placeholder,
+              chips: [...m.hero.chips],
+              visual_note: m.hero.visual_note,
+            },
+            trace: [acHero],
+            note: '검색은 아래 공지·이벤트 표의 더미데이터를 거른다. 실제 통합검색 엔진은 연결하지 않는다.',
+          },
+        ],
+      },
+      {
+        id: 'kpi-area',
+        title: '요약 지표',
+        display_no: '2',
+        note: '표시값은 명세에 적힌 예시 값이다. 실제 계좌·거래와 연결하지 않는다.',
+        elements: [
+          { id: 'kpi', type: 'stat-strip', label: '요약 KPI', display_no: 'a', stats: m.stats.map((x) => ({ ...x })), trace: [acStats] },
+        ],
+      },
+      {
+        id: 'quick-area',
+        title: '자주 쓰는 기능',
+        display_no: '3',
+        elements: [
+          { id: 'quick-cards', type: 'card-grid', label: '바로가기 카드', display_no: 'a', cards: m.cards.map((x) => ({ ...x })), trace: [acCards] },
+        ],
+      },
+      {
+        id: 'notice-area',
+        title: '공지 · 이벤트',
+        display_no: '4',
+        elements: [
+          {
+            id: 'notice-table',
+            type: 'table',
+            label: '공지·이벤트 표',
+            display_no: 'a',
+            columns: m.notice_columns.map((c) => ({ id: c.id, label: c.label, format: c.format, ...(c.sortable === true ? { sortable: true } : {}) })),
+            default_sort: { column_id: sortColumn.id, direction: 'desc' },
+            trace: [acNotice],
+          },
+          { id: 'notice-pager', type: 'pagination', label: '페이지', display_no: 'b' },
+        ],
+      },
+    ],
+    actions: [
+      { id: 'hero-search', type: 'filter-fixture', label: '통합검색(더미데이터 필터)', trigger: 'hero', target: 'notice-area', trace: [acHero] },
+      { id: 'sort-notice', type: 'sort-fixture', label: '정렬', target: 'notice-table', trace: [acNotice] },
+      { id: 'show-empty', type: 'set-state', label: '빈값 CASE 전환', target_state_id: 'empty' },
+      { id: 'show-error', type: 'set-state', label: '오류 CASE 전환', target_state_id: 'error' },
+    ],
+    states: [
+      { id: 'normal', fixture_id: `${fixturePrefix}-normal`, expected: `${m.title} 진입 시 히어로·요약 지표·바로가기 카드와 공지 ${m.notice_rows.length}건이 표시된다`, case_kind: 'normal' },
+      { id: 'empty', fixture_id: `${fixturePrefix}-empty`, expected: m.empty_text, case_kind: 'empty', message_ids: ['msg-main-empty'] },
+      { id: 'error', fixture_id: `${fixturePrefix}-error`, expected: m.error_text, case_kind: 'error', message_ids: ['msg-main-error'] },
+    ],
+    messages: [
+      { id: 'msg-main-empty', kind: 'info', text: '표시할 공지·이벤트가 없습니다.', when: '검색 결과 0건' },
+      { id: 'msg-main-error', kind: 'error', text: '공지·이벤트를 불러오지 못했습니다. 잠시 후 다시 시도하세요.', when: '조회 오류' },
+    ],
+    data_mapping: [],
+    locked_elements: [],
+    locked_actions: [],
+    unresolved: [{ kind: 'assumption', text: m.assumption, related_ids: ['kpi'] }],
+  }
+}
 
 /** 목록 화면 명세 — 검색·정렬·다운로드·상세 이동, CASE 정상/검색/빈값/오류/권한. */
 export function domainListSpec(d: DomainSeed, screenId: string, fixturePrefix: string, detailScreenId: string): ScreenSpecInput {
@@ -332,7 +465,63 @@ const BANKING: DomainSeed = {
         { id: 'AC-BK-004-02', text: '조회 오류 시 오류 안내를 표시하고 표를 비운다', kind: 'ui' },
       ],
     },
+    {
+      external_id: 'REQ-BK-005',
+      uuid: 'b3000000-0000-4000-8000-000000000005',
+      title: '메인 화면 구성',
+      body: '앱을 열면 대표 안내와 요약 지표, 자주 쓰는 기능, 최근 공지를 한 화면에서 확인한다.',
+      criteria: [
+        { id: 'AC-BK-005-01', text: '메인 진입 시 대표 안내 문구와 통합검색 입력을 표시한다', kind: 'ui' },
+        { id: 'AC-BK-005-02', text: '요약 지표(잔액·이번 달 지출·자동이체·알림)를 한 줄로 표시한다', kind: 'ui' },
+        { id: 'AC-BK-005-03', text: '자주 쓰는 기능을 카드로 배치한다', kind: 'ui' },
+        { id: 'AC-BK-005-04', text: '최근 공지·이벤트를 최신순으로 표시한다', kind: 'ui' },
+      ],
+    },
   ],
+  main: {
+    screen_uuid: 'b4000000-0000-4000-8000-000000000003',
+    reference_uuid: 'b5000000-0000-4000-8000-000000000003',
+    ia_id: 'b2000000-0000-4000-8000-000000000005',
+    external_id: 'SAMPLE-bank-main',
+    reference_id: 'REF-bank-main',
+    title: '메인 페이지',
+    purpose: '메인 페이지 — 앱을 열었을 때 대표 안내·요약 지표·자주 쓰는 기능·최근 공지를 한 화면에서 보여 준다',
+    requirement_id: 'REQ-BK-005',
+    hero: {
+      eyebrow: 'MY 뱅킹',
+      headline: '오늘의 금융을\n한 화면에서',
+      subcopy: '잔액과 이번 달 지출, 자주 쓰는 기능을 먼저 보여 줍니다. 모든 값은 합성 예시이며 실제 계좌·거래가 아닙니다.',
+      chips: ['이체', '자동이체', '공지사항'],
+      visual_note: '브랜드 이미지·카드 일러스트가 들어갈 자리',
+      search_placeholder: '거래·공지를 검색하세요 (더미 검색)',
+    },
+    stats: [
+      { label: '입출금 잔액', value: '3,482,900원', caption: '주거래 계좌 · 합성 값' },
+      { label: '이번 달 지출', value: '1,214,300원', delta: '+82,400원', caption: '전월 같은 기간 대비 · 합성 값' },
+      { label: '예정 자동이체', value: '4건', caption: '이번 달 남은 건수 · 합성 값' },
+      { label: '읽지 않은 알림', value: '2건', delta: '-1건', caption: '어제 대비 · 합성 값' },
+    ],
+    cards: [
+      { badge: '자주 씀', title: '이체하기', desc: '계좌·연락처로 송금합니다.', meta: '뱅킹' },
+      { badge: '자주 씀', title: '거래내역 조회', desc: '기간·거래구분으로 내역을 찾습니다.', meta: '조회' },
+      { title: '자동이체 관리', desc: '등록·해지와 예정일을 확인합니다.', meta: '설정' },
+      { title: '카드 이용대금', desc: '결제 예정 금액과 청구서를 봅니다.', meta: '카드' },
+    ],
+    notice_columns: [
+      { id: 'category', label: '구분', format: 'text' },
+      { id: 'title', label: '제목', format: 'text', sortable: true },
+      { id: 'posted_at', label: '게시일', format: 'date', sortable: true },
+    ],
+    notice_rows: [
+      { category: '공지', title: '정기 시스템 점검 안내 (09/13 02:00~04:00)', posted_at: '2026-09-05' },
+      { category: '이벤트', title: '자동이체 등록하고 커피 쿠폰 받기', posted_at: '2026-09-02' },
+      { category: '공지', title: '전자금융거래 이용약관 개정 안내', posted_at: '2026-08-27' },
+      { category: '이벤트', title: '첫 이체 수수료 면제 이벤트', posted_at: '2026-08-19' },
+    ],
+    empty_text: '공지·이벤트 조회 결과가 없고 안내 문구가 표시된다',
+    error_text: '공지·이벤트 조회 오류 안내가 표시되고 표는 비어 있다',
+    assumption: '요약 지표 4종의 정의·집계 주기(잔액 기준 시각, 이번 달 지출의 포함 범위)는 합성 가정이다. 실제 지표 정의는 확인이 필요하다',
+  },
   list: {
     screen_uuid: 'b4000000-0000-4000-8000-000000000001',
     reference_uuid: 'b5000000-0000-4000-8000-000000000001',
@@ -582,10 +771,15 @@ function requirementsOf(d: DomainSeed): RequirementDocument[] {
 }
 
 function screensOf(d: DomainSeed): ScreenDocument[] {
-  return [
+  const screens: ScreenDocument[] = [
     { id: d.list.screen_uuid, project_id: d.project_id, external_id: d.list.external_id, title: d.list.title, shell: d.shell, device: d.device, status: 'draft', aliases: [] },
     { id: d.detail.screen_uuid, project_id: d.project_id, external_id: d.detail.external_id, title: d.detail.title, shell: d.shell, device: d.device, status: 'draft', aliases: [] },
   ]
+  // 메인 화면은 목록보다 먼저 온다 (IA 순서와 같게).
+  if (d.main !== undefined) {
+    screens.unshift({ id: d.main.screen_uuid, project_id: d.project_id, external_id: d.main.external_id, title: d.main.title, shell: d.shell, device: d.device, status: 'draft', aliases: [] })
+  }
+  return screens
 }
 
 /**
@@ -619,6 +813,21 @@ function iaNodesOf(d: DomainSeed): IANode[] {
       screen_plan_id: d.detail.screen_uuid,
       ...(reqDetail === undefined ? {} : { requirement_ids: [reqDetail.external_id] }),
     },
+    ...(d.main === undefined
+      ? []
+      : [
+          {
+            id: d.main.ia_id,
+            project_id: d.project_id,
+            parent_id: d.ia.portal,
+            name: d.main.title,
+            order: 1,
+            portal: d.portal,
+            kind: 'screen' as const,
+            screen_plan_id: d.main.screen_uuid,
+            requirement_ids: [d.main.requirement_id],
+          },
+        ]),
   ]
 }
 
@@ -644,6 +853,20 @@ function referencesOf(d: DomainSeed): ReferenceDocument[] {
       tags: [d.key, 'detail', 'table'],
       source: `${d.name} 합성 예시`,
     },
+    ...(d.main === undefined
+      ? []
+      : [
+          {
+            id: d.main.reference_uuid,
+            project_id: d.project_id,
+            title: `${d.main.title} 골든 — 히어로·KPI·카드 그리드`,
+            category: 'main' as const,
+            description: `${d.portal} 메인 규격. 목록·상세와 다른 어휘(hero · stat-strip · card-grid)를 쓰는 화면. 정상/빈값/오류 CASE.`,
+            spec: ScreenSpec.parse(domainMainSpec(d, d.main.reference_id, d.main.reference_id)),
+            tags: [d.key, 'main', 'hero', 'stat-strip', 'card-grid'],
+            source: `${d.name} 합성 예시`,
+          },
+        ]),
   ]
 }
 
@@ -668,11 +891,21 @@ function dummyOf(d: DomainSeed): DummyDataDocument[] {
     doc(prefix, screenExternalId, 'normal', 'normal', d.detail.line_rows, `${d.detail.line_title} ${d.detail.line_rows.length}행`),
     doc(prefix, screenExternalId, 'error', 'error', [], '조회 오류'),
   ]
+  const mainRows = (prefix: string, screenExternalId: string): DummyDataDocument[] => {
+    const main = d.main
+    if (main === undefined) return []
+    return [
+      doc(prefix, screenExternalId, 'normal', 'normal', main.notice_rows, `공지·이벤트 ${main.notice_rows.length}행`),
+      doc(prefix, screenExternalId, 'empty', 'empty', [], '공지·이벤트 0건'),
+      doc(prefix, screenExternalId, 'error', 'error', [], '조회 오류 (표 비움, 오류 메시지)'),
+    ]
+  }
   return [
     ...listRows(d.list.reference_id, d.list.reference_id),
     ...detailRows(d.detail.reference_id, d.detail.reference_id),
     ...listRows(d.list.external_id, d.list.external_id),
     ...detailRows(d.detail.external_id, d.detail.external_id),
+    ...(d.main === undefined ? [] : [...mainRows(d.main.reference_id, d.main.reference_id), ...mainRows(d.main.external_id, d.main.external_id)]),
   ]
 }
 

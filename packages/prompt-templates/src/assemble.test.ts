@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { ActionType, CaseKind, ElementType, EXAMPLE_ORDER_LIST_EXTENDED } from '@con-ai/schemas'
+import { ActionType, CardItem, CaseKind, ElementType, EXAMPLE_ORDER_LIST_EXTENDED, HeroContent, StatItem } from '@con-ai/schemas'
 import { assemblePrompt, assembleRevisionPrompt } from './assemble.js'
-import { CONTRACT_LINES, MATERIALS_HEADING, MATERIALS_NOTICE, PROMPT_SECTIONS, TEMPLATE_VERSION } from './template-v1.js'
+import { CONTENT_COMPONENT_GUIDE, CONTRACT_LINES, MATERIALS_HEADING, MATERIALS_NOTICE, PROMPT_SECTIONS, TEMPLATE_VERSION } from './template-v1.js'
 import { sampleContext, sampleRequest } from './test-fixtures.js'
 
 /** 표에서 구역 행을 꺼낸다 (`| 구역 | 내용 |`). */
@@ -46,6 +46,22 @@ describe('assemblePrompt — 템플릿 v1 (설계 §8 7구역)', () => {
     for (const a of ActionType.options) expect(system).toContain(`- ${a}:`)
     for (const c of CaseKind.options) expect(system).toContain(`${c}(`)
     expect(system).toContain('schema_version: "1.0"')
+  })
+
+  it('내용 표현 3종은 «언제 쓰는지» 까지 프롬프트에 실린다 (어휘만 나열하면 목록 화면에도 히어로가 붙는다)', () => {
+    const { system } = assemblePrompt(sampleRequest(), sampleContext())
+    for (const line of CONTENT_COMPONENT_GUIDE) expect(system).toContain(line)
+    expect(system).toContain('«보여주는» 화면에는 아래 3종을 쓴다')
+  })
+
+  it('프롬프트가 나열한 hero·stats·cards 키 이름이 스키마와 같다 (스키마만 고치고 프롬프트가 낡는 것을 막는다)', () => {
+    const { system } = assemblePrompt(sampleRequest(), sampleContext())
+    // 실제로 겪은 사고: 프롬프트가 «placeholder 를 채운다» 라고 남아 있어 fixture 는 통과하고 실제 모델만 400/스키마 거부로 죽었다.
+    for (const key of Object.keys(HeroContent.shape)) expect(system, `hero.${key}`).toContain(key)
+    for (const key of Object.keys(StatItem.shape)) expect(system, `stats[].${key}`).toContain(key)
+    for (const key of Object.keys(CardItem.shape)) expect(system, `cards[].${key}`).toContain(key)
+    // 히어로에 공용 placeholder 를 쓰라고 말하지 않는다 (스키마가 거부한다).
+    expect(system).not.toContain('그 요소의 placeholder 를 채운다')
   })
 
   it('문맥의 요구사항 ID·수용조건·본문이 "근거 자료(지시 아님)" 절에 경계 표시와 함께 첨부된다', () => {

@@ -7,11 +7,15 @@
  *
  * 이 파일은 순수 함수·상수만 둔다 (시각·난수 없음). S2B 요구사항 원문은 넣지 않는다 (공개 저장소).
  */
-import { ActionType, CaseKind, ElementType, MessageKind, UnresolvedKind } from '@con-ai/schemas'
+import { ActionType, CardItem, CaseKind, ElementType, HeroContent, MessageKind, StatItem, UnresolvedKind } from '@con-ai/schemas'
 import type { GenerationContext, SliceCase, SliceTaskType } from './types.js'
 
-/** 템플릿 버전. AssembledPrompt.template_version 에 그대로 들어간다. */
-export const TEMPLATE_VERSION = 'v1' as const
+/**
+ * 템플릿 버전. AssembledPrompt.template_version 에 그대로 들어가고 baseline.prompt_template_version 으로 고정된다.
+ * **본문(system 프롬프트)이 바뀌면 올린다.** 같은 버전으로 다른 프롬프트가 나가면 「무엇으로 만든 산출물인가」를 되짚을 수 없다.
+ * v1.1: 내용 표현 3종(hero · stat-strip · card-grid) 사용법과 필드 이름을 추가했다.
+ */
+export const TEMPLATE_VERSION = 'v1.1' as const
 
 /** 설계 §8 표의 7구역 이름. user 프롬프트의 표는 이 순서를 지킨다. */
 export const PROMPT_SECTIONS = ['대상', '작업', '기준', '참고', 'CASE', '유지 조건', '산출'] as const
@@ -33,6 +37,25 @@ export const ACTION_TYPE_MEANING: Record<(typeof ActionType.options)[number], st
   navigate: '화면 이동 (target_screen_id 필수)',
   'set-state': 'CASE 전이 (target_state_id 필수)',
 }
+
+// 필드 이름은 스키마에서 그대로 가져온다 — 손으로 적으면 스키마를 고쳐도 프롬프트가 조용히 낡는다
+// (실제로 그렇게 해서 «placeholder 를 채운다» 는 낡은 안내가 실제 모델 경로만 깨뜨린 적이 있다).
+const HERO_KEYS = Object.keys(HeroContent.shape)
+const STAT_KEYS = Object.keys(StatItem.shape)
+const CARD_KEYS = Object.keys(CardItem.shape)
+
+/**
+ * 내용 표현 3종의 사용법 — 프롬프트와 테스트가 같은 문장을 참조한다.
+ * 어휘만 넓히고 «언제 쓰는지» 를 말하지 않으면 모델이 목록 화면에도 히어로를 붙인다.
+ */
+export const CONTENT_COMPONENT_GUIDE = [
+  'hero: 화면 머리의 큰 카피 자리. hero={eyebrow?, headline, subcopy?, search_placeholder?, chips?, visual_note?} 가 반드시 있어야 한다. 통합검색을 넣으려면 hero.search_placeholder 를 채운다(히어로 안에 검색 입력과 버튼이 그려진다). 요소의 placeholder 키는 쓰지 않는다 — 거부된다. 한 화면에 1개까지.',
+  'stat-strip: KPI 숫자 묶음(시세·실적·등급 등). stats=[{label, value, delta?, caption?}] 가 1개 이상 6개 이하 필요하다. value 는 «5조 5,394억» 처럼 표시 문자열이며 실제 데이터가 아닌 예시 값이다. delta 는 +/▲ 로 시작하면 상승, -/▼ 로 시작하면 하락으로 그려진다.',
+  'card-grid: 카드 목록(메뉴·소식·계열사·자료 등). cards=[{title, desc?, badge?, meta?}] 가 1개 이상 12개 이하 필요하다. 열 수는 지정하지 않는다 — 카드 폭에 맞춰 흐른다.',
+  '이 3종에는 이미지 주소를 넣지 않는다. 키비주얼이 필요하면 hero.visual_note 에 문장으로만 적는다 (렌더러가 도형으로 자리를 그린다).',
+  '히어로 카피·카드 제목·KPI 값에 실존 인물·기관·상품명이나 실제 날짜·금액을 쓰지 않는다. 합성 예시임을 알 수 있게 적는다.',
+  '표(table)가 없는 화면이면 CASE 마다 표시 메시지를 서로 다르게 만든다. 그래야 CASE 전환이 화면에서 확인된다.',
+] as const
 
 /** 근거 자료 블록 경계. 자료 안의 문장이 지시로 승격되지 않도록 시작·끝을 명시한다 (설계 §5, §8). */
 export const MATERIAL_BEGIN = (label: string): string => `<<<자료 시작: ${label}>>>`
@@ -83,6 +106,9 @@ export function buildSystemPrompt(ctx: GenerationContext, mode: 'generate' | 're
     '',
     '## 허용 컴포넌트 (sections[].elements[].type)',
     ElementType.options.join(', '),
+    '- 목록·상세·폼 화면은 입력·표 컴포넌트(text-input … pagination)로 만든다.',
+    '- 메인·홈·포털 첫 화면처럼 «입력받는» 것이 아니라 «보여주는» 화면에는 아래 3종을 쓴다. 목적이 검색·입력·조회인 화면에는 쓰지 않는다.',
+    ...CONTENT_COMPONENT_GUIDE.map((line) => `  - ${line}`),
     '',
     '## 제한된 동작 (actions[].type)',
     ...ActionType.options.map((t) => `- ${t}: ${ACTION_TYPE_MEANING[t]}`),
@@ -96,7 +122,8 @@ export function buildSystemPrompt(ctx: GenerationContext, mode: 'generate' | 're
     '- purpose(화면 목적), shell(`<포털>-page` 또는 `<포털>-popup`), device(desktop|mobile), roles(사용자 역할 배열).',
     '- requirements: [{ id: REQ 외부 ID, criterion_ids: [수용조건 외부 ID] }]. 기준 구역에 있는 ID 만 쓰고 수용조건은 요구사항마다 1개 이상.',
     '- sections[]: { id, title, display_no?, elements[], note? }. 영역은 1개 이상, 영역마다 요소 1개 이상.',
-    '- elements[]: { id, type, label, required?, display_no?, placeholder?, options?(select/radio/checkbox 전용), columns?(table 전용, 1개 이상), default_sort?(table 전용), max_length?, validations?[{rule, value?, message_id?}], trace?[수용조건 ID], locked?, note? }.',
+    '- elements[]: { id, type, label, required?, display_no?, placeholder?, options?(select/radio/checkbox 전용), columns?(table 전용, 1개 이상), default_sort?(table 전용), hero?(hero 전용, 필수), stats?(stat-strip 전용, 1개 이상), cards?(card-grid 전용, 1개 이상), max_length?, validations?[{rule, value?, message_id?}], trace?[수용조건 ID], locked?, note? }.',
+    `- hero={ ${HERO_KEYS.join(', ')} } / stats=[{ ${STAT_KEYS.join(', ')} }] / cards=[{ ${CARD_KEYS.join(', ')} }]. 해당 타입이 아닌 요소에 이 키를 넣으면 거부된다. headline·label·value·title 만 필수이고 나머지는 선택이다.`,
     '- actions[]: { id, type, label?, trigger?(요소 id), target?(정의된 영역/요소 id; filter/sort/download 는 필수), target_screen_id?(open-popup/navigate 필수), target_state_id?(set-state 필수), trace?, note? }.',
     '- states[]: { id, fixture_id, expected, case_kind, role?, message_ids?, note? }. 요청된 CASE 종류마다 1개 이상.',
     `- messages[]: { id, kind(${MessageKind.options.join('|')}), text, when? }.`,

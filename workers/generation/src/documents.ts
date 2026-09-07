@@ -108,7 +108,7 @@ export interface ApprovalDocument extends Approval {
   files: ExportedFile[]
 }
 
-export type ReferenceCategory = 'list' | 'detail' | 'popup' | 'form'
+export type ReferenceCategory = 'list' | 'detail' | 'popup' | 'form' | 'main'
 export interface ReferenceDocument {
   id: string
   project_id?: string | undefined

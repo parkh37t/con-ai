@@ -9,4 +9,5 @@ export { buildElementIndex, buildNumbering, toElementIndex, toAlpha, type Elemen
 export { buildDescription, describeElement, DESCRIPTION_TITLES } from './description.js'
 export { renderScreen, RENDERER_VERSION } from './render.js'
 export { escapeHtml } from './html.js'
+export { contentTexts, isContentElement } from './content.js'
 export { BRAND_THEMES, DEFAULT_BRAND_THEME, isSafeColor, themeById, themeStyle, type BrandTheme } from './theme.js'

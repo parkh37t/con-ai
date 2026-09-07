@@ -8,6 +8,7 @@ export const CATEGORY_LABELS: Readonly<Record<ReferenceCategory, string>> = {
   detail: '상세',
   popup: '팝업',
   form: '입력 폼',
+  main: '메인',
 }
 
 export function ReferenceCard({ reference, selected, onSelect, checkbox }: { reference: Reference; selected: boolean; onSelect: (id: string, on: boolean) => void; checkbox?: boolean }) {

@@ -6,13 +6,15 @@
  * - V2.element_ids      : 명세의 모든 영역·요소 id 가 화면 영역과 설명 영역 양쪽에 data-element-id 로 있다.
  * - V2.display_numbers  : 렌더러와 같은 번호 규칙(buildElementIndex)으로 만든 번호가 화면 배지(data-display-no)와 설명 번호에 일치한다.
  * - V2.no_external_refs : src/href/action/url()/@import 로 외부(http·https·//) 자원을 참조하지 않는다 (설계 §9 오프라인).
+ * - V2.component_content : 내용 표현 요소(hero·stat-strip·card-grid)의 문구가 **화면 영역**에 실제로 나타난다.
+ *   명세에만 있고 목업에는 없는 «빈 상자» 를 잡는다. 설명 패널에도 같은 문구가 있으므로 화면 영역만 본다.
  */
 import { shellKindOf, type ScreenSpecShape } from '@con-ai/schemas'
-import { buildElementIndex, type RenderProfile } from '@con-ai/renderer'
+import { buildElementIndex, contentTexts, isContentElement, type RenderProfile } from '@con-ai/renderer'
 import { makeResult, newRunId, type ResultFactoryInput } from './result.js'
 import type { CheckResult, CommonOptions } from './types.js'
 
-export const V2_CHECKS = ['V2.shell', 'V2.description_order', 'V2.element_ids', 'V2.display_numbers', 'V2.no_external_refs'] as const
+export const V2_CHECKS = ['V2.shell', 'V2.description_order', 'V2.element_ids', 'V2.display_numbers', 'V2.no_external_refs', 'V2.component_content'] as const
 
 export interface ScannedTag {
   name: string
@@ -87,6 +89,24 @@ export function findExternalRefs(html: string): string[] {
     }
   }
   return found
+}
+
+/** HTML 로 그려질 때 이스케이프되는 글자 (renderer/html.ts escapeHtml 와 같은 규칙). */
+function escapeHtml(value: string): string {
+  return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
+}
+
+/**
+ * 요소 하나가 그려진 자리만 잘라 낸다 — `data-element-id="<id>"` 태그부터 **다음** `data-element-id` 앞까지.
+ * 화면 영역 전체에서 문자열을 찾으면 옆 요소의 글자를 빌려 통과할 수 있어서 범위를 좁힌다.
+ * 못 찾으면 undefined (그 자체가 «렌더되지 않았다» 는 뜻이다).
+ */
+export function elementRegion(screenHtml: string, id: string): string | undefined {
+  const marker = `data-element-id="${id}"`
+  const at = screenHtml.indexOf(marker)
+  if (at < 0) return undefined
+  const next = screenHtml.indexOf('data-element-id="', at + marker.length)
+  return screenHtml.slice(at, next < 0 ? screenHtml.length : next)
 }
 
 export function runV2(html: string, spec: ScreenSpecShape, profile: RenderProfile, opts: CommonOptions): CheckResult[] {
@@ -215,6 +235,48 @@ export function runV2(html: string, spec: ScreenSpecShape, profile: RenderProfil
       refs.length > 0
         ? makeResult(base, { check_id: 'V2.no_external_refs', status: 'fail', required: true, message: `외부 자원 참조 ${refs.length}건 — 오프라인 완료로 표시할 수 없다 (설계 §9)`, evidence: refs, started_at: started })
         : makeResult(base, { check_id: 'V2.no_external_refs', status: 'pass', required: true, evidence: ['src/href/action/url()/@import 에 외부 주소 없음'], started_at: started }),
+    )
+  }
+
+  // V2.component_content — 내용 표현 요소(hero·stat-strip·card-grid)의 문구가 **그 요소가 그려진 자리에** 실제로 있는지.
+  // 명세에만 있고 목업에는 없으면 «만들었다» 고 말할 수 없다 (html.ts 의 default 폴백은 라벨 한 줄만 그린다).
+  // 문구 목록은 renderer 의 contentTexts 하나를 쓴다 — 설명(description)도 같은 목록을 옮긴다.
+  {
+    const screenHtml = regions.screen ? html.slice(regions.screen.start, regions.screen.end) : ''
+    const targets: Array<{ id: string; type: string; texts: string[] }> = []
+    for (const s of spec.sections) {
+      for (const e of s.elements) {
+        if (!isContentElement(e)) continue
+        // 여러 줄 카피는 <br> 로 나뉘므로 줄 단위로 본다.
+        targets.push({ id: e.id, type: e.type, texts: contentTexts(e).flatMap((t) => t.split(/\r?\n/).map((x) => x.trim()).filter((x) => x !== '')) })
+      }
+    }
+    const problems: string[] = []
+    for (const t of targets) {
+      if (t.texts.length === 0) {
+        problems.push(`${t.type} ${t.id}: 화면에 보일 문구가 명세에 없다`)
+        continue
+      }
+      const region = elementRegion(screenHtml, t.id)
+      if (region === undefined) {
+        problems.push(`${t.type} ${t.id}: 화면에 이 요소가 그려지지 않았다 (data-element-id 없음)`)
+        continue
+      }
+      for (const text of t.texts) {
+        if (!region.includes(escapeHtml(text))) problems.push(`${t.type} ${t.id}: 화면에 "${text}" 없음`)
+      }
+    }
+    const total = targets.reduce((n, t) => n + t.texts.length, 0)
+    results.push(
+      problems.length > 0
+        ? makeResult(base, { check_id: 'V2.component_content', status: 'fail', required: true, message: `내용 표현 요소의 문구 누락 ${problems.length}건 — 목업이 빈 상자로 렌더됐다`, evidence: problems.slice(0, 20), started_at: started })
+        : makeResult(base, {
+            check_id: 'V2.component_content',
+            status: 'pass',
+            required: true,
+            evidence: targets.length === 0 ? ['대상 요소 없음 (hero·stat-strip·card-grid 미사용)'] : [`요소 ${targets.length}개 · 문구 ${total}개가 화면 영역에 있다`, ...targets.map((t) => `${t.id}(${t.type})=${t.texts.length}개`)],
+            started_at: started,
+          }),
     )
   }
 

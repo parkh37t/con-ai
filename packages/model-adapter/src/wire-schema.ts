@@ -34,6 +34,18 @@ const WireFieldValidation = z.object({
 
 const WireElementOption = z.object({ value: z.string(), label: z.string() })
 
+// 내용 표현 3종 (schemas 의 HeroContent·StatItem·CardItem 과 같은 키). 새 enum·union 을 만들지 않는다 — 구조화 출력이 받지 않는다.
+const WireHero = z.object({
+  eyebrow: z.string().optional(),
+  headline: z.string(),
+  subcopy: z.string().optional(),
+  search_placeholder: z.string().optional(),
+  chips: z.array(z.string()).optional(),
+  visual_note: z.string().optional(),
+})
+const WireStatItem = z.object({ label: z.string(), value: z.string(), delta: z.string().optional(), caption: z.string().optional() })
+const WireCardItem = z.object({ title: z.string(), desc: z.string().optional(), badge: z.string().optional(), meta: z.string().optional() })
+
 export const WireElement = z.object({
   id: z.string(),
   type: ElementType,
@@ -43,6 +55,9 @@ export const WireElement = z.object({
   placeholder: z.string().optional(),
   options: z.array(WireElementOption).optional(),
   columns: z.array(WireTableColumn).optional(),
+  hero: WireHero.optional(),
+  stats: z.array(WireStatItem).optional(),
+  cards: z.array(WireCardItem).optional(),
   default_sort: WireDefaultSort.optional(),
   max_length: z.int().optional(),
   validations: z.array(WireFieldValidation).optional(),

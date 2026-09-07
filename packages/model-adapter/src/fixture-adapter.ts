@@ -12,7 +12,7 @@
  *
  * 화면에는 "더미 어댑터" 로 표시된다 (CLAUDE.md: 더미 동작과 실제 호출을 구분). 시각·난수를 쓰지 않는다.
  */
-import { ScreenSpecShape } from '@con-ai/schemas'
+import { looksLikeMainScreen, shellKindOf, ScreenSpecShape } from '@con-ai/schemas'
 import type { GenerationContext, SliceCase, SliceGenerationRequest } from '@con-ai/prompt-templates'
 import type { AdapterResult, AsisStructure, ModelAdapter, PainPointDraft, PainPointDraftResult } from './types.js'
 import type { WireOutput, WireScreenSpec } from './wire-schema.js'
@@ -101,6 +101,101 @@ function listTemplate(name: string): Pick<WireScreenSpec, 'sections' | 'actions'
       { id: 'search-submit', type: 'filter-fixture', label: '검색', trigger: 'search-button', target: 'results' },
       { id: 'sort-results', type: 'sort-fixture', label: '정렬', target: 'result-table' },
       { id: 'download-results', type: 'download-fixture', label: '다운로드', trigger: 'download-button', target: 'result-table' },
+    ],
+  }
+}
+
+/**
+ * 메인 화면 기본 템플릿 — 히어로(큰 카피 + 통합검색) + KPI 인포스트립 + 카드 그리드 + 공지 표.
+ * 참고 spec 이 없고 «메인/홈» 요청일 때 쓴다. 내용은 모두 합성 더미다 (실제 시세·실적이 아니다).
+ */
+function mainTemplate(name: string, project: string): Pick<WireScreenSpec, 'sections' | 'actions'> {
+  return {
+    sections: [
+      {
+        id: 'hero-area',
+        title: '히어로',
+        display_no: '1',
+        elements: [
+          {
+            id: 'hero',
+            type: 'hero',
+            label: '대표 카피 · 통합검색',
+            display_no: 'a',
+            hero: {
+              eyebrow: project,
+              headline: '필요한 것을\n한 곳에서 빠르게',
+              search_placeholder: '무엇을 찾으시나요? (더미 검색)',
+              subcopy: `${name} — 자주 찾는 메뉴와 최근 소식을 먼저 보여 준다. 표시값은 모두 더미데이터이며 실제 업무 시스템과 연결하지 않는다.`,
+              chips: ['공지사항', '자주 묻는 질문', '고객지원'],
+              visual_note: '대표 이미지·영상이 들어갈 자리',
+            },
+          },
+        ],
+      },
+      {
+        id: 'kpi-area',
+        title: '요약 지표',
+        display_no: '2',
+        elements: [
+          {
+            id: 'kpi',
+            type: 'stat-strip',
+            label: '요약 KPI',
+            display_no: 'a',
+            stats: [
+              { label: '진행 중 요청', value: '128건', delta: '+12', caption: '최근 7일 · 더미' },
+              { label: '평균 처리 시간', value: '1.4일', caption: '접수 → 완료 · 지난달 1.7일 · 더미' },
+              { label: '이번 달 공지', value: '9건', caption: '더미데이터' },
+              { label: '만족도', value: '4.6 / 5', delta: '+0.2', caption: '표본 320건 · 더미' },
+            ],
+          },
+        ],
+      },
+      {
+        id: 'quick-area',
+        title: '바로가기',
+        display_no: '3',
+        elements: [
+          {
+            id: 'quick-cards',
+            type: 'card-grid',
+            label: '바로가기 카드',
+            display_no: 'a',
+            cards: [
+              { badge: '자주 찾음', title: '조회하기', desc: '기간·상태로 목록을 걸러 본다.', meta: '메뉴' },
+              { badge: '자주 찾음', title: '신청하기', desc: '필요한 정보를 입력해 요청을 등록한다.', meta: '메뉴' },
+              { title: '내 요청 현황', desc: '진행 상태와 담당자를 확인한다.', meta: '메뉴' },
+              { title: '자료실', desc: '양식과 안내 문서를 내려받는다.', meta: '메뉴' },
+            ],
+          },
+        ],
+      },
+      {
+        id: 'news-area',
+        title: '공지 · 소식',
+        display_no: '4',
+        elements: [
+          {
+            id: 'news-table',
+            type: 'table',
+            label: '공지·소식 표',
+            display_no: 'a',
+            columns: [
+              { id: 'no', label: '번호', sortable: true },
+              { id: 'category', label: '구분' },
+              { id: 'title', label: '제목', sortable: true },
+              { id: 'created_at', label: '등록일', sortable: true, format: 'date' },
+            ],
+            default_sort: { column_id: 'created_at', direction: 'desc' },
+          },
+          { id: 'news-pager', type: 'pagination', label: '페이지', display_no: 'b' },
+        ],
+      },
+    ],
+    actions: [
+      { id: 'hero-search', type: 'filter-fixture', label: '통합검색(더미데이터 필터)', trigger: 'hero', target: 'news-area' },
+      { id: 'sort-news', type: 'sort-fixture', label: '정렬', target: 'news-table' },
     ],
   }
 }
@@ -238,8 +333,11 @@ export class FixtureAdapter implements ModelAdapter {
       for (const a of spec.actions) delete a.trace
       spec.unresolved = []
     } else {
-      spec = { schema_version: '1.0', screen_id: screenId, baseline_id: ctx.baseline_id, purpose: req.purpose, shell: ctx.screen.shell, device: req.device, requirements: [], ...listTemplate(name), states: [], messages: [], data_mapping: [], locked_elements: [], locked_actions: [], unresolved: [] }
-      source = '기본 목록 템플릿'
+      // 「메인인가」는 화면(만들기)과 같은 함수로 판단한다. 팝업 shell 이면 메인일 수 없다.
+      const main = shellKindOf(ctx.screen.shell) !== 'popup' && looksLikeMainScreen(name, req.purpose, req.scope)
+      const template = main ? mainTemplate(name, ctx.project.name) : listTemplate(name)
+      spec = { schema_version: '1.0', screen_id: screenId, baseline_id: ctx.baseline_id, purpose: req.purpose, shell: ctx.screen.shell, device: req.device, requirements: [], ...template, states: [], messages: [], data_mapping: [], locked_elements: [], locked_actions: [], unresolved: [] }
+      source = main ? '기본 메인 템플릿(히어로·KPI·카드)' : '기본 목록 템플릿'
     }
 
     spec.screen_id = screenId

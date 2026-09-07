@@ -97,8 +97,16 @@ function renderBreadcrumb(ctx: Ctx): string {
 
 /* ---------- 요소 컨트롤 ---------- */
 
+/**
+ * `data-input-type` 은 «입력 유형» 이다 — 요소 타입을 그대로 내보내면 히어로의 통합검색이
+ * `hero` 로 나가 검사·클라이언트의 텍스트 입력 화이트리스트에 걸리지 않는다.
+ */
+function inputTypeOf(el: SpecElement): string {
+  return el.type === 'hero' ? 'text-input' : el.type
+}
+
 function inputAttrs(el: SpecElement, extra = ''): string {
-  const parts = [`data-input-for="${escapeHtml(el.id)}"`, `data-input-type="${el.type}"`, `name="${escapeHtml(el.id)}"`]
+  const parts = [`data-input-for="${escapeHtml(el.id)}"`, `data-input-type="${inputTypeOf(el)}"`, `name="${escapeHtml(el.id)}"`]
   if (el.placeholder) parts.push(`placeholder="${escapeHtml(el.placeholder)}"`)
   if (el.max_length !== undefined) parts.push(`maxlength="${el.max_length}"`)
   if (el.required) parts.push('required aria-required="true"')
@@ -121,6 +129,82 @@ function statusTone(code: string): string {
   if (/(REJECT|CANCEL|FAIL|ERROR|반려|취소|실패|오류)/.test(upper)) return 'is-danger'
   if (/(PENDING|REVIEW|WAIT|REQUEST|PREPAR|SHIP|검토|대기|요청|준비|배송)/.test(upper)) return 'is-warn'
   return ''
+}
+
+/**
+ * 증감 표기 → 색. 코드가 아니라 «오르내림» 으로 읽히게 한다.
+ * 판단 근거(부호·화살표)가 없으면 중립이다 — 모르는 값을 상승으로 칠하지 않는다.
+ */
+function deltaTone(text: string): string {
+  const t = text.trim()
+  if (/^[+▲△]/.test(t) || /상승|증가/.test(t)) return 'is-up'
+  if (/^[-−▼▽]/.test(t) || /하락|감소/.test(t)) return 'is-down'
+  return ''
+}
+
+/** 여러 줄 카피 — `\n` 을 <br> 로 바꾼다 (escape 뒤에 바꾼다). */
+function multiline(text: string): string {
+  return escapeHtml(text).replace(/\r?\n/g, '<br>')
+}
+
+/**
+ * 히어로 — 큰 카피 + (placeholder 가 있으면) 통합검색 + 인기어 칩 + 키비주얼 자리.
+ * 이미지는 넣지 않는다. 키비주얼 자리는 CSS 도형이다 (V2.no_external_refs).
+ */
+function renderHero(el: SpecElement, ctx: Ctx): string {
+  const hero = el.hero
+  if (hero === undefined) return `<div class="control"><p class="static-text is-placeholder">히어로 내용 없음</p></div>`
+  const triggered = ctx.spec.actions.filter((a) => a.trigger === el.id)[0]
+  const triggerAttrs = triggered ? ` data-action-trigger="${escapeHtml(el.id)}" data-action-id="${escapeHtml(triggered.id)}" data-action-type="${triggered.type}"` : ''
+  const eyebrow = hero.eyebrow === undefined ? '' : `<p class="hero-eyebrow">${escapeHtml(hero.eyebrow)}</p>`
+  const sub = hero.subcopy === undefined ? '' : `<p class="hero-sub">${multiline(hero.subcopy)}</p>`
+  const search =
+    hero.search_placeholder === undefined || hero.search_placeholder === ''
+      ? ''
+      : `<div class="hero-search"><input type="text" id="el-${escapeHtml(el.id)}" ${inputAttrs(el, `placeholder="${escapeHtml(hero.search_placeholder)}"`)}>` +
+        `<button type="button" class="btn hero-search-btn"${triggerAttrs}>검색</button></div>`
+  const chips =
+    hero.chips === undefined || hero.chips.length === 0
+      ? ''
+      : `<div class="hero-chips"><span class="hero-chips-label">인기</span>${hero.chips.map((c) => `<span class="chip">${escapeHtml(c)}</span>`).join('')}</div>`
+  // 자리표시 배지는 **항상** 그린다. visual_note 가 그 자리를 대체하면 모델이 적은 문장이 실제 이미지 설명처럼 읽힌다.
+  const visualNote = hero.visual_note === undefined ? '' : `<span class="hero-visual-note">${escapeHtml(hero.visual_note)}</span>`
+  const visual = `<div class="hero-visual" aria-hidden="true"><span class="hero-visual-tag">키비주얼 자리 · 이미지 없음</span>${visualNote}</div>`
+  return (
+    `<div class="control hero-control"><div class="hero">` +
+    `<div class="hero-copy">${eyebrow}<p class="hero-headline">${multiline(hero.headline)}</p>${sub}${search}${chips}</div>` +
+    `${visual}</div></div>`
+  )
+}
+
+/** KPI 인포스트립 — 숫자 묶음. 값은 명세에 적힌 예시 값이다 (실제 시세·실적이 아니다). */
+function renderStatStrip(el: SpecElement): string {
+  const stats = el.stats ?? []
+  if (stats.length === 0) return `<div class="control"><p class="static-text is-placeholder">KPI 항목 없음</p></div>`
+  const items = stats
+    .map((s) => {
+      const delta = s.delta === undefined ? '' : `<span class="stat-delta ${deltaTone(s.delta)}">${escapeHtml(s.delta)}</span>`
+      const caption = s.caption === undefined ? '' : `<span class="stat-caption">${escapeHtml(s.caption)}</span>`
+      return `<div class="stat"><span class="stat-label">${escapeHtml(s.label)}</span><span class="stat-value">${escapeHtml(s.value)}</span>${delta}${caption}</div>`
+    })
+    .join('')
+  return `<div class="control"><div class="stat-strip">${items}</div><p class="static-note">표시값은 명세에 적힌 예시 값 · 실제 데이터 미연결</p></div>`
+}
+
+/** 카드 그리드 — 카드 폭에 맞춰 흐른다 (열 수를 명세에 두지 않는다). */
+function renderCardGrid(el: SpecElement): string {
+  const cards = el.cards ?? []
+  if (cards.length === 0) return `<div class="control"><p class="static-text is-placeholder">카드 없음</p></div>`
+  const items = cards
+    .map((c) => {
+      const badge = c.badge === undefined ? '' : `<span class="card-badge">${escapeHtml(c.badge)}</span>`
+      const desc = c.desc === undefined ? '' : `<p class="card-desc">${escapeHtml(c.desc)}</p>`
+      const meta = c.meta === undefined ? '' : `<span class="card-meta">${escapeHtml(c.meta)}</span>`
+      return `<article class="card">${badge}<p class="card-title">${escapeHtml(c.title)}</p>${desc}${meta}</article>`
+    })
+    .join('')
+  // KPI 와 같은 고지 — 카드의 meta 에 날짜가 들어가면 실제 데이터로 오해되기 쉽다.
+  return `<div class="control"><div class="card-grid">${items}</div><p class="static-note">카드 내용은 명세에 적힌 예시 값 · 실제 데이터 미연결</p></div>`
 }
 
 function renderTable(el: SpecElement, ctx: Ctx): string {
@@ -230,6 +314,12 @@ function renderControl(el: SpecElement, ctx: Ctx): string {
     }
     case 'table':
       return renderTable(el, ctx)
+    case 'hero':
+      return renderHero(el, ctx)
+    case 'stat-strip':
+      return renderStatStrip(el)
+    case 'card-grid':
+      return renderCardGrid(el)
     case 'text': {
       // 표시값은 더미다. 명세 note 가 있으면 그 문장을, 없으면 자리표시 문구를 보여 준다.
       const placeholder = el.note === undefined || el.note === ''

@@ -17,7 +17,7 @@ describe('REQUIRED_CHECKS (계약 §5)', () => {
   it('V1·V2 전부와 V3 콘솔·CASE·검색·다운로드가 필수 목록이다', () => {
     expect(REQUIRED_CHECKS).toEqual([
       'V1.schema', 'V1.references', 'V1.required_cases', 'V1.criteria_linked',
-      'V2.shell', 'V2.description_order', 'V2.element_ids', 'V2.display_numbers', 'V2.no_external_refs',
+      'V2.shell', 'V2.description_order', 'V2.element_ids', 'V2.display_numbers', 'V2.no_external_refs', 'V2.component_content',
       'V3.console_errors', 'V3.case_switch', 'V3.search_filter', 'V3.download',
     ])
   })

@@ -262,7 +262,7 @@ export interface ScreenSpecLike {
 }
 
 // ---------------------------------------------------------------- 레퍼런스 포트폴리오 (§1 reference)
-export type ReferenceCategory = 'list' | 'detail' | 'popup' | 'form'
+export type ReferenceCategory = 'list' | 'detail' | 'popup' | 'form' | 'main'
 export interface Reference {
   id: string
   project_id?: string

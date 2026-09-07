@@ -86,6 +86,32 @@ describe('FixtureAdapter.generateSpec — 더미 어댑터 (결정적, 네트워
     expect(out.change_summary.summary).toContain('기본 목록 템플릿')
   })
 
+  it('메인 화면 요청이면 히어로·KPI 인포스트립·카드 그리드로 만든다 (목록 어휘로 답하지 않는다)', async () => {
+    const req = sampleRequest({ task_type: 'create', reference_ids: [], cases: ['normal', 'empty', 'error'], purpose: '파트너 포털 메인 페이지를 만든다' })
+    const ctx = sampleContext({ references: [], screen: { ...sampleContext().screen, title: '메인 페이지' } })
+    const out = parseOutput((await adapter.generateSpec({ prompt: assemblePrompt(req, ctx), ctx, req })).output)
+    const spec = out.screen_spec
+    expect(elementsOf(spec).map((e) => e.type)).toEqual(['hero', 'stat-strip', 'card-grid', 'table', 'pagination'])
+    expect(out.change_summary.summary).toContain('기본 메인 템플릿')
+    // 내용이 실제로 채워져 있어야 스키마를 통과한다 — 빈 상자를 만들지 않는다.
+    const hero = elementsOf(spec).find((e) => e.type === 'hero')
+    expect(hero?.hero?.headline).toBeTruthy()
+    expect(hero?.hero?.search_placeholder).toBeTruthy()
+    expect(hero?.placeholder, '공용 placeholder 는 쓰지 않는다 (스키마가 거부한다)').toBeUndefined()
+    expect(elementsOf(spec).find((e) => e.type === 'stat-strip')?.stats?.length ?? 0).toBeGreaterThanOrEqual(3)
+    expect(elementsOf(spec).find((e) => e.type === 'card-grid')?.cards?.length ?? 0).toBeGreaterThanOrEqual(3)
+    // 통합검색이 실제로 걸러 볼 표가 함께 있어야 V3 검색 검사가 헛돌지 않는다.
+    expect(spec.actions.find((a) => a.type === 'filter-fixture')?.trigger).toBe('hero')
+  })
+
+  it('«도메인» 같은 낱말을 메인으로 오판하지 않는다 (화면과 같은 판정 함수를 쓴다)', async () => {
+    const req = sampleRequest({ task_type: 'create', reference_ids: [], cases: ['normal'], purpose: '커머스 도메인 주문 목록 화면을 만든다' })
+    const ctx = sampleContext({ references: [], screen: { ...sampleContext().screen, title: '주문 목록' } })
+    const out = parseOutput((await adapter.generateSpec({ prompt: assemblePrompt(req, ctx), ctx, req })).output)
+    expect(elementsOf(out.screen_spec).map((e) => e.type)).not.toContain('hero')
+    expect(out.change_summary.summary).toContain('기본 목록 템플릿')
+  })
+
   it('CASE 5종을 모두 요청하면 5개 상태·메시지를 만들고 권한 CASE 에 역할을 적는다; normal 이 빠져도 넣는다', async () => {
     const req = sampleRequest({ cases: ['empty', 'error', 'permission', 'processing'] })
     const ctx = sampleContext()
