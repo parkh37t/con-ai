@@ -26,6 +26,10 @@ export interface Project {
   theme_id?: string
   /** 목업 GNB 포털 이름. */
   portal_name?: string
+  /** 프로젝트 slug (기준 버전 기본값을 만들 때 쓴다). */
+  slug?: string
+  /** 이 프로젝트가 고정한 기준 버전 ID (SSOT 의 뿌리). 없으면 slug 로 만든 기본값을 쓴다. */
+  baseline_id?: string
   created_at: string
 }
 

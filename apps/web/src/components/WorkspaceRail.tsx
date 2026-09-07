@@ -12,7 +12,7 @@ import { STAGE_NAV, stageValueText, type StageCounts, type StageKey } from '../p
 import { hrefTo } from '../router.js'
 import type { Meta, Project } from '../types.js'
 
-export type RailSection = StageKey | 'references' | 'prototype' | 'trace' | 'other'
+export type RailSection = StageKey | 'references' | 'prototype' | 'plan' | 'trace' | 'other'
 
 function stageHref(item: (typeof STAGE_NAV)[number]): string {
   if (item.key === 'asis') return hrefTo('asis')
@@ -73,6 +73,18 @@ export function WorkspaceRail({
             </a>
           )
         })}
+
+        <span className="rail-label rail-label-gap">메뉴에서 만들기</span>
+        {/* 메뉴구조도 → 화면 ID → 근거 → 프롬프트 → 생성. 「무엇을 근거로 무엇을 만들었나」가 보이는 자리다. */}
+        <a
+          className={`rail-item rail-item-quiet${current === 'plan' ? ' active' : ''}`}
+          href={hrefTo('plan')}
+          data-testid="rail-plan"
+          {...(current === 'plan' ? { 'aria-current': 'page' as const } : {})}
+        >
+          <span className="rail-dot" aria-hidden="true" />
+          <span className="rail-item-label">메뉴구조도에서 화면 만들기</span>
+        </a>
 
         <span className="rail-label rail-label-gap">둘러보기</span>
         {/* 4단계를 순서대로 한 번 돌려보는 화면. 단계가 아니라 «안내» 라서 흐름 목록 아래에 둔다. */}

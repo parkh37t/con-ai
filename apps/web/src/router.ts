@@ -13,6 +13,7 @@ export type Route =
   | { name: 'design'; revisionId: string; query: Query }
   | { name: 'advanced'; query: Query }
   | { name: 'references'; query: Query }
+  | { name: 'plan'; query: Query }
   | { name: 'prototype'; query: Query }
   | { name: 'trace'; query: Query }
   | { name: 'asis'; query: Query }
@@ -54,6 +55,7 @@ export function parseRoute(hash: string): Route {
     if (revisionId) return { name: 'design', revisionId, query }
   }
   if (segments.length === 1 && segments[0] === 'references') return { name: 'references', query }
+  if (segments.length === 1 && segments[0] === 'plan') return { name: 'plan', query }
   if (segments.length === 1 && segments[0] === 'prototype') return { name: 'prototype', query }
   if (segments.length === 1 && segments[0] === 'trace') return { name: 'trace', query }
   if (segments.length === 1 && segments[0] === 'asis') return { name: 'asis', query }
@@ -80,13 +82,14 @@ function encodeQuery(query: Query | undefined): string {
 }
 
 /** 메인·만들기·고급(프로젝트 전체)·포트폴리오·AS-IS 분석 목록 링크. */
-export type FlatRouteName = 'main' | 'create' | 'advanced' | 'references' | 'prototype' | 'trace' | 'asis'
+export type FlatRouteName = 'main' | 'create' | 'advanced' | 'references' | 'plan' | 'prototype' | 'trace' | 'asis'
 
 const FLAT_ROUTE_PATHS: Readonly<Record<FlatRouteName, string>> = {
   main: '#/',
   create: '#/new',
   advanced: '#/advanced',
   references: '#/references',
+  plan: '#/plan',
   prototype: '#/prototype',
   trace: '#/trace',
   asis: '#/asis',
@@ -129,6 +132,8 @@ export function withQuery(route: Route, patch: Query): string {
       return hrefTo('advanced', query)
     case 'references':
       return hrefTo('references', query)
+    case 'plan':
+      return hrefTo('plan', query)
     case 'prototype':
       return hrefTo('prototype', query)
     case 'trace':

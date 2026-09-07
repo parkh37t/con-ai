@@ -328,7 +328,7 @@ export const CLIENT_SCRIPT: string = String.raw`
     }
     if (action.type === 'close-popup') { closeModal(); setStatus('팝업 닫기(더미)'); return; }
     if (action.type === 'download-fixture') { downloadCsv(action); return; }
-    if (action.type === 'navigate') { setStatus('화면 이동(더미): ' + (action.target_screen_id || '(미지정)') + ' — 실제 이동 없음'); return; }
+    if (action.type === 'navigate') { requestScreen(action.target_screen_id, '동작 ' + action.id); return; }
     if (action.type === 'set-state') { setCase(action.target_state_id); return; }
   }
   function runActionsFor(elementId, row) {
@@ -362,6 +362,17 @@ export const CLIENT_SCRIPT: string = String.raw`
     if (first && typeof first.scrollIntoView === 'function') first.scrollIntoView({ block: 'center', behavior: 'smooth' });
     setStatus('강조: ' + elementId);
   }
+  /**
+   * 다른 화면으로 가 달라고 **부모 창에 요청**한다. 목업 혼자서는 이동할 수 없다 (설계서 한 장은 화면 하나다).
+   * 부모가 없으면(파일로 연 경우) 무엇으로 가려 했는지만 알린다 — 이동한 척하지 않는다.
+   */
+  function requestScreen(screenId, from) {
+    if (!screenId) { setStatus(from + ': 갈 화면이 지정되지 않았다'); return; }
+    if (!embedded) { setStatus('화면 이동: ' + screenId + ' — 이 파일 하나만 열려 있어 이동하지 않는다'); return; }
+    post({ type: 'con-ai:navigate', screen_id: screenId, from: from });
+    setStatus('화면 이동 요청: ' + screenId);
+  }
+
   function notifyClick(el) {
     var target = regionOf(el);
     if (!target) return;
@@ -380,6 +391,14 @@ export const CLIENT_SCRIPT: string = String.raw`
   document.addEventListener('click', function (ev) {
     var t = ev.target;
     if (!(t instanceof Element)) return;
+    // GNB 메뉴 — 메뉴구조도에서 온 메뉴는 그 메뉴의 화면으로 간다. 화면이 없는 메뉴는 그렇다고 말한다.
+    var nav = t.closest('[data-nav-menu]');
+    if (nav) {
+      var navScreen = nav.getAttribute('data-nav-screen-id');
+      if (navScreen) requestScreen(navScreen, '메뉴 ' + (nav.textContent || '').trim());
+      else setStatus('메뉴 ' + (nav.textContent || '').trim() + ': 아직 만들지 않은 화면이다');
+      return;
+    }
     var caseBtn = t.closest('button[data-case]');
     if (caseBtn) { setCase(caseBtn.getAttribute('data-case')); return; }
     var devBtn = t.closest('[data-device-toggle]');

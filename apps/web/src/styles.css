@@ -2689,23 +2689,33 @@ button.chip:hover,
   font-size: 11px;
   font-weight: 800;
 }
+/* 미리보기는 이 페이지에서 가장 큰 것이다 — 페이지 폭(1500px)에 갇히지 않고 창 폭을 쓴다.
+   설계서 안에서 목업과 우측 설명이 11.5:4.5 로 나뉘므로, 프레임이 좁으면 목업이 먼저 찌그러진다. */
 .design-frame {
   border: 1px solid var(--border);
   border-radius: var(--radius-card);
   background: var(--bg);
   overflow: hidden;
+  width: min(calc(100vw - 32px), 2200px);
+  margin-left: calc(50% - min(calc(100vw - 32px), 2200px) / 2);
 }
 .design-frame iframe {
   display: block;
   width: 100%;
-  height: 78vh;
-  min-height: 70vh;
+  /* 위(머리·안내)와 아래(수정 입력)를 뺀 나머지를 전부 쓴다 — 한 화면에 최대한 많이 들어오게. */
+  height: calc(100vh - 210px);
+  min-height: 560px;
   border: 0;
   background: var(--card);
 }
-/* 모바일 미리보기는 폭만 좁힌다 — 설계서를 다시 만들지 않는다 */
+/* 모바일 미리보기는 폭만 좁힌다 — 설계서를 다시 만들지 않는다.
+   폭이 좁아지면 설계서 안에서 우측 설명이 목업 **아래로** 내려간다 (스크롤하면 나온다). */
+.design-frame-mobile {
+  width: auto;
+  margin-left: 0;
+}
 .design-frame-mobile iframe {
-  width: 420px;
+  width: 460px;
   max-width: 100%;
   margin: 0 auto;
   border-left: 1px solid var(--border);
@@ -3576,4 +3586,138 @@ button.chip:hover,
   .proto-step-head > .badge {
     margin-left: 38px;
   }
+}
+
+/* ── 「메뉴에서 화면 만들기」 (#/plan) ──
+   왼쪽 메뉴구조도에서 메뉴를 고르면 오른쪽에 ①메뉴 ②화면 ID ③근거(SSOT) ④프롬프트 가 차례로 보인다.
+   순서 자체가 설명이므로 번호를 지우지 않는다. */
+.plan-page .page-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.plan-split {
+  display: grid;
+  grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+@media (max-width: 1000px) {
+  .plan-split {
+    grid-template-columns: 1fr;
+  }
+}
+.plan-tree-list {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+}
+.plan-tree-list > li {
+  margin: 0 0 2px;
+}
+.plan-node {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  padding: 7px 10px;
+  cursor: pointer;
+  font: inherit;
+  color: var(--text);
+}
+.plan-node:hover {
+  background: var(--bg);
+}
+.plan-node.is-selected {
+  border-color: var(--accent);
+  background: var(--doc-accent-soft);
+}
+.plan-node-name {
+  font-weight: 600;
+}
+.plan-node-id {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+  margin-left: auto;
+  white-space: nowrap;
+}
+.plan-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.plan-step-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+.plan-step-body {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.plan-step-body .tagline {
+  font-size: 12px;
+  color: var(--muted);
+}
+.plan-ssot {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.plan-ssot th,
+.plan-ssot td {
+  border-bottom: 1px solid var(--border);
+  padding: 7px 10px;
+  text-align: left;
+  vertical-align: top;
+}
+.plan-ssot th {
+  width: 96px;
+  white-space: nowrap;
+  color: var(--muted);
+  font-weight: 700;
+}
+.plan-prompt {
+  margin-top: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  background: var(--bg);
+}
+.plan-prompt pre {
+  max-height: 340px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 12px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px;
+}
+.plan-context {
+  margin: 6px 0 10px;
+  padding-left: 18px;
+  font-size: 12.5px;
+  color: var(--text);
+}
+.plan-actions {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
 }

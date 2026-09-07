@@ -13,7 +13,7 @@ export { assemblePrompt, assembleRevisionPrompt } from '../../../../packages/pro
 export type { AssembledPrompt, GenerationContext, SliceGenerationRequest as PromptSliceRequest } from '../../../../packages/prompt-templates/src/types.js'
 
 export { renderScreen, RENDERER_VERSION, S2B_LEARNED_PROFILE } from '../../../../packages/renderer/src/index.js'
-export type { RenderOutput, RenderProfile } from '../../../../packages/renderer/src/types.js'
+export type { RenderMeta, RenderNavItem, RenderOutput, RenderProfile } from '../../../../packages/renderer/src/types.js'
 
 export { ActionType, CaseKind, ColumnFormat, ElementType, MessageKind, ScreenSpecShape, SortDirection, UnresolvedKind, ValidationRule, checkScreenSpecReferences } from '../../../../packages/schemas/src/screen-spec.js'
 export type { ScreenSpecShape as ScreenSpecShapeType } from '../../../../packages/schemas/src/screen-spec.js'
@@ -39,8 +39,10 @@ export {
   proposeIaExternalId,
   relabelFnExternalId,
   relabelIaExternalId,
+  menusForScreen,
 } from '../../../../packages/domain/src/index.js'
 export type { RtmInput, RtmSpecIndex, RtmReport as DomainRtmReport } from '../../../../packages/domain/src/rtm.js'
+export type { MenuIaNode, MenuItem, MenuScreen, ScreenMenus } from '../../../../packages/domain/src/menu.js'
 
 export { IANode as IANodeSchema } from '../../../../packages/schemas/src/screen.js'
 export type { IANode as IANodeShape } from '../../../../packages/schemas/src/screen.js'

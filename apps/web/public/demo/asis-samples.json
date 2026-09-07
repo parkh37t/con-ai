@@ -4,7 +4,7 @@
     "label": "레거시 파트너몰",
     "description": "로그인·견적 현황이 한 화면에 섞여 있고, 레이블 없는 입력과 모호한 버튼 문구가 많다.",
     "url": "https://sample.local/asis-sample",
-    "captured_at": "2026-09-07T03:36:21.017Z",
+    "captured_at": "2026-09-07T04:19:01.233Z",
     "structure": {
       "title": "레거시 파트너몰(데모)",
       "headings": [
@@ -137,8 +137,8 @@
       "lang": "ko"
     },
     "screenshots": {
-      "desktop": "59418189-8246-4b10-85b0-7ca40d100ea0-desktop",
-      "mobile": "59418189-8246-4b10-85b0-7ca40d100ea0-mobile"
+      "desktop": "f9ea13ca-7760-4ea6-ba9b-2a785fa1b69a-desktop",
+      "mobile": "f9ea13ca-7760-4ea6-ba9b-2a785fa1b69a-mobile"
     }
   },
   {
@@ -146,7 +146,7 @@
     "label": "레거시 정산 시스템",
     "description": "표 중심 화면이고 고정 폭(1180px)이라 모바일에서 가로 스크롤로 봐야 한다.",
     "url": "https://sample.local/asis-sample-2",
-    "captured_at": "2026-09-07T03:36:22.074Z",
+    "captured_at": "2026-09-07T04:19:01.719Z",
     "structure": {
       "title": "레거시 정산 시스템(데모)",
       "headings": [
@@ -262,8 +262,8 @@
       "lang": "ko"
     },
     "screenshots": {
-      "desktop": "16d25ebd-ce28-476e-9319-8825dee06ade-desktop",
-      "mobile": "16d25ebd-ce28-476e-9319-8825dee06ade-mobile"
+      "desktop": "a76828a7-9140-4d04-91b4-32bd9bce501e-desktop",
+      "mobile": "a76828a7-9140-4d04-91b4-32bd9bce501e-mobile"
     }
   }
 ]

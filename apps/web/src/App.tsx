@@ -21,6 +21,7 @@ import { DesignPage } from './pages/DesignPage.js'
 import { GeneratePage } from './pages/GeneratePage.js'
 import { HomePage } from './pages/HomePage.js'
 import { MainPage } from './pages/MainPage.js'
+import { PlanPage } from './pages/PlanPage.js'
 import { PrototypePage } from './pages/PrototypePage.js'
 import { ReferencesPage } from './pages/ReferencesPage.js'
 import { ReviewPage } from './pages/ReviewPage.js'
@@ -62,6 +63,8 @@ export function App() {
         ? 'references'
         : route.name === 'prototype'
           ? 'prototype'
+        : route.name === 'plan'
+          ? 'plan'
         : route.name === 'trace'
           ? 'trace'
         : route.name === 'review'
@@ -98,6 +101,8 @@ export function App() {
     body = <HomePage key={project.id} project={project} projects={projectList} meta={meta.data} route={route} />
   } else if (route.name === 'references') {
     body = <ReferencesPage key={project.id} projectId={project.id} />
+  } else if (route.name === 'plan') {
+    body = <PlanPage key={project.id} project={project} />
   } else if (route.name === 'prototype') {
     body = <PrototypePage key={project.id} project={project} projects={projectList} />
   } else if (route.name === 'trace') {

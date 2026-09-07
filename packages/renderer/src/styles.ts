@@ -59,7 +59,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 /* ── shell: 좌 목업 / 우 설명 (목표 문서 flex 11.5 : 4.5, 최소 360px) ── */
 .root-shell,.popup-shell{flex:1 1 auto;min-height:0;display:flex;width:100%}
 .screen-wrap,.popup-wrap{flex:11.5;min-width:0;overflow-y:auto;overflow-x:hidden;background:#fff}
-#right-panel,.spec-side{flex:4.5;min-width:360px;overflow-y:auto;background:#fff;border-left:2px solid var(--ink);padding:22px 24px 64px}
+#right-panel,.spec-side{flex:4.5;min-width:360px;max-width:560px;overflow-y:auto;background:#fff;border-left:2px solid var(--ink);padding:22px 24px 64px}
 @media (max-width:1000px){
   body{height:auto;overflow:visible}
   .root-shell,.popup-shell{flex-direction:column}
@@ -363,6 +363,24 @@ table.grid td.cell-link{color:var(--brand);font-weight:700}
 .popup-head{background:var(--brand-surface);border-bottom:1px solid var(--brand-line)}
 .popup-title{color:var(--brand-ink)}
 .popup-wrap{background:var(--brand-canvas)}
+
+/* ── GNB 메뉴가 «메뉴구조도의 메뉴» 일 때 ──
+   눌러서 그 메뉴의 화면 설계서로 간다. 화면이 없는 메뉴는 눌러도 이동하지 않고 그렇다고 말한다. */
+.gnb-menu button.m{background:none;border:0;padding:0;cursor:pointer;display:inline-flex;align-items:center;gap:6px;font:inherit}
+.gnb-menu button.m:hover{color:var(--brand)}
+.gnb-menu .m .nav-tag{font-size:9.5px;font-weight:700;letter-spacing:.02em;color:var(--brand-muted);
+  border:1px solid var(--brand-line);border-radius:999px;padding:1px 6px;background:var(--brand-canvas);white-space:nowrap}
+.gnb-menu .m.is-unbuilt{color:var(--brand-muted)}
+.gnb-menu .m.is-unbuilt .nav-tag{border-style:dashed}
+.breadcrumb .crumb-id{margin-left:8px;font-size:11px;font-weight:700;color:var(--brand);
+  border:1px solid var(--brand-line);border-radius:999px;padding:1px 8px;background:var(--brand-canvas)}
+
+/* ── 우측 설명 머리의 «메뉴 경로» — 이 화면이 메뉴구조도의 어디인가 ── */
+.panel-menu{display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin:0 0 10px;font-size:11.5px;color:var(--muted-2)}
+.panel-menu .panel-menu-label{font-size:10px;font-weight:800;letter-spacing:.12em;color:var(--muted-3)}
+.panel-menu .panel-menu-step.is-current{font-weight:800;color:var(--ink)}
+.panel-menu .panel-menu-sep{color:var(--muted-3)}
+.panel-meta .tag.is-missing,.panel-menu .tag.is-missing{border-style:dashed;color:var(--muted-2)}
 
 /* ── 내용 표현 3종: 히어로 · KPI 인포스트립 · 카드 그리드 ──
    목록·상세·폼 밖의 «메인/홈» 화면을 만들 수 있게 넓힌 어휘 (schemas ElementType 의 hero·stat-strip·card-grid).

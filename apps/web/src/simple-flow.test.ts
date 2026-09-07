@@ -12,6 +12,7 @@ import {
   nextScreenExternalId,
   progressLine,
   recentDesigns,
+  sampleDataReferenceId,
 } from './simple-flow.js'
 import type { ProjectDetail, Reference, ScreenSpecLike } from './types.js'
 
@@ -20,6 +21,30 @@ const references = [
   { id: 'ref-detail', title: '상세 골든', category: 'detail', description: '', spec: {}, tags: [], source: 'S2B 학습 규격 적용 합성 예시' },
   { id: 'ref-popup', title: '팝업 골든', category: 'popup', description: '', spec: {}, tags: [], source: 'S2B 학습 규격 적용 합성 예시' },
 ] satisfies Reference[]
+
+describe('sampleDataReferenceId — 예시 더미데이터를 복제해 올 골든', () => {
+  const withTable: Reference[] = [
+    { id: 'ref-list', title: '목록 골든', category: 'list', description: '', tags: [], source: '합성',
+      spec: { sections: [{ id: 's', elements: [{ id: 't', type: 'table', columns: [{ id: 'c1', label: '컬럼' }] }] }] } as unknown as ScreenSpecLike },
+    { id: 'ref-detail', title: '상세 골든', category: 'detail', description: '', tags: [], source: '합성', spec: {} as ScreenSpecLike },
+  ]
+
+  it('종류가 맞는 골든이 있으면 그것을 쓴다 (근거 선택과 같은 결과)', () => {
+    expect(sampleDataReferenceId('견적 목록 조회', withTable)).toBe('ref-list')
+  })
+
+  it('종류가 없으면 표를 가진 아무 골든이라도 쓴다 — 빈 표로 렌더되어 미확정만 쌓이는 것을 막는다', () => {
+    // 「메인」 골든이 없는 프로젝트에서 메인 화면을 요청한 경우가 실제로 이랬다.
+    expect(sampleDataReferenceId('뱅킹 앱 메인 페이지를 만든다', withTable)).toBe('ref-list')
+    // 근거(reference_ids)는 그대로 «없음» 이다 — 더미 목적과 근거 목적을 섞지 않는다.
+    expect(autoReferenceIds('뱅킹 앱 메인 페이지를 만든다', withTable)).toEqual([])
+  })
+
+  it('표를 가진 골든이 하나도 없으면 아무것도 고르지 않는다 (지어내지 않는다)', () => {
+    expect(sampleDataReferenceId('메인 페이지', [{ ...withTable[1] } as Reference])).toBeUndefined()
+    expect(sampleDataReferenceId('메인 페이지', [])).toBeUndefined()
+  })
+})
 
 describe('guessCategory · autoReferenceIds', () => {
   it('문장의 낱말로 화면 종류를 짐작한다 (기본 목록)', () => {

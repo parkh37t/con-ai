@@ -32,6 +32,31 @@ export function autoReferenceIds(sentence: string, references: readonly Referenc
   return match ? [match.id] : []
 }
 
+/**
+ * 예시 더미데이터를 복제해 올 레퍼런스 — **근거(reference_ids)와는 다른 목적**이다.
+ *
+ * `autoReferenceIds` 는 「이 문장에 맞는 골든이 무엇인가」이고 못 고르면 아무것도 붙이지 않는다(그게 옳다).
+ * 하지만 더미데이터까지 없으면 표가 0행으로 렌더되고 미확정만 쌓인다 — 프로토타입에서 볼 게 없어진다.
+ * 그래서 더미용으로는 **표(columns)를 가진 아무 골든**이라도 고른다. 근거로는 쓰지 않으므로 프롬프트는 그대로다.
+ */
+export function sampleDataReferenceId(sentence: string, references: readonly Reference[]): string | undefined {
+  const matched = autoReferenceIds(sentence, references)[0]
+  if (matched !== undefined) return matched
+  const withTable = references.find((r) => hasTableColumns(r.spec))
+  return withTable?.id
+}
+
+/** 명세 안에 표 컬럼이 있는가 — 그 열 구성으로 예시 행을 만들 수 있는지 본다. */
+function hasTableColumns(spec: ScreenSpecLike | undefined): boolean {
+  for (const section of spec?.sections ?? []) {
+    for (const el of section.elements ?? []) {
+      const columns = (el as unknown as Record<string, unknown>)['columns']
+      if (Array.isArray(columns) && columns.length > 0) return true
+    }
+  }
+  return false
+}
+
 /** 문장 → 화면 제목. 첫 문장에서 조사·서술어를 떼고 30자 이내로 줄인다. 빈 문장이면 '새 화면'. */
 export function deriveTitle(sentence: string): string {
   const first = sentence

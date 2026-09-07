@@ -13,7 +13,18 @@ export interface RenderProfile {
 export interface DescriptionSection { key: string; title: string; items: Array<{ label: string; text: string; element_id?: string; display_no?: string }> }
 export interface DescriptionModel { screen_id: string; title: string; sections: DescriptionSection[] }
 /** GNB 메뉴 한 칸 (활성 메뉴는 밑줄로 표시한다). */
-export interface RenderNavItem { label: string; active?: boolean }
+/**
+ * GNB 메뉴 한 칸. **메뉴구조도(IA)에서 온다** — 목업의 메뉴가 어느 메뉴 노드인지, 그 메뉴의 화면이 무엇인지 드러낸다.
+ * `screen_id` 가 있으면 그 메뉴는 눌러서 그 화면 설계서로 이동한다(부모 창에 요청을 보낸다). 없으면 «화면 없음» 으로 표시한다.
+ */
+export interface RenderNavItem {
+  label: string
+  active?: boolean
+  /** 이 메뉴의 화면 외부 ID. 없으면 아직 만들지 않은 메뉴다. */
+  screen_id?: string
+  /** 이 메뉴의 IA 외부 ID (IA-2.3.1). 발번 전이면 없다. */
+  ia_id?: string
+}
 export interface RenderMeta {
   screen_title: string
   requirements: Array<{ external_id: string; title: string; criterion_ids: string[] }>
@@ -25,6 +36,10 @@ export interface RenderMeta {
   menus?: RenderNavItem[]
   /** 브랜드 테마 id (theme.ts). 없거나 모르는 값이면 기본 테마 — 없는 브랜드를 지어내지 않는다. */
   theme_id?: string
+  /** 이 화면이 붙은 메뉴 경로 (메뉴구조도 상위부터). 우측 설명 머리에 그대로 적는다. */
+  menu_path?: string[]
+  /** 이 화면이 붙은 메뉴의 IA 외부 ID. 발번 전이면 없다. */
+  ia_id?: string
 }
 export interface RenderInput { spec: ScreenSpecShape; profile: RenderProfile; dummy: Record<string, unknown[]>; meta: RenderMeta }
 export interface RenderOutput { html: string; description: DescriptionModel; element_index: Array<{ element_id: string; section_id: string; display_no: string }> }

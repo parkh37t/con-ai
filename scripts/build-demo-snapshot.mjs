@@ -337,11 +337,13 @@ async function main() {
     await get('/api/projects')
     // 샘플 도메인(견적·뱅킹·커머스)을 모두 담는다 — 하나만 담으면 나머지 도메인 화면이 배포에서 404 가 된다.
     for (const p of projects) {
-      await get(`/api/projects/${p.id}`)
+      const pd = await get(`/api/projects/${p.id}`)
       await get(`/api/projects/${p.id}/references`)
       await get(`/api/projects/${p.id}/asis-analyses`)
+      // 화면 상세도 **모든 프로젝트** 것을 담는다. 견적만 담으면 뱅킹·커머스 화면은 열 수도, 만들 수도 없다
+      // (프롬프트 미리보기·생성이 /api/screens/:id 로 화면을 찾는다).
+      for (const s of pd.screens) await get(`/api/screens/${s.id}`)
     }
-    for (const s of detail.screens) await get(`/api/screens/${s.id}`)
     const revisionIds = [rev1Id, rev2Id]
     for (const id of revisionIds) await get(`/api/revisions/${id}`)
     for (const id of [job1Id, job2Id]) await get(`/api/jobs/${id}`)

@@ -125,6 +125,10 @@ export async function runGenerationJob(jobId: string, deps: PipelineDeps): Promi
           // 목업의 브랜드는 프로젝트가 갖는다 (없으면 렌더러의 기본 테마).
           ...(built.project.data.theme_id === undefined ? {} : { theme_id: built.project.data.theme_id }),
           ...(built.project.data.portal_name === undefined ? {} : { portal_name: built.project.data.portal_name }),
+          // 목업의 GNB·메뉴 경로는 메뉴구조도(IA)에서 온다 (브라우저 파이프라인과 같다).
+          ...(built.menus.menus.length === 0
+            ? {}
+            : { menus: built.menus.menus, menu_path: built.menus.path, ...(built.menus.ia_id === undefined ? {} : { ia_id: built.menus.ia_id }) }),
         },
       })
     } catch (err) {

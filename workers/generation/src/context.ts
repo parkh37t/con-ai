@@ -4,6 +4,7 @@
  */
 import { assemblePrompt, assembleRevisionPrompt, type AssembledPrompt, type ContextComment, type ContextReference, type ContextRequirement, type GenerationContext, type SliceGenerationRequest } from '@con-ai/prompt-templates'
 import { S2B_LEARNED_PROFILE } from '@con-ai/renderer'
+import { menusForScreen, type MenuIaNode, type ScreenMenus } from '@con-ai/domain'
 import type { ScreenSpec } from '@con-ai/schemas'
 import type { CommentDocument, ProjectDocument, ReferenceDocument, RequirementDocument, ScreenDocument, ScreenRevisionDocument } from './documents.js'
 import { PipelineError } from './errors.js'
@@ -17,6 +18,8 @@ export interface ContextBuildResult {
   screen: StoredDocument<ScreenDocument>
   base_revision?: StoredDocument<ScreenRevisionDocument> | undefined
   comments: StoredDocument<CommentDocument>[]
+  /** 목업의 GNB·메뉴 경로 — 메뉴구조도(IA)에서 읽는다. 트리에 없는 화면이면 비어 있다. */
+  menus: ScreenMenus
 }
 
 /** 프로젝트의 기준 버전 ID — 문서에 있으면 그 값, 없으면 `baseline-<slug|id>-1`. */
@@ -107,7 +110,12 @@ export function buildGenerationContext(store: Store, req: SliceGenerationRequest
   if (req.prompt_override) summary.push('기획자가 직접 쓴 프롬프트를 사용한다 (문맥은 그대로 첨부)')
   summary.push(`규격 규칙 ${profileRules.length}개`)
 
-  return { ctx, summary, project, screen, base_revision: baseRevision, comments }
+  // 목업의 GNB·breadcrumb 는 메뉴구조도에서 읽는다 — 화면명에서 짐작하지 않는다.
+  // 트리에 없는 화면이면 빈 결과이고 렌더러가 기본 메뉴로 되돌아간다.
+  const iaNodes = store.list<{ project_id: string } & MenuIaNode>('ia_node', (d) => d.data.project_id === project.id).map((d) => d.data)
+  const projectScreens = store.list<ScreenDocument>('screen', (d) => d.data.project_id === project.id).map((d) => ({ id: d.data.id, external_id: d.data.external_id }))
+  const menus = menusForScreen(iaNodes, projectScreens, screen.id)
+  return { ctx, summary, project, screen, base_revision: baseRevision, comments, menus }
 }
 
 export function toContextComment(c: StoredDocument<CommentDocument>): ContextComment {

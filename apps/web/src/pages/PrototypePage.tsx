@@ -30,7 +30,7 @@ import {
   type PrototypeStepId,
   type PrototypeStepSpec,
 } from '../prototype.js'
-import { autoReferenceIds, buildSimpleCreateRequest, buildSimpleEditRequest } from '../simple-flow.js'
+import { autoReferenceIds, buildSimpleCreateRequest, buildSimpleEditRequest, sampleDataReferenceId } from '../simple-flow.js'
 import { hrefTo, hrefToAsisDetail, hrefToDesign, hrefToScreen } from '../router.js'
 import type { Job, Project, ScreenCreateInput } from '../types.js'
 
@@ -94,7 +94,7 @@ export function PrototypePage({ project, projects }: { project: Project; project
       const refs = await api.references(project.id)
       // 「만들기」 화면과 같은 절차 — 참고 화면을 자동으로 고르고, 그 열 구성으로 예시 더미데이터를 붙인다.
       // (더미데이터가 없으면 표가 0행이 되어 V3 검색 검사가 정직하게 실패한다.)
-      const sampleFrom = autoReferenceIds(sentence, refs)[0]
+      const sampleFrom = sampleDataReferenceId(sentence, refs)
       // 화면 이름·shell·기기는 그 프로젝트의 기존 화면을 따른다 (뱅킹은 모바일, 커머스는 PC).
       const device = firstScreen?.device ?? 'desktop'
       const body: ScreenCreateInput = { title: `${project.name.split('—').pop()?.trim() ?? '샘플'} ${target.title_suffix}`, device }

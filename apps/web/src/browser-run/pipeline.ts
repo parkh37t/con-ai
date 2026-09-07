@@ -28,8 +28,9 @@ import {
   runV2,
   S2B_LEARNED_PROFILE,
   RENDERER_VERSION,
+  menusForScreen,
 } from './deps.js'
-import type { AdapterResult, AssembledPrompt, CheckResult, GenerationContext, RenderOutput, ScreenSpecShapeType } from './deps.js'
+import type { AdapterResult, AssembledPrompt, CheckResult, GenerationContext, MenuIaNode, MenuScreen, RenderMeta, RenderOutput, ScreenSpecShapeType } from './deps.js'
 import { REVISION_DRAFT_JSON_SCHEMA, SCREEN_OUTPUT_JSON_SCHEMA, callAnthropic, BrowserModelError, DEFAULT_BROWSER_MODEL, type FetchLike } from './anthropic.js'
 import type { StoredCredential } from './credential.js'
 import { sha256Hex } from './hash.js'
@@ -95,8 +96,25 @@ export interface PipelineInput {
   comments: Comment[]
   /** fixture_id → 더미 행. 스냅샷에 없으면 빈 객체. */
   dummy: Record<string, unknown[]>
+  /** 메뉴구조도(IA) 노드와 화면 — 목업의 GNB 와 메뉴 경로가 여기서 나온다. 없으면 기본 메뉴다. */
+  ia_nodes?: MenuIaNode[] | undefined
+  menu_screens?: MenuScreen[] | undefined
+  /** 이 화면의 내부 UUID (IANode.screen_plan_id 와 맞춘다). */
+  screen_plan_id?: string | undefined
   revision_no: number
   model?: string | undefined
+}
+
+/**
+ * 메뉴구조도에서 이 화면의 GNB·경로를 뽑는다. 트리에 없는 화면이면 아무것도 넣지 않는다 —
+ * 렌더러가 기본 메뉴로 되돌아간다 (없는 메뉴를 지어내지 않는다).
+ */
+export function menuMetaOf(input: PipelineInput): Partial<Pick<RenderMeta, 'menus' | 'menu_path' | 'ia_id'>> {
+  const planId = input.screen_plan_id
+  if (planId === undefined || input.ia_nodes === undefined || input.ia_nodes.length === 0) return {}
+  const found = menusForScreen(input.ia_nodes, input.menu_screens ?? [], planId)
+  if (found.menus.length === 0) return {}
+  return { menus: found.menus, menu_path: found.path, ...(found.ia_id === undefined ? {} : { ia_id: found.ia_id }) }
 }
 
 export interface PipelineDeps {
@@ -402,6 +420,8 @@ export async function runBrowserPipeline(input: PipelineInput, deps: PipelineDep
         // 목업의 브랜드는 프로젝트가 갖는다 (서버 파이프라인과 같다).
         ...(input.project.theme_id === undefined ? {} : { theme_id: input.project.theme_id }),
         ...(input.project.portal_name === undefined ? {} : { portal_name: input.project.portal_name }),
+        // 목업의 GNB·breadcrumb 는 메뉴구조도(IA)에서 온다 — 화면명에서 짐작하지 않는다 (서버 파이프라인과 같다).
+        ...menuMetaOf(input),
       },
     })
   } catch (e) {

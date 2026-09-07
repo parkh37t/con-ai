@@ -12,7 +12,7 @@ import { IS_DEMO } from '../demo-mode.js'
 import { CREDENTIAL_EVENT, navigate, useAsync, useCredentialTick, useJobPolling } from '../hooks.js'
 import { isTerminalJob } from '../job-progress.js'
 import { hrefToDesign, withQuery, type Route } from '../router.js'
-import { autoReferenceIds, buildSimpleCreateRequest, deriveShell, deriveTitle, failureLine, progressLine, recentDesigns } from '../simple-flow.js'
+import { autoReferenceIds, buildSimpleCreateRequest, sampleDataReferenceId, deriveShell, deriveTitle, failureLine, progressLine, recentDesigns } from '../simple-flow.js'
 import type { Device, Meta, Project, ScreenCreateInput } from '../types.js'
 
 const PLACEHOLDER = `파트너가 견적 요청 목록을 조회하고 상태별로 검색하는 화면.
@@ -56,7 +56,8 @@ export function SimpleHomePage({ project, meta, route }: { project: Project; met
     try {
       const refs = references.data ?? []
       const screens = detail.data?.screens ?? []
-      const sampleFrom = autoReferenceIds(text, refs)[0]
+      // 예시 더미데이터는 근거와 목적이 다르다 — 못 고르면 표 있는 골든이라도 써서 빈 표를 피한다.
+      const sampleFrom = sampleDataReferenceId(text, refs)
       const body: ScreenCreateInput = { title: deriveTitle(text), device, shell: deriveShell(text, screens) }
       if (sampleFrom !== undefined) body.sample_from = sampleFrom
       const { screen } = await api.createScreen(project.id, body)

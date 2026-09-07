@@ -14,7 +14,7 @@
  *   approval.json        POST /api/screens/:id/approvals 응답 예시 (대상 화면·revision 포함)
  *   artifacts/·asis/·exports/  정적 파일 (api.ts 가 URL 을 직접 가리킨다)
  */
-import { FixtureAdapter, ScreenSpecShape, assemblePrompt, assembleRevisionPrompt, type PainPointDraftResult } from './browser-run/deps.js'
+import { FixtureAdapter, ScreenSpecShape, assemblePrompt, assembleRevisionPrompt, type MenuIaNode, type PainPointDraftResult } from './browser-run/deps.js'
 import { findAsisSample, loadAsisSamples, type AsisSampleTarget } from './asis-samples.js'
 import { buildContext, draftRevisionPromptInBrowser, engineNote, engineOf, revisionInstruction, runBrowserPipeline, type PipelineInput } from './browser-run/pipeline.js'
 import { browserRuntime, toJobFailure } from './browser-run/runtime.js'
@@ -661,6 +661,10 @@ function pipelineInputFor(state: DemoState, screenId: string, body: unknown): { 
       ...(baseDetail ? { base_revision: { id: baseDetail.revision.id, revision_no: baseDetail.revision.revision_no, spec: baseDetail.spec } } : {}),
       comments: baseDetail?.comments ?? [],
       dummy: dummyDataOf(state),
+      // 목업의 GNB·메뉴 경로는 메뉴구조도(IA)에서 온다 — 화면명에서 짐작하지 않는다.
+      ia_nodes: project.ia_nodes as unknown as MenuIaNode[],
+      menu_screens: project.screens.map((sc) => ({ id: sc.id, external_id: sc.external_id })),
+      screen_plan_id: screen.screen.id,
       revision_no: revisionNo,
       model: browserRuntime.model,
     },

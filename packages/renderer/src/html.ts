@@ -76,10 +76,31 @@ export function menusOf(ctx: Ctx): RenderNavItem[] {
   return [{ label: '홈' }, ...(group === '홈' ? [] : [{ label: group, active: true }]), ...rest.map((label) => ({ label }))]
 }
 
+/**
+ * GNB 메뉴 한 칸.
+ * 메뉴구조도(IA)에서 온 메뉴는 «어느 화면으로 가는지» 를 갖는다 — 눌러서 그 화면 설계서로 이동한다.
+ * 화면이 아직 없는 메뉴는 눌러도 이동하지 않고 «아직 만들지 않은 메뉴» 라고 말한다 (없는 화면으로 가는 척하지 않는다).
+ */
+function navItem(m: RenderNavItem): string {
+  // 메뉴구조도에서 온 메뉴만 «화면 없음» 을 말할 수 있다. 그냥 이름뿐인 기본 메뉴는 지금까지처럼 글자만 둔다.
+  const linked = m.screen_id !== undefined || m.ia_id !== undefined
+  const cls = `m${m.active === true ? ' on' : ''}${linked && m.screen_id === undefined ? ' is-unbuilt' : ''}`
+  if (!linked) return `<span class="${cls}">${escapeHtml(m.label)}</span>`
+  const attrs = [
+    `class="${cls}"`,
+    'type="button"',
+    'data-nav-menu="1"',
+    ...(m.screen_id === undefined ? [] : [`data-nav-screen-id="${escapeHtml(m.screen_id)}"`]),
+    ...(m.ia_id === undefined ? [] : [`data-nav-ia-id="${escapeHtml(m.ia_id)}"`]),
+  ]
+  const tag = m.screen_id === undefined ? '<span class="nav-tag">화면 없음</span>' : `<span class="nav-tag">${escapeHtml(m.screen_id)}</span>`
+  return `<button ${attrs.join(' ')}>${escapeHtml(m.label)}${tag}</button>`
+}
+
 function renderGnb(ctx: Ctx): string {
   const portal = portalNameOf(ctx)
   const menus = menusOf(ctx)
-  const items = menus.map((m) => `<span class="m${m.active === true ? ' on' : ''}">${escapeHtml(m.label)}</span>`).join('')
+  const items = menus.map((m) => navItem(m)).join('')
   return (
     `<nav class="gnb" aria-label="GNB"><span class="logo">${escapeHtml(portal)}</span>` +
     `<span class="gnb-menu">${items}</span>` +
@@ -88,8 +109,18 @@ function renderGnb(ctx: Ctx): string {
   )
 }
 
+/**
+ * breadcrumb — 메뉴 경로가 있으면 **메뉴구조도 그대로** 쓴다 (화면명에서 짐작하지 않는다).
+ * 없으면 지금까지처럼 화면명의 첫 낱말로 만든다.
+ */
 function renderBreadcrumb(ctx: Ctx): string {
   const title = ctx.input.meta.screen_title
+  const path = ctx.input.meta.menu_path
+  if (path !== undefined && path.length > 0) {
+    const head = path.map((p) => `${escapeHtml(p)} › `).join('')
+    const ia = ctx.input.meta.ia_id === undefined ? '' : `<span class="crumb-id">${escapeHtml(ctx.input.meta.ia_id)}</span>`
+    return `<div class="breadcrumb" aria-label="breadcrumb">${head}<b>${escapeHtml(title)}</b>${ia}</div>`
+  }
   const group = menuGroupOf(title)
   const mid = group === title ? '' : `${escapeHtml(group)} › `
   return `<div class="breadcrumb" aria-label="breadcrumb">홈 › ${mid}<b>${escapeHtml(title)}</b></div>`
@@ -467,8 +498,18 @@ function renderDescriptionSection(sec: DescriptionSection, ctx: Ctx): string {
       `<span class="tag">기준 ${escapeHtml(ctx.spec.baseline_id)}</span>` +
       `<span class="tag">${escapeHtml(ctx.spec.shell)} · ${ctx.spec.device === 'mobile' ? '모바일' : 'PC'}</span>`
     // 이 절의 항목(화면 ID·revision·생성·기준 버전·shell·기기)은 제목과 위 꼬리표로 그대로 나타난다.
+    // 메뉴 경로는 «이 화면이 메뉴구조도의 어디인가» 다 — 화면 ID 만으로는 알 수 없어 위에 먼저 적는다.
+    const path = meta.menu_path
+    const menuLine =
+      path === undefined || path.length === 0
+        ? ''
+        : `<div class="panel-menu"><span class="panel-menu-label">메뉴</span>${path.map((p) => `<span class="panel-menu-step">${escapeHtml(p)}</span>`).join('<span class="panel-menu-sep">›</span>')}` +
+          `<span class="panel-menu-step is-current">${escapeHtml(meta.screen_title)}</span>` +
+          (meta.ia_id === undefined ? '<span class="tag is-missing">IA 미발번</span>' : `<span class="tag">${escapeHtml(meta.ia_id)}</span>`) +
+          `</div>`
     return (
       `<section class="desc-section panel-head" data-desc-key="screen_id">` +
+      menuLine +
       `<h2 class="desc-screen-id">${escapeHtml(ctx.spec.screen_id)}</h2>` +
       `<div class="panel-meta">${tags}</div></section>`
     )
