@@ -90,7 +90,7 @@ pnpm test             # vitest run (테스트 파일이 없으면 실패한다)
 pnpm check            # 위 둘을 순서대로
 ```
 
-모델이 실제로 무엇을 만드는지 보는 검사는 `pnpm check` 에 넣지 않는다 (비결정적이고 유료다). 따로 돌린다:
+데모·프로토타입은 더미 어댑터로 자격 증명 없이 끝까지 돈다. 아래는 **선택 사항**으로, 「실제 Claude 모델도 새 어휘를 쓰는가」를 볼 때만 쓴다 (비결정적이고 유료라 `pnpm check` 에 넣지 않는다):
 
 ```bash
 set -a; source .env; set +a                 # ANTHROPIC_API_KEY 또는 ANTHROPIC_AUTH_TOKEN

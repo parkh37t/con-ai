@@ -377,7 +377,7 @@ table.grid td.cell-link{color:var(--brand);font-weight:700}
 .hero-headline{margin:0;font-size:38px;line-height:1.22;font-weight:800;letter-spacing:-.035em;color:var(--brand-ink);word-break:keep-all}
 .hero-sub{margin:0;font-size:14.5px;line-height:1.65;color:var(--brand-muted);word-break:keep-all}
 .hero-search{display:flex;gap:8px;margin-top:6px;max-width:560px}
-.hero-search input[type=text]{flex:1 1 auto;min-height:52px;padding:12px 18px;border:1.5px solid var(--brand);
+.hero-search input[type=text]{flex:1 1 auto;min-width:0;min-height:52px;padding:12px 18px;border:1.5px solid var(--brand);
   border-radius:999px;background:var(--brand-surface);color:var(--brand-ink);font-size:15px}
 .hero-search .btn{flex:none;min-height:52px;border-radius:999px;padding:0 28px;white-space:nowrap}
 .hero-chips{display:flex;flex-wrap:wrap;gap:7px;align-items:center;font-size:12.5px}
@@ -431,6 +431,10 @@ body[data-case-kind="error"] .card-grid,body[data-case-kind="empty"] .card-grid{
 /* 폰 프레임(미리보기 모바일 전환)도 같은 규칙을 쓴다 — 미디어쿼리만으로는 폭이 안 좁아진다. */
 [data-device="mobile"] .hero{flex-direction:column;padding:22px 16px;gap:16px}
 [data-device="mobile"] .hero-headline{font-size:25px}
+/* 폰 폭에서는 검색 입력과 버튼을 한 줄에 두면 안내 문구가 잘린다 — 쌓아서 문구를 끝까지 보여 준다. */
+[data-device="mobile"] .hero-search{flex-wrap:wrap}
+[data-device="mobile"] .hero-search input[type=text]{flex:1 1 100%;min-width:0;min-height:46px}
+[data-device="mobile"] .hero-search .btn{flex:1 1 100%;min-height:46px}
 [data-device="mobile"] .hero-visual{flex:none;min-height:110px;width:100%;min-width:0}
 [data-device="mobile"] .stat-strip{grid-template-columns:repeat(auto-fit,minmax(120px,1fr))}
 [data-device="mobile"] .stat-value{font-size:19px}

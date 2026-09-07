@@ -10,6 +10,7 @@
  * - 샘플 문장·코멘트는 이 파일에 있는 **가상 데이터**다. 실제 고객 요구사항이 아니다.
  */
 
+import { guessScreenKind } from './browser-run/deps.js'
 import type { CommentRole } from './types.js'
 
 export type PrototypeStepId = 'asis' | 'generate' | 'review' | 'approve'
@@ -84,24 +85,76 @@ export function prototypeSentence(requirements: ReadonlyArray<{ title: string; b
 /** 요구사항을 아직 읽지 못했을 때만 쓰는 문장. */
 export const PROTOTYPE_SENTENCE_FALLBACK = '사용자가 목록을 조회하고 조건으로 검색한다. 목록에서 상세로 이동하고, 다운로드 버튼으로 목록을 내려받는다.'
 
+/** 둘러보기가 만들 화면의 종류. 메인은 목록과 어휘가 달라(히어로·KPI·카드) 문장·코멘트도 달라야 한다. */
+export type PrototypeTargetKind = 'main' | 'list'
+
+export interface PrototypeTarget {
+  kind: PrototypeTargetKind
+  /** 만들 화면 제목의 꼬리표 ("<프로젝트> <suffix>"). */
+  title_suffix: string
+  sentence: string
+}
+
 /**
- * ③ 검토에 쓰는 코멘트 2건. 차단 1건이 있어야 승인 게이트가 실제로 막힌다.
- * 어느 도메인의 목록 화면에도 그대로 맞는 말만 쓴다 (특정 화면의 라벨을 박아 두지 않는다).
+ * ② 생성이 만들 화면 — **그 프로젝트가 가진 것으로 정한다.**
+ * 메인 골든 레퍼런스가 있고 그에 맞는 요구사항이 있으면 메인 화면을, 없으면 목록 화면을 만든다.
+ * 도메인마다 문장을 손으로 적어 두지 않는다 (프로젝트를 늘릴 때마다 어긋난다).
  */
-export const PROTOTYPE_COMMENTS: ReadonlyArray<{ author: string; role: CommentRole; text: string; blocking: boolean }> = [
-  {
-    author: '샘플 디자이너',
-    role: 'designer',
-    text: '검색 영역 라벨의 띄어쓰기를 규격대로 맞춰 주세요. 지금은 붙어 있어 읽기 어렵습니다.',
-    blocking: true,
-  },
-  {
-    author: '샘플 퍼블리셔',
-    role: 'publisher',
-    text: '표의 금액 열은 오른쪽 정렬이 필요합니다. 자릿수 비교가 어렵습니다.',
-    blocking: false,
-  },
-]
+export function prototypeTarget(
+  requirements: ReadonlyArray<{ title: string; body: string }>,
+  references: ReadonlyArray<{ category: string }>,
+): PrototypeTarget {
+  if (references.some((r) => r.category === 'main')) {
+    const mainReq = requirements.find((r) => guessScreenKind(`${r.title} ${r.body}`).kind === 'main')
+    if (mainReq !== undefined) return { kind: 'main', title_suffix: '메인 (프로토타입)', sentence: `${mainReq.title} — ${mainReq.body}` }
+  }
+  return { kind: 'list', title_suffix: '목록 (프로토타입)', sentence: prototypeSentence(requirements) }
+}
+
+interface PrototypeComment {
+  author: string
+  role: CommentRole
+  text: string
+  blocking: boolean
+}
+
+/**
+ * ③ 검토에 쓰는 코멘트 2건. **차단 1건**이 있어야 승인 게이트가 실제로 막힌다.
+ * 화면 종류마다 다른 것을 보므로 문장도 갈린다 — 메인 화면에 「표의 금액 열」 같은 말을 붙이면 검토가 연극이 된다.
+ * 특정 요소의 라벨을 박아 두지는 않는다 (도메인이 달라도 그대로 맞아야 한다).
+ */
+export function prototypeComments(kind: PrototypeTargetKind): ReadonlyArray<PrototypeComment> {
+  if (kind === 'main') {
+    return [
+      {
+        author: '샘플 디자이너',
+        role: 'designer',
+        text: '히어로 카피가 두 줄로 끊기는 위치를 규격대로 맞춰 주세요. 지금은 읽는 흐름이 끊깁니다.',
+        blocking: true,
+      },
+      {
+        author: '샘플 퍼블리셔',
+        role: 'publisher',
+        text: 'KPI 숫자는 자릿수를 맞춰 오른쪽으로 붙여 주세요. 값 비교가 어렵습니다.',
+        blocking: false,
+      },
+    ]
+  }
+  return [
+    {
+      author: '샘플 디자이너',
+      role: 'designer',
+      text: '검색 영역 라벨의 띄어쓰기를 규격대로 맞춰 주세요. 지금은 붙어 있어 읽기 어렵습니다.',
+      blocking: true,
+    },
+    {
+      author: '샘플 퍼블리셔',
+      role: 'publisher',
+      text: '표의 금액 열은 오른쪽 정렬이 필요합니다. 자릿수 비교가 어렵습니다.',
+      blocking: false,
+    },
+  ]
+}
 
 /** ④ 완료에 쓰는 승인자 이름 (사람이 바꿀 수 있다). */
 export const PROTOTYPE_APPROVER = '프로토타입 기획자'

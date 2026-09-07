@@ -4,7 +4,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { MemoryStorage } from './browser-run/test-helpers.js'
 import {
-  PROTOTYPE_COMMENTS,
+  prototypeComments,
   PROTOTYPE_SENTENCE_FALLBACK,
   PROTOTYPE_STEPS,
   clearRun,
@@ -15,6 +15,7 @@ import {
   nextStep,
   progressText,
   prototypeSentence,
+  prototypeTarget,
   runKey,
   saveRun,
   setPrototypeStorage,
@@ -52,8 +53,38 @@ describe('단계 정의', () => {
   })
 
   it('검토 단계의 샘플 코멘트에는 차단 코멘트가 하나 있다 (승인 게이트가 실제로 막혀야 한다)', () => {
-    expect(PROTOTYPE_COMMENTS.filter((c) => c.blocking)).toHaveLength(1)
-    expect(PROTOTYPE_COMMENTS.filter((c) => !c.blocking).length).toBeGreaterThan(0)
+    for (const kind of ['list', 'main'] as const) {
+      const comments = prototypeComments(kind)
+      expect(comments.filter((c) => c.blocking), kind).toHaveLength(1)
+      expect(comments.filter((c) => !c.blocking).length, kind).toBeGreaterThan(0)
+    }
+  })
+
+  it('코멘트는 그 화면에 있는 것을 가리킨다 — 메인 화면에 «표의 금액 열» 같은 말을 붙이지 않는다', () => {
+    const main = prototypeComments('main').map((c) => c.text).join(' ')
+    expect(main).toContain('히어로')
+    expect(main).toContain('KPI')
+    expect(main).not.toContain('금액 열')
+    const list = prototypeComments('list').map((c) => c.text).join(' ')
+    expect(list).not.toContain('히어로')
+  })
+
+  it('메인 골든 레퍼런스가 있는 프로젝트는 둘러보기에서 메인 화면을 만든다', () => {
+    const requirements = [
+      { title: '거래내역 조회', body: '고객은 계좌 거래내역을 기간으로 검색한다.' },
+      { title: '메인 화면 구성', body: '앱을 열면 대표 안내와 요약 지표, 자주 쓰는 기능, 최근 공지를 한 화면에서 확인한다.' },
+    ]
+    const main = prototypeTarget(requirements, [{ category: 'list' }, { category: 'main' }])
+    expect(main.kind).toBe('main')
+    expect(main.title_suffix).toContain('메인')
+    // 문장에 「메인」이 있어야 만들기와 같은 판정으로 메인 골든이 붙는다.
+    expect(main.sentence).toContain('메인')
+
+    // 메인 골든이 없으면 지금까지처럼 목록 화면이다.
+    const list = prototypeTarget(requirements, [{ category: 'list' }])
+    expect(list.kind).toBe('list')
+    expect(list.title_suffix).toContain('목록')
+    expect(list.sentence).not.toContain('메인')
   })
 
   it('생성 문장은 그 프로젝트의 요구사항에서 만든다 — 도메인마다 손으로 적어 두지 않는다', () => {

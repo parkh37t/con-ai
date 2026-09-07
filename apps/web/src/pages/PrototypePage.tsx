@@ -16,14 +16,14 @@ import { IS_DEMO } from '../demo-mode.js'
 import { notifyDataChanged, useAsync, useStoredValue } from '../hooks.js'
 import {
   PROTOTYPE_APPROVER,
-  PROTOTYPE_COMMENTS,
+  prototypeComments,
   PROTOTYPE_STEPS,
   clearRun,
   doneCount,
   isComplete,
   loadRun,
   progressText,
-  prototypeSentence,
+  prototypeTarget,
   saveRun,
   stepStatus,
   type PrototypeRun,
@@ -47,9 +47,13 @@ export function PrototypePage({ project, projects }: { project: Project; project
   const [approver, setApprover] = useStoredValue('con-ai.approver', PROTOTYPE_APPROVER)
   const samples = useAsync(async () => (IS_DEMO ? await loadAsisSamples() : []), [])
   const meta = useAsync(() => api.meta(), [])
-  // 한 줄 요청은 이 프로젝트의 요구사항에서 만든다 — 도메인마다 문장을 손으로 적어 두지 않는다.
+  // 만들 화면과 한 줄 요청은 이 프로젝트가 가진 것(요구사항·레퍼런스)에서 정한다 —
+  // 도메인마다 문장을 손으로 적어 두지 않는다. 메인 골든이 있는 프로젝트는 메인 화면을 만든다.
   const detail = useAsync(() => api.project(project.id), [project.id])
-  const sentence = prototypeSentence(detail.data?.requirements ?? [])
+  const references = useAsync(() => api.references(project.id), [project.id])
+  const target = prototypeTarget(detail.data?.requirements ?? [], references.data ?? [])
+  const sentence = target.sentence
+  const comments = prototypeComments(target.kind)
   const firstScreen = detail.data?.screens[0]
 
   useEffect(() => {
@@ -87,17 +91,17 @@ export function PrototypePage({ project, projects }: { project: Project; project
 
   const runGenerate = () =>
     step('generate', '생성', async () => {
-      const references = await api.references(project.id)
+      const refs = await api.references(project.id)
       // 「만들기」 화면과 같은 절차 — 참고 화면을 자동으로 고르고, 그 열 구성으로 예시 더미데이터를 붙인다.
       // (더미데이터가 없으면 표가 0행이 되어 V3 검색 검사가 정직하게 실패한다.)
-      const sampleFrom = autoReferenceIds(sentence, references)[0]
+      const sampleFrom = autoReferenceIds(sentence, refs)[0]
       // 화면 이름·shell·기기는 그 프로젝트의 기존 화면을 따른다 (뱅킹은 모바일, 커머스는 PC).
       const device = firstScreen?.device ?? 'desktop'
-      const body: ScreenCreateInput = { title: `${project.name.split('—').pop()?.trim() ?? '샘플'} 목록 (프로토타입)`, device }
+      const body: ScreenCreateInput = { title: `${project.name.split('—').pop()?.trim() ?? '샘플'} ${target.title_suffix}`, device }
       if (firstScreen?.shell !== undefined) body.shell = firstScreen.shell
       if (sampleFrom !== undefined) body.sample_from = sampleFrom
       const { screen } = await api.createScreen(project.id, body)
-      const { request } = buildSimpleCreateRequest({ screen_id: screen.id, sentence, device, references })
+      const { request } = buildSimpleCreateRequest({ screen_id: screen.id, sentence, device, references: refs })
       const { job_id } = await api.createJob(screen.id, request)
       const job = await pollJob(job_id)
       const revisionId = job.result?.revision_id
@@ -112,7 +116,7 @@ export function PrototypePage({ project, projects }: { project: Project; project
       const baseId = run.revision1_id
       if (!screenId || !baseId) throw new Error('앞 단계의 결과가 없습니다')
       const commentIds: string[] = []
-      for (const c of PROTOTYPE_COMMENTS) {
+      for (const c of comments) {
         const saved = await api.createComment(baseId, { target: 'screen', author: c.author, role: c.role, text: c.text, blocking: c.blocking })
         commentIds.push(saved.id)
       }
@@ -232,6 +236,7 @@ export function PrototypePage({ project, projects }: { project: Project; project
             run={run}
             samples={samples.data ?? []}
             sentence={sentence}
+            comments={comments}
             approver={approver}
             setApprover={setApprover}
             onRun={() => void RUNNERS[spec.id]()}
@@ -269,6 +274,7 @@ function StepCard({
   run,
   samples,
   sentence,
+  comments,
   approver,
   setApprover,
   onRun,
@@ -280,6 +286,7 @@ function StepCard({
   run: PrototypeRun
   samples: readonly AsisSampleTarget[]
   sentence: string
+  comments: ReturnType<typeof prototypeComments>
   approver: string
   setApprover: (v: string) => void
   onRun: () => void
@@ -314,7 +321,7 @@ function StepCard({
         )}
       </dl>
 
-      <StepDetail spec={spec} run={run} samples={samples} sentence={sentence} approver={approver} setApprover={setApprover} />
+      <StepDetail spec={spec} run={run} samples={samples} sentence={sentence} comments={comments} approver={approver} setApprover={setApprover} />
 
       <div className="proto-step-actions">
         {/* 끝난 단계는 실행 버튼을 두지 않는다 — 다시 누를 수 없는 버튼을 남겨 두면 무엇을 해야 할지 흐려진다. */}
@@ -335,6 +342,7 @@ function StepDetail({
   run,
   samples,
   sentence,
+  comments,
   approver,
   setApprover,
 }: {
@@ -342,6 +350,7 @@ function StepDetail({
   run: PrototypeRun
   samples: readonly AsisSampleTarget[]
   sentence: string
+  comments: ReturnType<typeof prototypeComments>
   approver: string
   setApprover: (v: string) => void
 }) {
@@ -364,7 +373,7 @@ function StepDetail({
   if (spec.id === 'review') {
     return (
       <ul className="proto-sample-list" data-testid="proto-sample">
-        {PROTOTYPE_COMMENTS.map((c) => (
+        {comments.map((c) => (
           <li key={c.text}>
             <Badge tone={c.blocking ? 'red' : 'gray'}>{c.blocking ? '차단' : '비차단'}</Badge> <strong>{c.author}</strong> — {c.text}
           </li>

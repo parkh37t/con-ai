@@ -121,6 +121,8 @@ test('정적 데모 프로토타입: 샘플 도메인 3종(견적·뱅킹·커�
   expect(names.join(' ')).toContain('뱅킹')
   expect(names.join(' ')).toContain('커머스')
 
+  // 메인 어휘를 밟은 도메인이 몇 개인지 센다 — 조건 분기가 조용히 건너뛰면 이 검사가 헛돌기 때문이다.
+  let mainRuns = 0
   for (let i = 0; i < 3; i++) {
     const label = names[i] ?? `${i}`
     await test.step(`${label} — 4단계를 끝까지 돌린다`, async () => {
@@ -133,8 +135,23 @@ test('정적 데모 프로토타입: 샘플 도메인 3종(견적·뱅킹·커�
       for (const id of ['asis', 'generate', 'review', 'approve']) await runStep(page, id)
       await expect(page.getByTestId('proto-complete')).toBeVisible()
       await expect(page.locator('[data-testid="proto-step"][data-step="approve"]').getByTestId('proto-result')).toContainText('v1.0')
+
+      // 메인 골든이 있는 도메인(뱅킹)은 목록이 아니라 **메인 화면**을 만든다 — 넓힌 어휘가 둘러보기에서도 돈다.
+      if (sentence.includes('메인')) {
+        mainRuns += 1
+        await page.locator('[data-testid="proto-step"][data-step="generate"]').getByTestId('proto-result').click()
+        const screen = page.frameLocator('[data-testid="design-iframe"]').locator('[data-region="screen"]')
+        await expect(screen.locator('.hero .hero-headline')).toBeVisible({ timeout: 30_000 })
+        await expect(screen.locator('.stat-strip .stat-value').first()).toBeVisible()
+        await expect(screen.locator('.card-grid .card-title').first()).toBeVisible()
+        await page.goBack()
+        await expect(page.getByTestId('proto-status')).toBeVisible({ timeout: 30_000 })
+      }
     })
   }
+
+  // 메인 골든을 가진 도메인이 실제로 한 곳은 있어야 한다 (없으면 위 단언이 한 번도 돌지 않은 것이다).
+  expect(mainRuns, '메인 화면을 만드는 도메인이 하나도 없었다 — 넓힌 어휘가 둘러보기에서 검사되지 않았다').toBeGreaterThanOrEqual(1)
 
   await test.step('도메인별 진행 기록이 서로 섞이지 않는다', async () => {
     await page.reload()
