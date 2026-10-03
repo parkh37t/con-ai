@@ -57,12 +57,27 @@ pnpm dev                  # 웹 http://localhost:5173 , API http://localhost:878
 | 경로 | 내용 |
 |---|---|
 | `CLAUDE.md` | 개발 규칙: 제품 목적, 실행·검사 방법, 원본 불변, 임의 ID 변경 금지, 실패를 pass 로 표시하지 않는 규칙, 허용 수정 범위 |
+| `AGENTS.md` | 같은 내용을 `AGENTS.md` 를 읽는 에이전트(OpenAI Codex 등)용으로 정리한 것. **규칙 본문은 `CLAUDE.md`** 이고 이쪽은 파생이다 |
+| `.claude/skills/` | Claude Code 용 skill 3개: 명세 어휘 추가 · 배포 전 점검 · ID 와 추적 체인 |
+| `docs/plan/세션_통합프롬프트.md` | 한 세션의 요청 전체를 붙여 넣을 수 있는 하나의 프롬프트로 합친 것 |
 | `docs/reference/` | 구현 기준 원본 문서 3종 (구현설계 v0.2, 첨부자료 검토보고서 v0.2, 개발시작 프롬프트 v0.2). 수정하지 않는다 |
 | `docs/knowledge/` | 원본을 관점별로 학습·검증한 지식 문서 (출처 표기) |
 | `docs/decisions/` | 착수 시 고정한 결정 기록(ADR) |
 | `docs/plan/` | MVP 구현 계획·완료 조건·미확정 목록 |
 | `data/review/` | 검토 데이터(CSV·JSON). 공개 저장소이므로 고객 데이터는 커밋하지 않는다 → `data/review/README.md` |
 | `fixtures/` | 합성 데이터와 실패 예제 (충돌·중복·누락 CASE) |
+
+### 다른 에이전트에 학습시키기
+
+```bash
+pnpm bundle:knowledge
+# → .bundle/files/                              개별 파일 34개 (ASCII 이름, 번호가 읽는 순서)
+# → .bundle/con-ai-learning-bundle-<날짜>.md     전부 이어 붙인 단일 파일
+```
+
+`AGENTS.md` · `CLAUDE.md` · skills · 통합 프롬프트 · `docs/knowledge|decisions|plan` · 패키지 README 를 모은다.
+ChatGPT 등에는 **단일 합본 한 파일**을 올리고, Codex 가 저장소에서 작업할 때는 **연결만 하면 된다**(루트 `AGENTS.md` 를 자동으로 읽는다).
+원본 입력자료(`docs/reference/`, `data/review/*.csv`)는 담지 않는다 — 제자리에서 읽는다. zip 으로 묶지 않는다(한국어 파일명이 깨진다).
 
 ## 저장소 구조 (설계 §13)
 

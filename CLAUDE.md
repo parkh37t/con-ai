@@ -72,3 +72,4 @@ pnpm dev              # api + web (준비되면)
 - 단계가 끝나면 `docs/plan/진행기록.md` 에 완료 기능 / 실행 방법 / 검증 결과 / 남은 제한을 적는다.
 - 확정되지 않은 원본 사실은 `docs/plan/미확정목록.md` 에 남기고 합성 데이터로 개발을 계속한다.
 - 문서 산출은 필요한 만큼만. 지식 문서는 `docs/knowledge/`(4개), 결정은 `docs/decisions/`, 계획은 `docs/plan/`.
+- 루트의 `AGENTS.md` 는 `AGENTS.md` 를 읽는 다른 에이전트(OpenAI Codex 등)용 지침이다. **이 파일이 규칙 본문**이고 그쪽은 파생이다. 여기 규칙을 고치면 `AGENTS.md` 도 같이 본다.

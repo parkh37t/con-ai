@@ -17,14 +17,23 @@
 
 skill 을 더하면 `scripts/bundle-knowledge.mjs` 의 매니페스트에도 한 줄 적는다(안 적으면 묶음에서 조용히 빠진다 — 스크립트가 경고는 한다).
 
+## 다른 에이전트 — AGENTS.md
+
+저장소 루트의 `AGENTS.md` 는 **OpenAI Codex 등 `AGENTS.md` 를 읽는 에이전트**용이다. Codex 는 `CLAUDE.md` 도 이 폴더도 읽지 않는다.
+**규칙 본문은 `CLAUDE.md`** 이고 `AGENTS.md` 는 그중 작업하다 데이는 것을 앞으로 끌어낸 것이다. `CLAUDE.md` 의 규칙을 고치면 `AGENTS.md` 도 같이 본다.
+
 ## 학습 문서·skill 묶음
 
 ```bash
-pnpm bundle:knowledge     # → .bundle/con-ai-지식과스킬-<날짜>.zip
+pnpm bundle:knowledge
+# → .bundle/files/                               개별 파일 34개 (ASCII 이름, 번호가 읽는 순서)
+# → .bundle/con-ai-learning-bundle-<날짜>.md      전부 이어 붙인 단일 파일
 ```
 
-`CLAUDE.md` · skills · `docs/knowledge|decisions|plan` · 패키지 README · 세션 통합 프롬프트를 한 묶음으로 만든다.
-원본 입력자료(`docs/reference/`, `data/review/*.csv`)는 **담지 않는다** — 제자리에서 읽는다.
+`AGENTS.md` · `CLAUDE.md` · skills · 세션 통합 프롬프트 · `docs/knowledge|decisions|plan` · 패키지 README 를 모은다.
+
+- **zip 으로 묶지 않는다.** 한국어 파일명을 zip 에 담으면 UTF-8 플래그가 꺼져 윈도·맥 기본 해제기가 목록을 못 읽는다(실제로 겪었다). 그래서 파일명도 ASCII 로 둔다 — 내용은 전부 한국어다.
+- 원본 입력자료(`docs/reference/`, `data/review/*.csv`)는 **담지 않는다** — 제자리에서 읽는다.
 
 ## 세션 통합 프롬프트
 
