@@ -11,6 +11,7 @@
     "bootstrap": "bash scripts/setup.sh",
     "build:web": "pnpm --filter @con-ai/web build",
     "check": "pnpm typecheck && pnpm test",
+    "bundle:knowledge": "node scripts/bundle-knowledge.mjs",
     "demo:build": "VITE_DEMO=1 VITE_BASE=/con-ai/ pnpm --filter @con-ai/web build",
     "demo:serve": "node scripts/serve-demo.mjs",
     "demo:snapshot": "node scripts/build-demo-snapshot.mjs",
