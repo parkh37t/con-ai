@@ -24,6 +24,17 @@ describe('extractError — 오류 본문 해석', () => {
     expect(extractError(500, { message: '내부 오류' }, '기본')).toEqual({ message: '내부 오류 (HTTP 500)', reasons: [] })
     expect(extractError(404, {}, '기본')).toEqual({ message: '기본 (HTTP 404)', reasons: [] })
   })
+  it('기계 코드(error)보다 사람 문구(message)를 먼저 보여준다', () => {
+    // 서버는 `{error: 'screen_link_rejected', message: '…연결할 수 없다', reasons: […]}` 처럼 보낸다.
+    // 순서가 거꾸로였을 때는 영문 코드 한 줄만 보이고 공들여 쓴 거부 사유가 화면에 닿지 않았다.
+    expect(
+      extractError(400, { error: 'screen_link_rejected', message: '화면을 IA 노드에 연결할 수 없다', reasons: [{ code: 'ia_link.screen_taken', message: '이미 다른 메뉴에 붙어 있다' }] }, '기본'),
+    ).toEqual({ message: '화면을 IA 노드에 연결할 수 없다 (HTTP 400)', reasons: ['[ia_link.screen_taken] 이미 다른 메뉴에 붙어 있다'] })
+    expect(extractError(409, { error: 'stale_proposal', message: '화면에 보인 제안이 그 사이 바뀌었다' }, '기본').message).toBe('화면에 보인 제안이 그 사이 바뀌었다 (HTTP 409)')
+    // error 하나만 오는 응답(그때는 그게 사람 문구다)은 그대로 쓴다
+    expect(extractError(400, { error: '승인 불가' }, '기본').message).toBe('승인 불가 (HTTP 400)')
+  })
+
   it('본문이 문자열이면 그대로, 없으면 기본 문구', () => {
     expect(extractError(502, 'Bad Gateway', '기본')).toEqual({ message: 'Bad Gateway', reasons: [] })
     expect(extractError(503, undefined, '기본')).toEqual({ message: '기본 (HTTP 503)', reasons: [] })

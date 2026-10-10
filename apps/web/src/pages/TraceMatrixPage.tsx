@@ -16,7 +16,7 @@ import { api } from '../api.js'
 import { Badge, Empty, ErrorBox, Loading } from '../components/common.js'
 import { IS_DEMO } from '../demo-mode.js'
 import { notifyDataChanged, useAsync, useStoredValue } from '../hooks.js'
-import { PROPOSAL_INPUT_PLACEHOLDERS, PROPOSAL_KIND_LABELS, PROPOSAL_SUBMIT_LABELS, ROW_STATUS_LABELS, ROW_STATUS_TONES, canSubmit, footnotes, idCellText, issuanceFunctionId, isIssuanceProposal, kpiCells, ratioText, showsFullCoverageBanner, withStorageWarning } from '../rtm-view.js'
+import { PROPOSAL_INPUT_PLACEHOLDERS, PROPOSAL_KIND_LABELS, PROPOSAL_SUBMIT_LABELS, ROW_STATUS_LABELS, ROW_STATUS_TONES, canSubmit, footnotes, idCellText, issuanceFunctionId, kpiCells, ratioText, showsFullCoverageBanner, withStorageWarning } from '../rtm-view.js'
 import { hrefTo, hrefToScreen } from '../router.js'
 import type { IdIssueResponse, Project, RtmGapProposal, RtmReport } from '../types.js'
 
@@ -72,6 +72,7 @@ export function TraceMatrixPage({ project }: { project: Project }) {
             by={by}
             setBy={setBy}
             busy={busy}
+            screenOptions={(projectDetail.data?.screens ?? []).map((s) => s.external_id)}
             onIssue={(p, externalId, reason) =>
               run('발번했습니다', async () => {
                 if (p.ia_node_id === undefined) throw new Error('대상 IA 노드를 알 수 없습니다')
@@ -116,7 +117,8 @@ export function TraceMatrixPage({ project }: { project: Project }) {
                 const revision = await currentRevision(p.ia_node_id)
                 // 사람에게는 외부 ID, API 에는 내부 id — 섞으면 연결이 조용히 어긋난다.
                 const res = await api.patchIaNode(p.ia_node_id, { revision, by, reason, screen_plan_id: screen.id })
-                return withStorageWarning(`「${wanted}」 를 연결했습니다 (화면 ID 는 사람이 보는 값, 저장은 내부 id 로 했습니다)`, res)
+                const nodeName = rtm.data?.rows.flatMap((r) => r.ia).find((ia) => ia.id === p.ia_node_id)?.name
+                return withStorageWarning(`${nodeName === undefined ? '메뉴' : `「${nodeName}」`} 에 화면 ${wanted} 를 연결했습니다`, res)
               })
             }
             onDefineFunction={(p, name, reason) =>
@@ -264,6 +266,7 @@ function GapPanel({
   by,
   setBy,
   busy,
+  screenOptions,
   onIssue,
   onLink,
   onLinkScreen,
@@ -273,6 +276,7 @@ function GapPanel({
   by: string
   setBy: (v: string) => void
   busy: boolean
+  screenOptions: readonly string[]
   onIssue: (p: RtmGapProposal, externalId: string, reason: string) => void
   onLink: (p: RtmGapProposal, requirementId: string, reason: string) => void
   onLinkScreen: (p: RtmGapProposal, screenExternalId: string, reason: string) => void
@@ -291,7 +295,7 @@ function GapPanel({
       </label>
       <ul className="gap-list">
         {report.proposals.map((p) => (
-          <GapItem key={p.proposal_hash} proposal={p} by={by} busy={busy} onIssue={onIssue} onLink={onLink}
+          <GapItem key={p.proposal_hash} proposal={p} by={by} busy={busy} screenOptions={screenOptions} onIssue={onIssue} onLink={onLink}
           onLinkScreen={onLinkScreen} onDefineFunction={onDefineFunction} />
         ))}
       </ul>
@@ -303,6 +307,7 @@ function GapItem({
   proposal,
   by,
   busy,
+  screenOptions,
   onIssue,
   onLink,
   onLinkScreen,
@@ -311,6 +316,8 @@ function GapItem({
   proposal: RtmGapProposal
   by: string
   busy: boolean
+  /** 연결할 수 있는 화면의 **외부 ID** 목록 (사람이 보는 값). 비어 있으면 아직 못 읽었다. */
+  screenOptions: readonly string[]
   onIssue: (p: RtmGapProposal, externalId: string, reason: string) => void
   onLink: (p: RtmGapProposal, requirementId: string, reason: string) => void
   onLinkScreen: (p: RtmGapProposal, screenExternalId: string, reason: string) => void
@@ -318,7 +325,10 @@ function GapItem({
 }) {
   const [value, setValue] = useState(proposal.suggested_value ?? '')
   const [reason, setReason] = useState('')
-  const ready = canSubmit(by, reason) && value.trim().length > 0 && !busy
+  // 화면 연결은 프로젝트 화면 목록이 있어야 외부 ID → 내부 UUID 로 옮길 수 있다.
+  // 목록을 못 읽은 상태에서 버튼을 열어 두면 「잠시 뒤 다시 누르세요」만 반복된다.
+  const needsScreens = proposal.kind === 'link_screen'
+  const ready = canSubmit(by, reason) && value.trim().length > 0 && !busy && (!needsScreens || screenOptions.length > 0)
 
   const label = PROPOSAL_SUBMIT_LABELS[proposal.kind]
   const placeholder =
@@ -363,7 +373,23 @@ function GapItem({
       </div>
       <p className="gap-rationale">{proposal.rationale}</p>
       <div className="gap-form">
-        <input type="text" data-testid="trace-value" value={value} placeholder={placeholder} disabled={busy} onChange={(e) => setValue(e.target.value)} />
+        <input
+          type="text"
+          data-testid="trace-value"
+          value={value}
+          placeholder={placeholder}
+          disabled={busy}
+          {...(needsScreens ? { list: `trace-screens-${proposal.proposal_hash}` } : {})}
+          onChange={(e) => setValue(e.target.value)}
+        />
+        {/* 가진 목록을 **먼저** 보여준다 — 틀렸을 때만 알려 주던 때는 사람이 외부 ID 를 외워야 했다. */}
+        {needsScreens && (
+          <datalist id={`trace-screens-${proposal.proposal_hash}`} data-testid="trace-screen-options">
+            {screenOptions.map((id) => (
+              <option key={id} value={id} />
+            ))}
+          </datalist>
+        )}
         <input type="text" data-testid="trace-reason" value={reason} placeholder="사유 (필수)" disabled={busy} onChange={(e) => setReason(e.target.value)} />
         <button type="button" className="btn btn-primary" data-testid="trace-approve" disabled={!ready} onClick={submit} title={ready ? undefined : '승인자와 사유를 채워야 합니다'}>
           {label}

@@ -74,7 +74,10 @@ export function extractError(status: number, body: unknown, fallback: string): {
   if (typeof body === 'string' && body.trim()) return { message: body.slice(0, 500), reasons: [] }
   if (typeof body !== 'object' || body === null) return { message: withStatus(fallback), reasons: [] }
   const b = body as Record<string, unknown>
-  const message = [b['error'], b['message'], b['title']].find((v): v is string => typeof v === 'string' && v.trim().length > 0) ?? fallback
+  // **사람이 읽을 문구를 먼저 집는다.** `error` 는 보통 기계 코드(`screen_link_rejected`·`stale_proposal`)이고
+  // 한국어 설명은 `message` 에 온다. 순서가 거꾸로였을 때는 공들여 쓴 거부 사유가 화면에 닿지 않고
+  // 영문 코드 한 줄만 보였다. `error` 하나만 오는 응답(그때는 그게 사람 문구다)은 그대로 쓴다.
+  const message = [b['message'], b['title'], b['error']].find((v): v is string => typeof v === 'string' && v.trim().length > 0) ?? fallback
   const reasons = [...normalizeReasons(b['reasons']), ...normalizeReasons(b['issues']), ...normalizeReasons(b['details']), ...normalizeReasons(b['errors'])]
   return { message: withStatus(message), reasons }
 }

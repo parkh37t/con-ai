@@ -392,7 +392,11 @@ export function proposeGapFills(input: RtmInput, rows: readonly RtmRow[]): RtmGa
           proposal_hash: proposalHash(['define_function', row.requirement_external_id, ia.id]),
         })
       }
-      if (row.scr.length === 0) {
+      // 분류(category) 노드에는 화면을 직접 붙일 수 없다 (설계 §6; `canLinkScreenToIaNode` 가 거부한다).
+      // 그래서 제안하지 않는다 — 승인자·사유를 다 받고 400 을 돌려주는 **막다른 버튼**을 그리지 않기 위해서다.
+      // 행의 `gap_reason` 이 이 경우를 그대로 적는다.
+      const kindOf = input.ia_nodes.find((n) => n.id === ia.id)?.kind
+      if (row.scr.length === 0 && kindOf !== 'category') {
         out.push({
           kind: 'link_screen',
           requirement_external_id: row.requirement_external_id,

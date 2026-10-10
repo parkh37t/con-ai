@@ -382,3 +382,37 @@ describe('issue_fn_id 제안 — 대상 기능을 들고 온다', () => {
     expect(ia?.function_id).toBeUndefined()
   })
 })
+
+/**
+ * 분류 노드에는 화면을 직접 붙일 수 없다(설계 §6). 그런 제안을 내면 승인자·사유를 다 받고
+ * 400 을 돌려주는 **막다른 버튼**이 된다 — 그래서 제안하지 않는다.
+ */
+describe('link_screen 제안 — 실행할 수 있는 대상에만 낸다', () => {
+  it('화면(screen) 노드에는 제안하고, 분류(category) 노드에는 제안하지 않는다', () => {
+    const screenNode = uuid()
+    const categoryNode = uuid()
+    const r = computeRtm({
+      requirements: [req('REQ-S', 1), req('REQ-C', 1)],
+      ia_nodes: [
+        node({ id: screenNode, kind: 'screen', name: '화면 노드', requirement_ids: ['REQ-S'] }),
+        node({ id: categoryNode, kind: 'category', name: '분류 노드', requirement_ids: ['REQ-C'] }),
+      ],
+      screens: [],
+    })
+    const targets = r.proposals.filter((p) => p.kind === 'link_screen').map((p) => p.ia_node_id)
+    expect(targets).toContain(screenNode)
+    expect(targets).not.toContain(categoryNode)
+  })
+
+  it('분류 노드의 행은 제안 대신 사유로 남는다 (갭을 숨기지 않는다)', () => {
+    const categoryNode = uuid()
+    const r = computeRtm({
+      requirements: [req('REQ-C', 1)],
+      ia_nodes: [node({ id: categoryNode, kind: 'category', name: '분류 노드', requirement_ids: ['REQ-C'] })],
+      screens: [],
+    })
+    const row = r.rows.find((x) => x.requirement_external_id === 'REQ-C')
+    expect(row?.status).not.toBe('mapped')
+    expect(row?.gap_reason ?? '').not.toBe('')
+  })
+})
