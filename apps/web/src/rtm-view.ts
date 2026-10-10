@@ -71,7 +71,14 @@ export function kpiCells(summary: RtmSummary): KpiCell[] {
       note: `총계(분모 아님) · 발번 ${summary.functions_issued}`,
       alert: false,
     },
-    { key: 'scr', label: '화면 SCR', value: String(summary.screens_total), note: '총계(분모 아님)', alert: false },
+    {
+      key: 'scr',
+      label: '화면 SCR',
+      value: String(summary.screens_total),
+      // 「연결된 화면」과 「만들어진 화면」을 한 칸에서 구분해 적는다 — 연결만 된 화면은 분자에 들어가지 않는다.
+      note: `총계(분모 아님) · 생성 ${summary.screens_built}`,
+      alert: false,
+    },
     {
       key: 'unmapped',
       label: '미매핑',
@@ -91,6 +98,11 @@ export function footnotes(summary: RtmSummary): string[] {
   ]
   if (summary.element_tagging.not_run_screens.length > 0) {
     notes.push(`요소 태깅 미실행 화면 ${summary.element_tagging.not_run_screens.length}건 (아직 생성되지 않음): ${summary.element_tagging.not_run_screens.join(', ')}`)
+  }
+  if (summary.screens_built < summary.screens_total) {
+    notes.push(
+      `화면 ${summary.screens_total}건 중 목업이 만들어진 것은 ${summary.screens_built}건이다. 메뉴에 «연결» 만 된 화면은 커버리지 분자에 넣지 않는다 — 그 행은 부분 매핑으로 남는다.`,
+    )
   }
   if (summary.element_tagging.refs_stale > 0) {
     notes.push(`화면을 다시 만들어 사라진 요소 참조 ${summary.element_tagging.refs_stale}건 — 사람이 다시 연결해야 한다 (자동 복구하지 않는다).`)

@@ -9,6 +9,10 @@
  * - **한 REQ 가 여러 화면에 걸쳐도 분자는 1 이다.** 화면 수를 분자로 세면 100% 를 넘는다.
  * - **분모가 0 이면 비율은 null 이다.** 0/0 을 100% 로 표시하지 않는다 (coverage.ts 와 같은 규칙).
  * - 체인이 SCR 까지 닿아야 `mapped` 다. IA 까지만 닿으면 `partial` 이며 통과로 세지 않는다.
+ * - **화면이 «연결» 된 것과 «생성» 된 것은 다르다.** `screen_plan_id` 만 붙은 화면(목업 없음)을
+ *   `mapped` 로 세면 목업이 0건인데 커버리지가 100% 로 뜬다. 그래서 행의 화면이 **모두 생성된 뒤**에만
+ *   `mapped` 다. 하나라도 미생성이면 `partial` 이고 어느 화면이 비었는지 `gap_reason` 에 적는다.
+ *   (부분 생성을 `mapped` 로 올리지 않는다 — 분자는 REQ 당 1 이므로 그 1 이 통째로 확인돼야 한다.)
  *
  * 여기서 하지 않는 것:
  * - 수용 테스트(AcceptanceTest) 엔터티가 아직 없으므로 「검증 완료」는 계산하지 않고 `not_run` 으로 돌려준다.
@@ -35,7 +39,12 @@ export interface RtmScreen {
   external_id: string
   title: string
   status: 'draft' | 'review' | 'approved'
-  current_revision_id?: string | undefined
+  /**
+   * 현재 revision. **없으면 아직 생성되지 않은 화면**이다.
+   * 데모 스냅샷은 이 값을 **`null`** 로 직렬화하므로 타입에 null 을 넣어 두고 `== null` 로 둘 다 잡는다
+   * (`=== undefined` 만 비교하면 null 을 «만들어짐» 으로 오판한다 — plan.ts 와 같은 함정).
+   */
+  current_revision_id?: string | null | undefined
 }
 
 /** 현재 revision 의 명세가 담고 있는 요소·동작 로컬 ID 집합. 없으면 «아직 생성 안 됨». */
@@ -85,6 +94,8 @@ export interface RtmScrCell {
   external_id: string
   title: string
   status: 'draft' | 'review' | 'approved'
+  /** 목업이 실제로 만들어졌는가 (`current_revision_id` 가 있는가). 연결만 된 화면은 false 다. */
+  built: boolean
 }
 
 export interface RtmRow {
@@ -133,6 +144,8 @@ export interface RtmSummary {
   functions_issued: number
   /** 총계이지 비율의 분모가 아니다 — 화면에 그렇게 적는다. */
   screens_total: number
+  /** 그중 목업이 실제로 만들어진 화면 수. `screens_total` 과 다르면 화면에 그 차이를 적는다. */
+  screens_built: number
   test_pass: RtmTestPass
   element_tagging: RtmElementTagging
 }
@@ -177,6 +190,14 @@ export function proposalHash(parts: readonly string[]): string {
     h = Math.imul(h, 0x01000193) >>> 0
   }
   return h.toString(16).padStart(8, '0')
+}
+
+/**
+ * 목업이 만들어진 화면인가.
+ * `== null` 로 null·undefined 를 함께 잡는다 — 데모 스냅샷이 `null` 로 직렬화하기 때문이다.
+ */
+function isBuilt(screen: Pick<RtmScreen, 'current_revision_id'>): boolean {
+  return screen.current_revision_id != null
 }
 
 /** IA 노드가 담당하는 요구사항 외부 ID 집합. */
@@ -244,6 +265,17 @@ function taggingOf(input: RtmInput): RtmElementTagging {
   const byScreen = new Map(indexes?.map((i) => [i.screen_plan_id, new Set(i.element_or_action_ids)]) ?? [])
   const screenLabel = new Map(input.screens.map((s) => [s.id, s.external_id]))
 
+  // 메뉴에 붙었지만 아직 만들어지지 않은 화면은 **요소 참조가 하나도 없어도** 판정할 수 없다.
+  // element_refs 만 돌면 (add_function 은 그것을 만들지 않으므로) 이 목록이 영원히 비어
+  // 각주가 아예 뜨지 않는다 — 미생성 화면이 조용히 «문제 없음» 으로 읽히던 자리다.
+  const screensById = new Map(input.screens.map((s) => [s.id, s]))
+  for (const node of input.ia_nodes) {
+    if (node.screen_plan_id === undefined) continue
+    const linked = screensById.get(node.screen_plan_id)
+    if (linked === undefined) continue // 고아 참조는 태깅이 아니라 행 상태가 다룬다
+    if (!isBuilt(linked)) notRun.add(linked.external_id)
+  }
+
   for (const node of input.ia_nodes) {
     for (const fn of node.functions ?? []) {
       for (const ref of fn.element_refs ?? []) {
@@ -289,7 +321,7 @@ export function computeRtm(input: RtmInput): RtmReport {
     const scr: RtmScrCell[] = [...scrIds]
       .map((id) => screensById.get(id))
       .filter((s): s is RtmScreen => s !== undefined)
-      .map((s) => ({ id: s.id, external_id: s.external_id, title: s.title, status: s.status }))
+      .map((s) => ({ id: s.id, external_id: s.external_id, title: s.title, status: s.status, built: isBuilt(s) }))
 
     let status: RtmRowStatus
     let gapReason: string | undefined
@@ -306,6 +338,11 @@ export function computeRtm(input: RtmInput): RtmReport {
     } else if (scr.length === 0) {
       status = 'partial'
       gapReason = 'IA 노드는 연결됐지만 화면(SCR)이 연결되지 않았다'
+    } else if (scr.some((s) => !s.built)) {
+      // 연결만 된 화면을 mapped 로 세면 목업 0건에 커버리지 100% 가 뜬다 (파일 머리말 규칙).
+      const missing = scr.filter((s) => !s.built).map((s) => s.external_id)
+      status = 'partial'
+      gapReason = `화면은 연결됐지만 아직 생성되지 않았다 — 미생성 ${missing.length}건: ${missing.join(', ')}`
     } else {
       status = 'mapped'
     }
@@ -348,6 +385,7 @@ export function computeRtm(input: RtmInput): RtmReport {
     functions_total: fnTotal,
     functions_issued: fnIssued,
     screens_total: input.screens.length,
+    screens_built: input.screens.filter(isBuilt).length,
     test_pass: { status: 'not_run', reason: '수용 테스트(AcceptanceTest)를 저장하는 곳이 아직 없어 실행하지 않았다 — 미실행은 통과가 아니다' },
     element_tagging: taggingOf(input),
   }

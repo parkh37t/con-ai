@@ -6,7 +6,8 @@
  * (a) 이 화면이 브라우저 안에서 도는 사실을 먼저 알린다 (더미와 실제를 구분해 적는다).
  * (b) 발번 제안에 계산된 초안 번호가 들어 있고, 사유 없이는 누를 수 없다.
  * (c) 기능 정의 → IA 발번을 거치면 커버리지와 표가 실제로 바뀐다.
- * (d) **새로고침 후에도 남는다** — 이 브라우저에 저장되기 때문이다 (CLAUDE.md).
+ * (d) **연결만 된 화면은 mapped 가 아니다** — 목업이 없으면 커버리지 분자에 들어가지 않는다.
+ * (e) **새로고침 후에도 남는다** — 이 브라우저에 저장되기 때문이다 (CLAUDE.md).
  */
 import { expect, test } from '@playwright/test'
 
@@ -56,6 +57,25 @@ test('정적 데모 ID 매핑: 갭 → 기능 정의 → IA 발번 → 새로고
     // 기능을 추가해도 번호는 아직 없다 — 발번은 따로 누른다
     await expect(rowStatus('REQ-QT-001')).toContainText('FN 코드 미발번')
     await expect(page.getByTestId('trace-kpi-coverage')).toContainText('40%')
+  })
+
+  await test.step('화면이 아직 만들어지지 않았으면 기능을 정의해도 mapped 가 아니다', async () => {
+    // 스냅샷에서 「견적 상세」(REQ-QT-002) 의 화면은 메뉴에만 붙어 있고 목업이 없다.
+    // 예전에는 이 상태에서도 mapped 로 세어 커버리지가 거짓으로 올랐다.
+    const define = page.locator('[data-testid="trace-proposal"][data-kind="define_function"][data-req="REQ-QT-002"]')
+    await define.getByTestId('trace-value').fill('견적 상세 조회')
+    await define.getByTestId('trace-reason').fill('갭 제안 승인 (정적 데모 e2e)')
+    await define.getByTestId('trace-approve').click()
+    await expect(page.getByTestId('trace-notice')).toBeVisible()
+    const row = rowStatus('REQ-QT-002')
+    await expect(row).toHaveAttribute('data-status', 'partial')
+    await expect(row).toContainText('아직 생성되지 않았다')
+    await expect(row).toContainText('(미생성)')
+    // 분자가 오르지 않는다 — 40% 그대로다.
+    await expect(page.getByTestId('trace-kpi-coverage')).toContainText('40%')
+    // 세지 못한 것을 각주에 자백한다 (화면 3건 중 생성 1건).
+    await expect(page.getByTestId('trace-kpi-scr')).toContainText('생성 1')
+    await expect(page.getByTestId('trace-footnotes')).toContainText('목업이 만들어진 것은 1건')
   })
 
   let issuedId = ''

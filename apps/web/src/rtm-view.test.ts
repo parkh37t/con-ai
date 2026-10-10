@@ -16,6 +16,7 @@ function summary(over: Partial<RtmSummary> = {}): RtmSummary {
     functions_total: 0,
     functions_issued: 0,
     screens_total: 3,
+    screens_built: 1,
     test_pass: { status: 'not_run', reason: '수용 테스트가 아직 없다 — 미실행은 통과가 아니다' },
     element_tagging: { refs_total: 0, refs_live: 0, refs_stale: 0, not_run_screens: [] },
     ...over,

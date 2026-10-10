@@ -236,8 +236,10 @@ function ChainTable({ report }: { report: RtmReport }) {
                       <span className="muted">—</span>
                     ) : (
                       row.scr.map((s) => (
-                        <a key={s.id} className="rtm-chip" href={hrefToScreen('generate', s.id)} title={s.title}>
+                        // 연결만 된 화면을 다 만들어진 것처럼 적지 않는다 — 누르면 생성 화면으로 간다.
+                        <a key={s.id} className="rtm-chip" href={hrefToScreen('generate', s.id)} title={s.built ? s.title : `${s.title} — 목업이 아직 없습니다`} data-built={s.built ? '1' : '0'}>
                           {s.external_id}
+                          {!s.built && <span className="muted"> (미생성)</span>}
                         </a>
                       ))
                     )}
@@ -347,7 +349,7 @@ function GapItem({
   }
 
   return (
-    <li className="gap-item" data-testid="trace-proposal" data-kind={proposal.kind}>
+    <li className="gap-item" data-testid="trace-proposal" data-kind={proposal.kind} data-req={proposal.requirement_external_id ?? ''}>
       <div className="gap-head">
         <Badge tone="blue">{PROPOSAL_KIND_LABELS[proposal.kind]}</Badge>
         {proposal.requirement_external_id && <code>{proposal.requirement_external_id}</code>}

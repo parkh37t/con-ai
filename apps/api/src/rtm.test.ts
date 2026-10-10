@@ -8,7 +8,7 @@
  * (d) 발번 순서 — IA 가 먼저다. FN 계층부가 소속 IA 와 다르면 거부.
  * (e) 서버가 번호를 다시 계산해 요청값과 다르면 그 사실을 응답에 싣는다.
  * (f) 개명 — 옛 값이 별칭으로 남는다. 낡은 revision·바뀐 제안은 409.
- * (g) 갭을 모두 메우면 커버리지 100% 이고 G1 추적성이 통과한다.
+ * (g) 화면이 «연결» 만 된 상태는 mapped 가 아니다 — 목업이 생성돼야 분자에 들어간다.
  */
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -18,6 +18,7 @@ import { FixtureAdapter } from '@con-ai/model-adapter'
 import type { RenderInput, RenderOutput } from '@con-ai/renderer'
 import type { RtmReport } from '@con-ai/domain'
 import type { IANode } from '@con-ai/schemas'
+import type { ScreenDocument } from '@con-ai/worker-generation'
 import { createApp } from './app.js'
 import { SEED, seedIfEmpty } from './seed.js'
 import { SqliteStore } from './store.js'
@@ -70,6 +71,18 @@ function harness() {
   return { store, get, post, patch, rtm, node }
 }
 
+/**
+ * 화면을 «생성됨» 으로 만든다 — 시드 화면 3개는 메뉴에만 붙은 **미생성** 화면이다
+ * (`SEED_SCREENS` 는 `current_revision_id` 가 없고 screen_revision 문서도 만들지 않는다).
+ * 여기서는 생성 파이프라인을 돌리지 않으므로 revision 문서를 직접 넣는다 — RTM 이 읽는 것은 element_index 뿐이다.
+ */
+function markBuilt(h: ReturnType<typeof harness>, screenId: string, revisionId: string): void {
+  const screen = h.store.get<ScreenDocument>('screen', screenId)
+  expect(screen, '시드에 그 화면이 있어야 한다').toBeDefined()
+  h.store.put('screen_revision', revisionId, { id: revisionId, screen_plan_id: screenId, element_index: [] }, 0)
+  h.store.put<ScreenDocument>('screen', screenId, { ...screen!.data, current_revision_id: revisionId, status: 'review' }, screen!.revision)
+}
+
 const ACTOR = { by: '기획자', reason: '갭 제안 승인' }
 const LIST_NODE = SEED.ia_nodes.list
 const CREATE_NODE = SEED.ia_nodes.create
@@ -103,6 +116,10 @@ describe('GET /api/projects/:id/rtm — 시드 상태', () => {
     const h = harness()
     const r = await h.rtm()
     expect(r.summary.element_tagging).toMatchObject({ refs_total: 0, refs_stale: 0 })
+    // 예전에는 `refs_total: 0` 만 보고 넘어갔다 — 그래서 미생성 화면이 각주에 한 줄도 안 뜨는 것을 놓쳤다.
+    // 시드 화면 3개는 모두 메뉴에 붙었고 모두 미생성이므로 세 개가 다 나와야 한다.
+    expect(r.summary.element_tagging.not_run_screens).toEqual(['SAMPLE-quote-create-popup', 'SAMPLE-quote-detail', 'SAMPLE-quote-list'])
+    expect(r.summary).toMatchObject({ screens_total: 3, screens_built: 0 })
   })
 
   it('G1 추적성은 통과가 아니고 이유를 적는다', async () => {
@@ -310,16 +327,44 @@ describe('POST /api/ia-nodes/:id/id-relabels — 개명은 이력을 남긴다',
 })
 
 describe('갭을 메우면 커버리지가 오른다', () => {
-  it('연결 + 기능 정의로 REQ 하나가 mapped 가 된다', async () => {
-    const h = harness()
+  const REVISION = 'd0000000-0000-4000-8000-000000000001'
+
+  /** 기능을 하나 추가해 REQ-QT-001 의 체인을 FN 까지 잇는다 (화면은 시드에서 이미 붙어 있다). */
+  const addFunction = async (h: ReturnType<typeof harness>) => {
     const v0 = h.node(LIST_NODE)!
-    await h.patch(`/api/ia-nodes/${LIST_NODE}`, { ...ACTOR, revision: v0.revision, add_function: { name: '견적 목록 조회' } })
+    const res = await h.patch(`/api/ia-nodes/${LIST_NODE}`, { ...ACTOR, revision: v0.revision, add_function: { name: '견적 목록 조회' } })
+    expect(res.status, await res.clone().text()).toBe(200)
+  }
+
+  it('연결 + 기능 정의만으로는 mapped 가 아니다 — 화면이 아직 생성되지 않았다', async () => {
+    // 이 테스트는 예전에 `mapped` 를 단언하며 **부풀림을 고정**하고 있었다.
+    // 시드 화면은 메뉴에 붙었을 뿐 목업이 없는데, 그 상태로 커버리지가 올라갔다.
+    const h = harness()
+    await addFunction(h)
+    const r = await h.rtm()
+    const row = r.rows.find((x) => x.requirement_external_id === 'REQ-QT-001')
+    expect(row?.fn).toHaveLength(1)
+    expect(row?.scr[0]?.external_id).toBe('SAMPLE-quote-list')
+    expect(row?.scr[0]?.built).toBe(false)
+    expect(row?.status).toBe('partial')
+    expect(row?.gap_reason).toContain('아직 생성되지 않았다')
+    expect(r.summary.mapped).toBe(0)
+    expect(r.summary.screens_built).toBe(0)
+    expect(r.g1_traceability.passed).toBe(false)
+  })
+
+  it('화면까지 생성되면 그 행이 mapped 가 된다', async () => {
+    const h = harness()
+    await addFunction(h)
+    markBuilt(h, SEED.screens['SAMPLE-quote-list'], REVISION)
     const r = await h.rtm()
     const row = r.rows.find((x) => x.requirement_external_id === 'REQ-QT-001')
     expect(row?.status).toBe('mapped')
-    expect(row?.fn).toHaveLength(1)
-    expect(row?.scr[0]?.external_id).toBe('SAMPLE-quote-list')
+    expect(row?.scr[0]?.built).toBe(true)
     expect(r.summary.mapped).toBeGreaterThan(0)
+    expect(r.summary.screens_built).toBe(1)
+    // 남은 두 화면은 여전히 미생성이므로 각주에서 사라지지 않는다.
+    expect(r.summary.element_tagging.not_run_screens).toEqual(['SAMPLE-quote-create-popup', 'SAMPLE-quote-detail'])
   })
 })
 

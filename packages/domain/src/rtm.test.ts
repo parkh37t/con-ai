@@ -23,8 +23,13 @@ function req(external_id: string, ui: number, nonUi = 0): RtmRequirement {
   return { external_id, title: `${external_id} 제목`, criteria }
 }
 
-function screen(id: string, external_id: string): RtmScreen {
-  return { id, external_id, title: `${external_id} 화면`, status: 'draft' }
+/**
+ * `built` 가 false 면 **메뉴에 연결만 된 미생성 화면**이다 (목업 없음).
+ * 기본값을 true 로 두어 체인 테스트들이 「연결」 이 아니라 「닿았는가」 를 계속 보게 한다 —
+ * 미생성 분기는 아래에 자기 테스트가 따로 있다.
+ */
+function screen(id: string, external_id: string, built = true): RtmScreen {
+  return { id, external_id, title: `${external_id} 화면`, status: 'draft', ...(built ? { current_revision_id: `rev-${id}` } : {}) }
 }
 
 function issued() {
@@ -107,6 +112,50 @@ describe('행 상태 분류', () => {
     const r = computeRtm(chain({ link: true, fn: true, scr: true }).input)
     expect(r.rows[0]?.status).toBe('mapped')
     expect(r.rows[0]?.gap_reason).toBeUndefined()
+  })
+
+  it('화면이 «연결» 만 되고 아직 생성되지 않았으면 mapped 가 아니다', () => {
+    // 여기가 커버리지가 거짓으로 오르던 자리다: `screen_plan_id` 만 붙어도 mapped 로 셌기 때문에
+    // 목업이 0건인데 커버리지 100% · G1 통과가 떴다. 연결과 생성은 다른 사건이다.
+    const sid = uuid()
+    const n = node({ id: uuid(), kind: 'screen', screen_plan_id: sid, requirement_ids: ['REQ-1'], functions: [{ id: uuid(), name: 'f', kind: 'normal' }] })
+    const r = computeRtm({ requirements: [req('REQ-1', 1)], ia_nodes: [n], screens: [screen(sid, 'S-1', false)] })
+    expect(r.rows[0]?.status).toBe('partial')
+    expect(r.rows[0]?.gap_reason).toContain('아직 생성되지 않았다')
+    expect(r.rows[0]?.gap_reason).toContain('S-1') // 어느 화면이 비었는지 적는다
+    expect(r.rows[0]?.scr[0]?.built).toBe(false)
+    expect(r.summary.mapped).toBe(0)
+    expect(r.summary.req_to_scr_ratio).toBe(0)
+    expect(r.summary).toMatchObject({ screens_total: 1, screens_built: 0 })
+    expect(r.g1_traceability.passed).toBe(false)
+    // 각주가 실제로 뜬다 — 예전에는 element_refs 만 세서 이 목록이 늘 비어 있었다.
+    expect(r.summary.element_tagging.not_run_screens).toEqual(['S-1'])
+  })
+
+  it('데모 스냅샷의 current_revision_id: null 을 «생성됨» 으로 오판하지 않는다', () => {
+    // 스냅샷은 이 값을 null 로 직렬화한다. `=== undefined` 만 비교하면 null 이 통과한다.
+    const sid = uuid()
+    const n = node({ id: uuid(), kind: 'screen', screen_plan_id: sid, requirement_ids: ['REQ-1'], functions: [{ id: uuid(), name: 'f', kind: 'normal' }] })
+    const nulled = { ...screen(sid, 'S-1'), current_revision_id: null } as unknown as RtmScreen
+    const r = computeRtm({ requirements: [req('REQ-1', 1)], ia_nodes: [n], screens: [nulled] })
+    expect(r.rows[0]?.status).toBe('partial')
+    expect(r.summary.screens_built).toBe(0)
+  })
+
+  it('걸친 화면 중 하나라도 미생성이면 partial 이다 (부분 생성을 분자로 올리지 않는다)', () => {
+    const s1 = uuid()
+    const s2 = uuid()
+    const parent = uuid()
+    const nodes = [
+      node({ id: parent, requirement_ids: ['REQ-1'], functions: [{ id: uuid(), name: 'f', kind: 'normal' }] }),
+      node({ id: uuid(), parent_id: parent, kind: 'screen', screen_plan_id: s1 }),
+      node({ id: uuid(), parent_id: parent, kind: 'screen', screen_plan_id: s2, order: 1 }),
+    ]
+    const r = computeRtm({ requirements: [req('REQ-1', 1)], ia_nodes: nodes, screens: [screen(s1, 'S-1'), screen(s2, 'S-2', false)] })
+    expect(r.rows[0]?.status).toBe('partial')
+    expect(r.rows[0]?.gap_reason).toContain('S-2')
+    expect(r.rows[0]?.gap_reason).not.toContain('S-1') // 만들어진 화면을 미생성으로 적지 않는다
+    expect(r.summary).toMatchObject({ screens_total: 2, screens_built: 1 })
   })
 
   it('UI 수용조건이 0건이면 non_ui_only 이고, 분모에서 빼지 않는다', () => {
@@ -293,6 +342,7 @@ describe('G1 추적성 판정', () => {
     functions_total: 1,
     functions_issued: 1,
     screens_total: 1,
+    screens_built: 1,
     test_pass: { status: 'not_run' as const, reason: 'r' },
     element_tagging: { refs_total: 0, refs_live: 0, refs_stale: 0, not_run_screens: [] },
   }

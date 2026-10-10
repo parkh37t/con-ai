@@ -115,6 +115,8 @@ export interface RtmScrCell {
   external_id: string
   title: string
   status: ScreenStatus
+  /** 목업이 실제로 만들어졌는가. 메뉴에 «연결» 만 된 화면은 false 다 — 표에 «미생성» 이라고 적는다. */
+  built: boolean
 }
 
 export interface RtmRow {
@@ -142,6 +144,8 @@ export interface RtmSummary {
   functions_total: number
   functions_issued: number
   screens_total: number
+  /** 그중 목업이 만들어진 화면 수. screens_total 과 다르면 그 차이를 화면에 적는다. */
+  screens_built: number
   test_pass: { status: 'not_run'; reason: string }
   element_tagging: { refs_total: number; refs_live: number; refs_stale: number; not_run_screens: string[] }
 }
