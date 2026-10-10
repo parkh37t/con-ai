@@ -344,3 +344,161 @@ describe('이 브라우저에 남는다 — 새로고침 후에도 이어진다'
     expect((res.data as { storage_warning?: string }).storage_warning).toContain('새로고침')
   })
 })
+
+/**
+ * 화면 ↔ IA 연결 (`link_screen` 제안의 실제 쓰기 경로).
+ *
+ * 예전에는 이 경로가 없어서 「화면 연결」 승인이 `add_function` 으로 샜다 — 화면은 안 붙고
+ * 사유·행위자가 붙은 **거짓 기능**이 IA 노드에 남았다. 규칙은 서버와 같은 `@con-ai/domain` 이다.
+ */
+describe('PATCH /api/ia-nodes/:id — 화면 연결 (screen_plan_id)', () => {
+  const NODE_FREE = 'a2000000-0000-4000-8000-000000000009'
+  /** 아직 어느 메뉴에도 붙지 않은 화면 (기본 fixture 의 두 화면은 둘 다 이미 붙어 있다). */
+  const SCREEN_FREE = 'a4000000-0000-4000-8000-000000000007'
+
+  /** 화면이 붙지 않은 화면 노드와 빈 화면을 둔 상태 (기존 테스트의 기대값을 건드리지 않게 따로 만든다). */
+  function stateWithFreeNode(): DemoState {
+    const f = files()
+    const detail = f.snapshot[`/api/projects/${PROJECT}`] as ProjectDetail
+    detail.ia_nodes = [
+      ...detail.ia_nodes,
+      { id: NODE_FREE, project_id: PROJECT, parent_id: NODE_CATEGORY, name: '견적 상세', order: 2, portal: '파트너 포털', kind: 'screen', requirement_ids: ['REQ-QT-002'] },
+    ]
+    detail.screens = [...detail.screens, { id: SCREEN_FREE, external_id: 'SAMPLE-quote-detail', title: '견적 상세', status: 'draft', revision_count: 0, open_comments: 0 }]
+    return createDemoState(f, { now: () => 0 })
+  }
+
+  function link(state: DemoState, nodeId: string, screenPlanId: string, revision = 1) {
+    return handleWith(state, 'PATCH', `/api/ia-nodes/${nodeId}`, { revision, by: '기획자', reason: 'RTM 갭 승인', screen_plan_id: screenPlanId })
+  }
+
+  it('빈 화면 노드에 같은 프로젝트의 화면을 붙이면 저장되고 사유가 남는다', () => {
+    useMemoryStore()
+    const state = stateWithFreeNode()
+    // 승인 전: 이 노드에 화면이 없어 link_screen 제안이 나온다
+    expect(rtm(state).proposals.some((p) => p.kind === 'link_screen' && p.ia_node_id === NODE_FREE)).toBe(true)
+
+    const res = link(state, NODE_FREE, SCREEN_FREE)
+    expect(res.status, JSON.stringify(res.data)).toBe(200)
+    const node = (res.data as { ia_node: IANode }).ia_node
+    expect(node.screen_plan_id).toBe(SCREEN_FREE)
+    expect(node.change_reason).toBe('RTM 갭 승인')
+    // 기능을 만들지 않는다 — 예전 버그는 여기에 FN 을 추가했다
+    expect(node.functions ?? []).toEqual([])
+  })
+
+  it('없는 화면·다른 프로젝트 화면은 붙이지 않는다 (고아 참조를 만들지 않는다)', () => {
+    useMemoryStore()
+    const state = stateWithFreeNode()
+    const res = link(state, NODE_FREE, 'a4000000-0000-4000-8000-000000000404')
+    expect(res.status).toBe(400)
+    expect(res.data).toMatchObject({ error: 'screen_link_rejected' })
+    expect((res.data as { reasons: { code: string }[] }).reasons.map((r) => r.code)).toContain('ia_link.screen_not_found')
+  })
+
+  it('분류(category) 노드에는 붙이지 않는다', () => {
+    useMemoryStore()
+    const res = link(stateWithFreeNode(), NODE_CATEGORY, SCREEN_FREE)
+    expect(res.status).toBe(400)
+    expect((res.data as { reasons: { code: string }[] }).reasons.map((r) => r.code)).toContain('ia_link.category_node')
+  })
+
+  it('다른 메뉴에 이미 붙은 화면은 붙이지 않는다 — 한 화면은 메뉴 한 곳에만', () => {
+    useMemoryStore()
+    const res = link(stateWithFreeNode(), NODE_FREE, SCREEN_LIST)
+    expect(res.status).toBe(400)
+    const codes = (res.data as { reasons: { code: string }[] }).reasons.map((r) => r.code)
+    expect(codes).toContain('ia_link.screen_taken')
+  })
+
+  it('이미 화면이 붙은 노드에는 덮어쓰지 않는다 (연결 교체는 별개 작업)', () => {
+    useMemoryStore()
+    const res = link(stateWithFreeNode(), NODE_POPUP, SCREEN_POPUP)
+    expect(res.status).toBe(400)
+    expect((res.data as { reasons: { code: string }[] }).reasons.map((r) => r.code)).toContain('ia_link.already_linked')
+  })
+
+  it('쓸 수 없는 screen_plan_id 를 조용히 무시하지 않는다 (서버와 같이 400)', () => {
+    useMemoryStore()
+    for (const bad of ['', '   ', 123, null]) {
+      const res = handleWith(stateWithFreeNode(), 'PATCH', `/api/ia-nodes/${NODE_FREE}`, { revision: 1, by: '기획자', reason: '연결', screen_plan_id: bad })
+      expect(res.status, JSON.stringify(bad)).toBe(400)
+      expect(res.data, JSON.stringify(bad)).toMatchObject({ error: 'invalid_request' })
+    }
+  })
+
+  it('저장이 이 브라우저에 남지 않으면 그 사실을 응답에 싣는다', () => {
+    const storage = new MemoryStorage()
+    storage.quotaFull = true
+    setBrowserRuntime({ store: new BrowserStore(() => storage), now: () => '2026-09-06T00:00:00.000Z' })
+    const res = link(stateWithFreeNode(), NODE_FREE, SCREEN_FREE)
+    expect(res.status).toBe(200)
+    expect(res.data).toHaveProperty('storage_warning')
+  })
+
+  it('사유 없이 연결하지 않는다', () => {
+    useMemoryStore()
+    const res = handleWith(stateWithFreeNode(), 'PATCH', `/api/ia-nodes/${NODE_FREE}`, { revision: 1, by: '기획자', reason: '', screen_plan_id: SCREEN_FREE })
+    expect(res.status).toBe(400)
+  })
+})
+
+/**
+ * 한 노드에 미발번 기능이 2개 이상일 때 **둘째도 발번된다.**
+ * 예전에는 stale 검사가 (kind, 노드) 로만 제안을 찾아 늘 첫 건이 집혔고, 둘째 제안의 해시와
+ * 어긋나 409 「제안이 바뀌었다」가 났다 — 새로고침해도 사라지지 않는 거짓 안내였다.
+ */
+describe('POST id-issuances — 미발번 기능이 여러 건이어도 각자 발번된다', () => {
+  const FN_A = 'a7000000-0000-4000-8000-00000000000a'
+  const FN_B = 'a7000000-0000-4000-8000-00000000000b'
+
+  function stateWithTwoFunctions(): DemoState {
+    const f = files()
+    const detail = f.snapshot[`/api/projects/${PROJECT}`] as ProjectDetail
+    detail.ia_nodes = detail.ia_nodes.map((n) =>
+      n.id === NODE_LIST
+        ? { ...n, external_id: 'IA-1.1.1', issued: { by: '기획자', at: '2026-09-05T00:00:00.000Z', reason: '초기' }, functions: [{ id: FN_A, name: '검색', kind: 'normal' as const }, { id: FN_B, name: '다운로드', kind: 'normal' as const }] }
+        : n,
+    )
+    return createDemoState(f, { now: () => 0 })
+  }
+
+  it('둘째 기능의 제안을 그 제안의 해시로 승인하면 409 가 아니라 발번된다', () => {
+    useMemoryStore()
+    const state = stateWithTwoFunctions()
+    const proposals = rtm(state).proposals.filter((p) => p.kind === 'issue_fn_id' && p.ia_node_id === NODE_LIST)
+    expect(proposals).toHaveLength(2)
+    const second = proposals.find((p) => p.function_id === FN_B)
+    expect(second, '제안이 대상 기능을 들고 와야 한다').toBeDefined()
+
+    const res = issue(state, NODE_LIST, {
+      external_id: second?.suggested_value ?? 'FN-1.1.1-02',
+      by: '기획자',
+      reason: '둘째 기능 발번',
+      revision: 1,
+      function_id: FN_B,
+      expected_proposal_hash: second?.proposal_hash,
+    })
+    expect(res.status, JSON.stringify(res.data)).toBe(200)
+    const node = (res.data as IdIssueResponse).ia_node
+    expect(node.functions?.find((f) => f.id === FN_B)?.external_id).toBeTruthy()
+    // 첫 기능은 건드리지 않는다
+    expect(node.functions?.find((f) => f.id === FN_A)?.external_id).toBeUndefined()
+  })
+
+  it('남의 제안 해시로는 승인되지 않는다 (stale 검사가 살아 있다)', () => {
+    useMemoryStore()
+    const state = stateWithTwoFunctions()
+    const first = rtm(state).proposals.find((p) => p.kind === 'issue_fn_id' && p.function_id === FN_A)
+    const res = issue(state, NODE_LIST, {
+      external_id: 'FN-1.1.1-02',
+      by: '기획자',
+      reason: '엉뚱한 해시',
+      revision: 1,
+      function_id: FN_B,
+      expected_proposal_hash: first?.proposal_hash,
+    })
+    expect(res.status).toBe(409)
+    expect(res.data).toMatchObject({ error: 'stale_proposal' })
+  })
+})

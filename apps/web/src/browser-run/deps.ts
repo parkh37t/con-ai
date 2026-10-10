@@ -43,6 +43,9 @@ export {
 } from '../../../../packages/domain/src/index.js'
 export type { RtmInput, RtmSpecIndex, RtmReport as DomainRtmReport } from '../../../../packages/domain/src/rtm.js'
 export type { MenuIaNode, MenuItem, MenuScreen, ScreenMenus } from '../../../../packages/domain/src/menu.js'
+// 화면 ↔ IA 연결 규칙 — 서버와 같은 한 벌을 쓴다 (분류 노드·없는 화면·중복 연결을 막는다).
+export { canLinkScreenToIaNode, linkScreenToIaNode } from '../../../../packages/domain/src/ia-link.js'
+export type { LinkableScreen, LinkScreenInput } from '../../../../packages/domain/src/ia-link.js'
 
 export { IANode as IANodeSchema } from '../../../../packages/schemas/src/screen.js'
 export type { IANode as IANodeShape } from '../../../../packages/schemas/src/screen.js'

@@ -9,22 +9,7 @@
  * - **새로고침 후에도 남는다.** 바뀐 노드는 이 브라우저의 localStorage 에 쌓인다(`browser-run/store.ts`).
  *   다른 사람과 공유되지 않으며 원본 스냅샷 파일은 그대로다.
  */
-import {
-  DomainRuleError,
-  IANodeSchema,
-  assertAllowed,
-  canIssueIaExternalId,
-  computeRtm,
-  issueFnExternalId,
-  issueIaExternalId,
-  proposeFnExternalId,
-  proposeIaExternalId,
-  relabelFnExternalId,
-  relabelIaExternalId,
-  type IANodeShape,
-  type RtmInput,
-  type RtmSpecIndex,
-} from './browser-run/deps.js'
+import { DomainRuleError, IANodeSchema, assertAllowed, canIssueIaExternalId, computeRtm, issueFnExternalId, issueIaExternalId, linkScreenToIaNode, proposeFnExternalId, proposeIaExternalId, relabelFnExternalId, relabelIaExternalId, type IANodeShape, type RtmInput, type RtmSpecIndex } from './browser-run/deps.js'
 import { browserRuntime } from './browser-run/runtime.js'
 import type { DemoResponse } from './demo-api.js'
 import type { IANode, ProjectDetail, RevisionDetail } from './types.js'
@@ -235,6 +220,31 @@ export function demoPatchIaNode(state: DemoRtmState, nodeId: string, body: unkno
     }
   }
 
+  if (rec['screen_plan_id'] !== undefined) {
+    // 쓸 수 없는 값을 **조용히 무시하지 않는다.** 예전에는 빈 문자열·문자열 아닌 값이 오면 연결을
+    // 건너뛰고 200 + revision 증가로 답해, 서버(zod NonEmpty → 400)와 달랐다.
+    const screenPlanId = text(rec['screen_plan_id'])
+    if (screenPlanId === undefined) {
+      return badRequest('invalid_request', '요청 본문이 올바르지 않습니다', { issues: ['screen_plan_id 는 빈 문자열일 수 없습니다'] })
+    }
+    // 화면 ↔ IA 연결 — 서버(app.ts)와 **같은 도메인 규칙**을 쓴다.
+    // 이 목록은 이 프로젝트의 화면뿐이다 — 소속은 노드에서 지어내지 않고 프로젝트에서 읽는다.
+    const screens = found.detail.screens.map((s) => ({ id: s.id, project_id: found.detail.project.id, external_id: s.external_id }))
+    try {
+      next = linkScreenToIaNode(found.detail.ia_nodes as IANodeShape[], next as IANodeShape, screens, {
+        screen_plan_id: screenPlanId,
+        by: parsed.by,
+        reason: parsed.reason,
+        at: browserRuntime.now(),
+      }) as IANode
+    } catch (e) {
+      if (e instanceof DomainRuleError) {
+        return badRequest('screen_link_rejected', e.message.split('\n')[0] ?? '화면을 연결할 수 없습니다', { reasons: [...e.reasons] })
+      }
+      throw e
+    }
+  }
+
   const check = checked(next, 'IA 노드 규칙에 어긋난다')
   if ('response' in check) return check.response
   const saved = saveNode(state, found.detail, check.node)
@@ -261,7 +271,10 @@ export function demoIssueId(state: DemoRtmState, nodeId: string, body: unknown):
   // 화면이 본 제안이 그 사이 바뀌었으면 승인하지 않는다 (문서 revision 만으로는 제안 내용 변경을 못 잡는다).
   if (expectedHash !== undefined) {
     const kind = functionId === undefined ? 'issue_ia_id' : 'issue_fn_id'
-    const proposal = computeRtm(demoRtmInput(state, found.detail)).proposals.find((p) => p.kind === kind && p.ia_node_id === nodeId)
+    // 서버(app.ts)와 **같은 조회**다 — 대상 기능까지 본다. 해시 단독 조회는 쓰지 않는다(FNV-1a 32bit 충돌 가능).
+    const proposal = computeRtm(demoRtmInput(state, found.detail)).proposals.find(
+      (p) => p.kind === kind && p.ia_node_id === nodeId && p.function_id === functionId,
+    )
     if (proposal === undefined || proposal.proposal_hash !== expectedHash) {
       return { status: 409, data: { error: 'stale_proposal', message: '화면에 보인 제안이 그 사이 바뀌었다. 새로고침 후 다시 확인한다' } }
     }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { issuanceNotice } from './pages/TraceMatrixPage.js'
-import { canSubmit, footnotes, idCellText, isIssuanceProposal, kpiCells, ratioText, showsFullCoverageBanner } from './rtm-view.js'
+import { PROPOSAL_INPUT_PLACEHOLDERS, PROPOSAL_SUBMIT_LABELS, canSubmit, footnotes, idCellText, isIssuanceProposal, issuanceFunctionId, kpiCells, ratioText, showsFullCoverageBanner, withStorageWarning } from './rtm-view.js'
 import type { RtmRow, RtmSummary } from './types.js'
 
 function summary(over: Partial<RtmSummary> = {}): RtmSummary {
@@ -153,5 +153,70 @@ describe('issuanceNotice — 다시 계산한 번호가 다르면 반드시 알�
   it('다시 계산할 수 없었으면 그 사실을 적는다', () => {
     const msg = issuanceNotice({ ia_node: node, revision: 2, issued_external_id: 'IA-9.9.9', recomputed_external_id: null, differs: true })
     expect(msg).toContain('(계산 불가)')
+  })
+})
+
+/**
+ * 제안 → 요청 변환.
+ *
+ * 예전에는 화면이 「보고서 전체의 첫 미발번 기능」을 집어 보냈다. 그게 다른 노드의 기능이면
+ * `기능 <uuid> 가 이 IA 노드에 없다` 로 400 이 났다. 이제 제안이 대상을 직접 들고 온다.
+ */
+describe('issuanceFunctionId — 대상 기능을 짐작하지 않는다', () => {
+  it('issue_fn_id 는 제안이 들고 온 기능 id 를 그대로 쓴다', () => {
+    expect(issuanceFunctionId({ kind: 'issue_fn_id', function_id: 'fn-uuid-1' })).toBe('fn-uuid-1')
+  })
+
+  it('발번이 아닌 제안·IA 발번에는 기능 id 가 없다', () => {
+    expect(issuanceFunctionId({ kind: 'issue_ia_id' })).toBeUndefined()
+    expect(issuanceFunctionId({ kind: 'link_screen' })).toBeUndefined()
+    expect(issuanceFunctionId({ kind: 'define_function' })).toBeUndefined()
+    expect(issuanceFunctionId({ kind: 'link_requirement' })).toBeUndefined()
+  })
+
+  it('issue_fn_id 인데 대상이 없으면 요청을 보내지 않고 사람에게 알린다', () => {
+    expect(() => issuanceFunctionId({ kind: 'issue_fn_id' })).toThrow('대상 기능이 없습니다')
+    expect(() => issuanceFunctionId({ kind: 'issue_fn_id', function_id: '  ' })).toThrow('대상 기능이 없습니다')
+  })
+})
+
+describe('제안 버튼·입력칸 문구 — 종류마다 다른 일을 한다', () => {
+  const KINDS = ['link_requirement', 'define_function', 'link_screen', 'issue_ia_id', 'issue_fn_id'] as const
+
+  it('다섯 종류 모두 버튼·안내 문구가 있다 (빠지면 엉뚱한 버튼이 된다)', () => {
+    for (const k of KINDS) {
+      expect(PROPOSAL_SUBMIT_LABELS[k], k).toBeTruthy()
+      expect(PROPOSAL_INPUT_PLACEHOLDERS[k], k).toBeTruthy()
+    }
+    expect(Object.keys(PROPOSAL_SUBMIT_LABELS).sort()).toEqual([...KINDS].sort())
+    expect(Object.keys(PROPOSAL_INPUT_PLACEHOLDERS).sort()).toEqual([...KINDS].sort())
+  })
+
+  it('화면 연결은 「기능 추가」가 아니라 「화면 연결」이고, 사람이 보는 화면 외부 ID 를 받는다', () => {
+    expect(PROPOSAL_SUBMIT_LABELS.link_screen).toBe('화면 연결')
+    expect(PROPOSAL_SUBMIT_LABELS.link_screen).not.toBe(PROPOSAL_SUBMIT_LABELS.define_function)
+    expect(PROPOSAL_INPUT_PLACEHOLDERS.link_screen).toContain('화면 외부 ID')
+  })
+})
+
+/**
+ * 저장 실패를 삼키지 않는다.
+ *
+ * 정적 데모는 결과를 localStorage 에 쌓는다. 용량 초과·사생활 보호 모드면 저장이 실패하고
+ * 응답에 `storage_warning` 이 실리는데, 그걸 버리면 아무것도 남지 않았는데 초록색
+ * 「연결했습니다」 가 뜬다.
+ */
+describe('withStorageWarning — 조용히 성공으로 보이게 두지 않는다', () => {
+  it('경고가 있으면 성공 문구에 덧붙인다', () => {
+    const msg = withStorageWarning('연결했습니다', { storage_warning: '이 브라우저에 저장하지 못했습니다 — 새로고침하면 사라집니다.' })
+    expect(msg).toContain('연결했습니다')
+    expect(msg).toContain('저장하지 못했습니다')
+  })
+
+  it('경고가 없으면 문구를 그대로 둔다', () => {
+    expect(withStorageWarning('연결했습니다', { ia_node: {}, revision: 2 })).toBe('연결했습니다')
+    expect(withStorageWarning('연결했습니다', null)).toBe('연결했습니다')
+    expect(withStorageWarning('연결했습니다', undefined)).toBe('연결했습니다')
+    expect(withStorageWarning('연결했습니다', { storage_warning: '  ' })).toBe('연결했습니다')
   })
 })

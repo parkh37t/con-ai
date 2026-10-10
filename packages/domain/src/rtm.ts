@@ -143,6 +143,14 @@ export interface RtmGapProposal {
   kind: 'link_requirement' | 'define_function' | 'link_screen' | 'issue_ia_id' | 'issue_fn_id'
   requirement_external_id?: string | undefined
   ia_node_id?: InternalId | undefined
+  /**
+   * `issue_fn_id` 의 **대상 기능**(내부 UUID).
+   *
+   * 이게 없어서 화면이 「보고서 전체의 첫 미발번 기능」을 집어 보냈고, 다른 노드의 기능이 집히면
+   * `기능 <uuid> 가 이 IA 노드에 없다` 로 400 이 났다. 해시(`proposal_hash`)는 처음부터 기능 id 를
+   * 포함했으므로, 제안이 대상을 직접 들고 오지 않으면 해시 조회도 노드 단위로밖에 못 했다.
+   */
+  function_id?: InternalId | undefined
   /** 제안하는 값 (외부 ID 등). 발번 제안이면 계산된 다음 번호. */
   suggested_value?: string | undefined
   /** 왜 이 제안인가 — 화면에 그대로 적는다. */
@@ -419,6 +427,7 @@ export function proposeGapFills(input: RtmInput, rows: readonly RtmRow[]): RtmGa
       out.push({
         kind: 'issue_fn_id',
         ia_node_id: node.id,
+        function_id: fn.id,
         ...(suggested === null ? {} : { suggested_value: suggested }),
         rationale: `기능 「${fn.name}」${screen ? ` (${screen.external_id})` : ''} 가 미발번이다. 소속 ${node.external_id} 아래로 번호를 발번한다.${suggested === null ? ' 남은 번호가 없어 계산하지 못했다 (01~99).' : ` 계산된 다음 번호는 ${suggested} 다.`}`,
         proposal_hash: proposalHash(['issue_fn_id', node.id, fn.id]),

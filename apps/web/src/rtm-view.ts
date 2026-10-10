@@ -115,3 +115,49 @@ export function isIssuanceProposal(p: RtmGapProposal): boolean {
 export function canSubmit(by: string, reason: string): boolean {
   return by.trim().length > 0 && reason.trim().length > 0
 }
+
+/**
+ * 발번 요청에 실을 **대상 기능**(내부 UUID). `issue_fn_id` 가 아니면 없다(IA 발번).
+ *
+ * 제안이 대상을 들고 오지 않으면 **짐작하지 않는다.** 예전에는 화면이 보고서 전체의 첫 미발번 기능을
+ * 집어 보냈고, 그게 다른 노드의 기능이면 `기능 <uuid> 가 이 IA 노드에 없다` 로 400 이 났다.
+ */
+export function issuanceFunctionId(proposal: Pick<RtmGapProposal, 'kind' | 'function_id'>): string | undefined {
+  if (proposal.kind !== 'issue_fn_id') return undefined
+  const id = proposal.function_id?.trim()
+  if (id === undefined || id.length === 0) {
+    throw new Error('이 FN 발번 제안에 대상 기능이 없습니다 — 새로고침 후 다시 확인하세요.')
+  }
+  return id
+}
+
+/** 제안 승인 버튼의 문구. 종류마다 하는 일이 다르므로 **빠짐없이** 적는다. */
+export const PROPOSAL_SUBMIT_LABELS: Readonly<Record<RtmGapProposal['kind'], string>> = {
+  link_requirement: '연결',
+  define_function: '기능 추가',
+  link_screen: '화면 연결',
+  issue_ia_id: '승인 · ID 발번',
+  issue_fn_id: '승인 · ID 발번',
+}
+
+/** 제안 입력칸의 안내 문구. `link_screen` 은 사람이 보는 **화면 외부 ID** 를 받는다. */
+export const PROPOSAL_INPUT_PLACEHOLDERS: Readonly<Record<RtmGapProposal['kind'], string>> = {
+  link_requirement: '요구사항 외부 ID',
+  define_function: '기능 이름',
+  link_screen: '화면 외부 ID (예: SCREEN-001)',
+  issue_ia_id: '예: IA-1.1.1',
+  issue_fn_id: '예: FN-1.1.1-01',
+}
+
+/**
+ * 저장이 이 브라우저에 남지 않았으면 그 사실을 성공 문구에 **덧붙인다.**
+ *
+ * 정적 데모는 결과를 localStorage 에 쌓는데, 용량 초과·사생활 보호 모드면 저장이 실패하고
+ * 응답에 `storage_warning` 이 실린다. 그걸 버리면 아무것도 남지 않았는데 초록색
+ * 「연결했습니다」 가 뜬다 (CLAUDE.md: 조용히 성공으로 보이게 두지 않는다).
+ */
+export function withStorageWarning(message: string, res: unknown): string {
+  if (typeof res !== 'object' || res === null) return message
+  const warning = (res as { storage_warning?: unknown }).storage_warning
+  return typeof warning === 'string' && warning.trim().length > 0 ? `${message} — 다만 ${warning}` : message
+}

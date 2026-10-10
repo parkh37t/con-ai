@@ -319,3 +319,66 @@ describe('G1 추적성 판정', () => {
     expect(judgeG1Traceability({ ...base, requirements_total: 0, mapped: 0, req_to_scr_ratio: null }).passed).toBe(false)
   })
 })
+
+/**
+ * 발번 제안이 **대상 기능을 들고 온다.**
+ *
+ * 들고 오지 않던 때: 화면이 보고서 전체의 첫 미발번 기능을 집어 보냈고, 서버·데모의 stale 검사는
+ * (kind, 노드) 로만 제안을 찾았다. 그래서 한 노드에 미발번 기능이 2개 이상이면 둘째 제안은
+ * 해시가 늘 어긋나 **영원히 승인할 수 없었다**.
+ */
+describe('issue_fn_id 제안 — 대상 기능을 들고 온다', () => {
+  const NODE = uuid()
+  const FN_A = uuid()
+  const FN_B = uuid()
+
+  function report() {
+    return computeRtm({
+      requirements: [req('REQ-1', 1)],
+      ia_nodes: [
+        node({
+          id: NODE,
+          kind: 'screen',
+          external_id: 'IA-1.1',
+          issued: issued(),
+          requirement_ids: ['REQ-1'],
+          functions: [
+            { id: FN_A, name: '검색', kind: 'normal' },
+            { id: FN_B, name: '다운로드', kind: 'normal' },
+          ],
+        }),
+      ],
+      screens: [],
+    })
+  }
+
+  it('미발번 기능마다 제안이 하나씩 나오고 각자 자기 기능을 가리킨다', () => {
+    const fn = report().proposals.filter((p) => p.kind === 'issue_fn_id')
+    expect(fn).toHaveLength(2)
+    expect(fn.map((p) => p.function_id)).toEqual([FN_A, FN_B])
+    expect(fn.every((p) => p.ia_node_id === NODE)).toBe(true)
+  })
+
+  it('두 제안의 해시가 서로 다르다 — (kind, 노드) 로만 찾으면 둘째를 승인할 수 없었다', () => {
+    const fn = report().proposals.filter((p) => p.kind === 'issue_fn_id')
+    expect(new Set(fn.map((p) => p.proposal_hash)).size).toBe(2)
+    expect(fn[1]?.proposal_hash).toBe(proposalHash(['issue_fn_id', NODE, FN_B]))
+  })
+
+  it('서버·데모가 쓰는 조회(kind + 노드 + 기능)로 둘째 제안을 정확히 찾는다', () => {
+    const proposals = report().proposals
+    const second = proposals.find((p) => p.kind === 'issue_fn_id' && p.ia_node_id === NODE && p.function_id === FN_B)
+    expect(second?.proposal_hash).toBe(proposalHash(['issue_fn_id', NODE, FN_B]))
+  })
+
+  it('IA 발번 제안에는 대상 기능이 없다 (IA 가 대상이다)', () => {
+    const r = computeRtm({
+      requirements: [req('REQ-1', 1)],
+      ia_nodes: [node({ id: uuid(), kind: 'screen', requirement_ids: ['REQ-1'] })],
+      screens: [],
+    })
+    const ia = r.proposals.find((p) => p.kind === 'issue_ia_id')
+    expect(ia).toBeDefined()
+    expect(ia?.function_id).toBeUndefined()
+  })
+})

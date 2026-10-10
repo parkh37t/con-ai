@@ -16,12 +16,15 @@ import { api } from '../api.js'
 import { Badge, Empty, ErrorBox, Loading } from '../components/common.js'
 import { IS_DEMO } from '../demo-mode.js'
 import { notifyDataChanged, useAsync, useStoredValue } from '../hooks.js'
-import { PROPOSAL_KIND_LABELS, ROW_STATUS_LABELS, ROW_STATUS_TONES, canSubmit, footnotes, idCellText, isIssuanceProposal, kpiCells, ratioText, showsFullCoverageBanner } from '../rtm-view.js'
+import { PROPOSAL_INPUT_PLACEHOLDERS, PROPOSAL_KIND_LABELS, PROPOSAL_SUBMIT_LABELS, ROW_STATUS_LABELS, ROW_STATUS_TONES, canSubmit, footnotes, idCellText, issuanceFunctionId, isIssuanceProposal, kpiCells, ratioText, showsFullCoverageBanner, withStorageWarning } from '../rtm-view.js'
 import { hrefTo, hrefToScreen } from '../router.js'
 import type { IdIssueResponse, Project, RtmGapProposal, RtmReport } from '../types.js'
 
 export function TraceMatrixPage({ project }: { project: Project }) {
   const rtm = useAsync(() => api.rtm(project.id), [project.id])
+  // 화면 연결은 사람에게 **외부 ID** 를 받아 **내부 UUID** 로 옮겨 보낸다 (ID 안팎 분리).
+  // 이름을 또렷하게 둔다 — run() 안에 같은 이름의 지역 변수가 있다.
+  const projectDetail = useAsync(() => api.project(project.id), [project.id])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<unknown>(null)
   const [notice, setNotice] = useState<string | null>(null)
@@ -73,7 +76,8 @@ export function TraceMatrixPage({ project }: { project: Project }) {
               run('발번했습니다', async () => {
                 if (p.ia_node_id === undefined) throw new Error('대상 IA 노드를 알 수 없습니다')
                 const node = rtm.data?.rows.flatMap((r) => r.ia).find((ia) => ia.id === p.ia_node_id)
-                const fnId = p.kind === 'issue_fn_id' ? findUnissuedFunctionId(rtm.data) : undefined
+                // 제안이 들고 온 대상 기능을 그대로 보낸다 — 보고서에서 짐작하지 않는다 (rtm-view.ts 주석).
+                const fnId = issuanceFunctionId(p)
                 const revision = await currentRevision(p.ia_node_id)
                 const res = await api.issueId(p.ia_node_id, {
                   external_id: externalId,
@@ -91,14 +95,36 @@ export function TraceMatrixPage({ project }: { project: Project }) {
                 if (p.ia_node_id === undefined) throw new Error('대상 IA 노드를 알 수 없습니다')
                 const revision = await currentRevision(p.ia_node_id)
                 const existing = await currentRequirementIds(p.ia_node_id)
-                await api.patchIaNode(p.ia_node_id, { revision, by, reason, requirement_ids: [...existing, requirementId] })
+                if (existing.includes(requirementId)) throw new Error(`${requirementId} 는 이미 이 노드에 연결돼 있습니다 — 바뀌는 것이 없습니다`)
+                // 중복을 넣지 않는다 (requirement_ids 는 통째로 교체되므로 쌓이면 그대로 남는다).
+                const res = await api.patchIaNode(p.ia_node_id, { revision, by, reason, requirement_ids: [...new Set([...existing, requirementId])] })
+                return withStorageWarning(`${requirementId} 를 연결했습니다`, res)
+              })
+            }
+            onLinkScreen={(p, screenExternalId, reason) =>
+              run('화면을 연결했습니다', async () => {
+                if (p.ia_node_id === undefined) throw new Error('대상 IA 노드를 알 수 없습니다')
+                const wanted = screenExternalId.trim()
+                if (projectDetail.error !== null) throw new Error('화면 목록을 읽지 못했습니다 — 새로고침 후 다시 누르세요')
+                if (projectDetail.data === null || projectDetail.data === undefined) throw new Error('화면 목록을 아직 읽지 못했습니다 — 잠시 뒤 다시 누르세요')
+                const screens = projectDetail.data.screens
+                const screen = screens.find((s) => s.external_id === wanted)
+                if (screen === undefined) {
+                  const known = screens.map((s) => s.external_id).join(', ')
+                  throw new Error(`${wanted} 라는 화면이 이 프로젝트에 없습니다. 화면 외부 ID 를 넣으세요${known.length === 0 ? '' : ` (있는 화면: ${known})`}`)
+                }
+                const revision = await currentRevision(p.ia_node_id)
+                // 사람에게는 외부 ID, API 에는 내부 id — 섞으면 연결이 조용히 어긋난다.
+                const res = await api.patchIaNode(p.ia_node_id, { revision, by, reason, screen_plan_id: screen.id })
+                return withStorageWarning(`「${wanted}」 를 연결했습니다 (화면 ID 는 사람이 보는 값, 저장은 내부 id 로 했습니다)`, res)
               })
             }
             onDefineFunction={(p, name, reason) =>
               run('기능을 추가했습니다 (번호는 따로 발번합니다)', async () => {
                 if (p.ia_node_id === undefined) throw new Error('대상 IA 노드를 알 수 없습니다')
                 const revision = await currentRevision(p.ia_node_id)
-                await api.patchIaNode(p.ia_node_id, { revision, by, reason, add_function: { name } })
+                const res = await api.patchIaNode(p.ia_node_id, { revision, by, reason, add_function: { name } })
+                return withStorageWarning(`기능 「${name}」 을 추가했습니다 (번호는 따로 발번합니다)`, res)
               })
             }
           />
@@ -240,6 +266,7 @@ function GapPanel({
   busy,
   onIssue,
   onLink,
+  onLinkScreen,
   onDefineFunction,
 }: {
   report: RtmReport
@@ -248,6 +275,7 @@ function GapPanel({
   busy: boolean
   onIssue: (p: RtmGapProposal, externalId: string, reason: string) => void
   onLink: (p: RtmGapProposal, requirementId: string, reason: string) => void
+  onLinkScreen: (p: RtmGapProposal, screenExternalId: string, reason: string) => void
   onDefineFunction: (p: RtmGapProposal, name: string, reason: string) => void
 }) {
   if (report.proposals.length === 0) return null
@@ -263,7 +291,8 @@ function GapPanel({
       </label>
       <ul className="gap-list">
         {report.proposals.map((p) => (
-          <GapItem key={p.proposal_hash} proposal={p} by={by} busy={busy} onIssue={onIssue} onLink={onLink} onDefineFunction={onDefineFunction} />
+          <GapItem key={p.proposal_hash} proposal={p} by={by} busy={busy} onIssue={onIssue} onLink={onLink}
+          onLinkScreen={onLinkScreen} onDefineFunction={onDefineFunction} />
         ))}
       </ul>
     </section>
@@ -276,6 +305,7 @@ function GapItem({
   busy,
   onIssue,
   onLink,
+  onLinkScreen,
   onDefineFunction,
 }: {
   proposal: RtmGapProposal
@@ -283,26 +313,46 @@ function GapItem({
   busy: boolean
   onIssue: (p: RtmGapProposal, externalId: string, reason: string) => void
   onLink: (p: RtmGapProposal, requirementId: string, reason: string) => void
+  onLinkScreen: (p: RtmGapProposal, screenExternalId: string, reason: string) => void
   onDefineFunction: (p: RtmGapProposal, name: string, reason: string) => void
 }) {
   const [value, setValue] = useState(proposal.suggested_value ?? '')
   const [reason, setReason] = useState('')
   const ready = canSubmit(by, reason) && value.trim().length > 0 && !busy
 
-  const label = isIssuanceProposal(proposal) ? '승인 · ID 발번' : proposal.kind === 'link_requirement' ? '연결' : '기능 추가'
+  const label = PROPOSAL_SUBMIT_LABELS[proposal.kind]
   const placeholder =
-    proposal.kind === 'issue_ia_id'
-      ? '예: IA-1.1.1'
-      : proposal.kind === 'issue_fn_id'
-        ? '예: FN-1.1.1-01'
-        : proposal.kind === 'link_requirement'
-          ? proposal.requirement_external_id ?? '요구사항 외부 ID'
-          : '기능 이름'
+    proposal.kind === 'link_requirement' ? proposal.requirement_external_id ?? PROPOSAL_INPUT_PLACEHOLDERS[proposal.kind] : PROPOSAL_INPUT_PLACEHOLDERS[proposal.kind]
 
+  /**
+   * 종류마다 하는 일이 다르다 — **빠짐없이 적는다.**
+   * 예전에는 `else` 폴백이 있어 `link_screen`(화면 연결)이 `onDefineFunction`(기능 추가)으로 샜고,
+   * 승인하면 화면은 안 붙고 사유·행위자가 붙은 거짓 기능이 IA 노드에 남았다.
+   */
   const submit = () => {
-    if (isIssuanceProposal(proposal)) onIssue(proposal, value.trim(), reason.trim())
-    else if (proposal.kind === 'link_requirement') onLink(proposal, value.trim(), reason.trim())
-    else onDefineFunction(proposal, value.trim(), reason.trim())
+    const v = value.trim()
+    const r = reason.trim()
+    switch (proposal.kind) {
+      case 'issue_ia_id':
+      case 'issue_fn_id':
+        onIssue(proposal, v, r)
+        return
+      case 'link_requirement':
+        onLink(proposal, v, r)
+        return
+      case 'link_screen':
+        onLinkScreen(proposal, v, r)
+        return
+      case 'define_function':
+        onDefineFunction(proposal, v, r)
+        return
+      default: {
+        // 새 제안 종류가 생기면 **여기서 컴파일이 막는다.** 고친 버그가 「다른 쓰기로 샌다」였으니,
+        // 그게 「조용히 아무 쓰기도 안 한다」로 바뀌지 않게 한다.
+        const never: never = proposal.kind
+        throw new Error(`처리할 수 없는 제안 종류입니다: ${String(never)}`)
+      }
+    }
   }
 
   return (
@@ -366,11 +416,6 @@ async function currentRevision(iaNodeId: string): Promise<number> {
 async function currentRequirementIds(iaNodeId: string): Promise<string[]> {
   const node = await api.iaNode(iaNodeId)
   return node.ia_node.requirement_ids ?? []
-}
-
-/** 아직 번호가 없는 기능 하나 — FN 발번 제안의 대상이다. 여러 건이면 첫 건부터 발번한다. */
-function findUnissuedFunctionId(report: RtmReport | null): string | undefined {
-  return report?.rows.flatMap((r) => r.fn).find((f) => f.external_id === undefined)?.id
 }
 
 /**

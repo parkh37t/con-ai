@@ -37,8 +37,8 @@ export interface IssueInput extends IdActorInput {
 
 const ISO_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$/
 
-/** 행위자·사유·시각 검사. 어떤 발번·개명이든 이 관문을 지난다. */
-function actorReasons(input: IdActorInput, prefix: string): RuleReason[] {
+/** 행위자·사유·시각 검사. 어떤 발번·개명이든 이 관문을 지난다. (ia-link.ts 도 같은 관문을 쓴다) */
+export function actorReasons(input: IdActorInput, prefix: string): RuleReason[] {
   const reasons: RuleReason[] = []
   if (input.by.trim().length === 0) {
     reasons.push({ code: `${prefix}.actor_required`, message: '발번·개명은 사람이 한다 — 행위자가 필요하다 (CLAUDE.md: 채택·승인은 사람)' })

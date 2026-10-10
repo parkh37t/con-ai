@@ -117,6 +117,7 @@ export const IaNodePatchBody = z.strictObject({
     .strictObject({ name: NonEmpty, kind: z.enum(['normal', 'exception']).default('normal'), base_function_id: z.string().optional() })
     .optional()
     .describe('기능 한 건 추가. 발번은 하지 않는다 — 번호는 따로 사람이 누른다'),
+  screen_plan_id: NonEmpty.optional().describe('이 메뉴에 붙일 화면의 **내부 UUID**. 규칙은 @con-ai/domain canLinkScreenToIaNode'),
 })
 export type IaNodePatchBody = z.infer<typeof IaNodePatchBody>
 

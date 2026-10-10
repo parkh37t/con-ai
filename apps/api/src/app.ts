@@ -6,21 +6,7 @@ import { randomUUID } from 'node:crypto'
 import { mkdirSync } from 'node:fs'
 import { Hono, type Context } from 'hono'
 import { serveStatic } from '@hono/node-server/serve-static'
-import {
-  DomainRuleError,
-  assertAllowed,
-  canIssueIaExternalId,
-  canMarkReviewReady,
-  computeRtm,
-  evaluateApprovalGate,
-  issueFnExternalId,
-  issueIaExternalId,
-  proposeFnExternalId,
-  proposeIaExternalId,
-  relabelFnExternalId,
-  relabelIaExternalId,
-  type RuleReason,
-} from '@con-ai/domain'
+import { DomainRuleError, assertAllowed, canIssueIaExternalId, canMarkReviewReady, computeRtm, evaluateApprovalGate, issueFnExternalId, issueIaExternalId, linkScreenToIaNode, proposeFnExternalId, proposeIaExternalId, relabelFnExternalId, relabelIaExternalId, type RuleReason } from '@con-ai/domain'
 import type { ModelAdapter } from '@con-ai/model-adapter'
 import type { SliceGenerationRequest } from '@con-ai/prompt-templates'
 import { S2B_LEARNED_PROFILE, type RenderProfile } from '@con-ai/renderer'
@@ -203,6 +189,11 @@ export function createApp(options: AppOptions): ConAiApp {
     const parsed = await parseJson(c, IaNodePatchBody)
     if ('response' in parsed) return parsed.response
     const body = parsed.data
+    // 낙관적 잠금을 **규칙보다 먼저** 본다 (데모와 같은 순서). 그래야 같은 요청에 같은 오류가 나온다.
+    // store.put 도 여전히 경합을 막는다 — 이건 순서를 맞추기 위한 조기 검사다.
+    if (body.revision !== doc.revision) {
+      return c.json({ error: 'stale_revision', message: '본 revision 이 낡았다. 다시 읽고 시도한다', expected: body.revision, current: doc.revision }, 409)
+    }
 
     let next: IANodeDocument = { ...doc.data }
     if (body.requirement_ids !== undefined) {
@@ -218,6 +209,21 @@ export function createApp(options: AppOptions): ConAiApp {
       const fn = body.add_function
       const entry = { id: randomUUID(), name: fn.name, kind: fn.kind, ...(fn.base_function_id === undefined ? {} : { base_function_id: fn.base_function_id }) }
       next = { ...next, functions: [...(next.functions ?? []), entry] }
+    }
+    if (body.screen_plan_id !== undefined) {
+      // 화면 ↔ IA 연결. 예전에는 이 경로가 없어서 RTM 의 link_screen 제안이 「기능 추가」로 샜다.
+      // 규칙(@con-ai/domain)이 분류 노드·없는 화면·다른 프로젝트·중복 연결을 막는다.
+      const nodes = store.list<IANodeDocument>('ia_node', (d) => d.data.project_id === doc.data.project_id).map((d) => d.data)
+      const screens = store.list<ScreenDocument>('screen', (d) => d.data.project_id === doc.data.project_id).map((d) => d.data)
+      try {
+        // 공백은 스키마(`NonEmpty` = z.string().trim().min(1))가 이미 떼어 냈다 — 데모의 text() 와 같은 정규화다.
+        next = linkScreenToIaNode(nodes, next, screens, { screen_plan_id: body.screen_plan_id, by: body.by, reason: body.reason, at: new Date().toISOString() })
+      } catch (e) {
+        if (e instanceof DomainRuleError) {
+          return c.json({ error: 'screen_link_rejected', message: e.message.split('\n')[0], reasons: e.reasons }, 400)
+        }
+        throw e
+      }
     }
 
     const check = IANodeSchema.safeParse(next)
@@ -250,7 +256,12 @@ export function createApp(options: AppOptions): ConAiApp {
     // 화면이 본 제안이 그 사이 바뀌었으면 승인하지 않는다 (문서 revision 만으로는 제안 내용 변경을 못 잡는다).
     if (body.expected_proposal_hash !== undefined) {
       const kind = body.function_id === undefined ? 'issue_ia_id' : 'issue_fn_id'
-      const current = computeRtm(buildRtmInput(store, doc.data.project_id)).proposals.find((p) => p.kind === kind && p.ia_node_id === doc.id)
+      // 대상 기능까지 보고 찾는다. (kind, 노드) 로만 찾던 때는 한 노드에 미발번 기능이 2개 이상이면
+      // 언제나 첫 건이 집혀, 둘째 제안을 승인할 수 없었다(해시는 기능 id 를 포함하므로 늘 불일치 → 409).
+      // 해시 단독 조회는 쓰지 않는다 — proposalHash 는 FNV-1a 32bit 라 충돌이 가능하다.
+      const current = computeRtm(buildRtmInput(store, doc.data.project_id)).proposals.find(
+        (p) => p.kind === kind && p.ia_node_id === doc.id && p.function_id === body.function_id,
+      )
       if (current === undefined || current.proposal_hash !== body.expected_proposal_hash) {
         return c.json({ error: 'stale_proposal', message: '화면에 보인 제안이 그 사이 바뀌었다. 새로고침 후 다시 확인한다' }, 409)
       }

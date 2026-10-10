@@ -322,3 +322,144 @@ describe('갭을 메우면 커버리지가 오른다', () => {
     expect(r.summary.mapped).toBeGreaterThan(0)
   })
 })
+
+/**
+ * 화면 ↔ IA 연결 (`link_screen` 제안의 실제 쓰기 경로).
+ *
+ * 예전에는 이 필드를 쓰는 경로가 없어서 화면의 「화면 연결」 승인이 `add_function` 으로 샜다 —
+ * 화면은 안 붙고 사유·행위자가 붙은 **거짓 기능**이 IA 노드에 남았다.
+ */
+describe('PATCH /api/ia-nodes/:id — 화면 연결 (screen_plan_id)', () => {
+  const FREE_NODE = 'a2000000-0000-4000-8000-0000000000f1'
+  const FREE_SCREEN = 'a4000000-0000-4000-8000-0000000000f2'
+
+  /** 아직 서로 붙지 않은 화면 노드와 화면을 하나씩 더 둔다 (시드의 3쌍은 모두 이미 붙어 있다). */
+  function withFreePair(h: ReturnType<typeof harness>) {
+    h.store.put<IANode>(
+      'ia_node',
+      FREE_NODE,
+      { id: FREE_NODE, project_id: SEED.project_id, parent_id: SEED.ia_nodes.quote, name: '견적 사본', order: 9, portal: '파트너 포털', kind: 'screen', requirement_ids: ['REQ-QT-005'] } as IANode,
+      0,
+    )
+    h.store.put('screen', FREE_SCREEN, { id: FREE_SCREEN, project_id: SEED.project_id, external_id: 'SAMPLE-quote-copy', title: '견적 사본', shell: 'partner-page', device: 'desktop', status: 'draft', aliases: [] }, 0)
+  }
+
+  const link = async (h: ReturnType<typeof harness>, nodeId: string, screenPlanId: string) =>
+    h.patch(`/api/ia-nodes/${nodeId}`, { ...ACTOR, revision: h.node(nodeId)!.revision, screen_plan_id: screenPlanId })
+
+  it('붙이면 저장되고 사유가 남고, 기능은 생기지 않는다', async () => {
+    const h = harness()
+    withFreePair(h)
+    expect((await h.rtm()).proposals.some((p) => p.kind === 'link_screen' && p.ia_node_id === FREE_NODE)).toBe(true)
+
+    const res = await link(h, FREE_NODE, FREE_SCREEN)
+    expect(res.status, await res.clone().text()).toBe(200)
+    const saved = h.node(FREE_NODE)!.data
+    expect(saved.screen_plan_id).toBe(FREE_SCREEN)
+    expect(saved.change_reason).toBe(ACTOR.reason)
+    expect(saved.functions ?? []).toEqual([]) // 예전 버그는 여기에 FN 을 추가했다
+    // 제안이 사라지고 그 행이 화면까지 닿는다
+    const after = await h.rtm()
+    expect(after.proposals.some((p) => p.kind === 'link_screen' && p.ia_node_id === FREE_NODE)).toBe(false)
+    expect(after.rows.find((r) => r.requirement_external_id === 'REQ-QT-005')?.scr.length).toBeGreaterThan(0)
+  })
+
+  it('없는 화면은 붙이지 않고 문서도 그대로다', async () => {
+    const h = harness()
+    withFreePair(h)
+    const before = h.node(FREE_NODE)!.revision
+    const res = await link(h, FREE_NODE, 'a4000000-0000-4000-8000-000000000404')
+    expect(res.status).toBe(400)
+    expect(await res.text()).toContain('ia_link.screen_not_found')
+    expect(h.node(FREE_NODE)!.revision).toBe(before)
+  })
+
+  it('분류 노드에는 붙이지 않는다', async () => {
+    const h = harness()
+    withFreePair(h)
+    const res = await link(h, SEED.ia_nodes.quote, FREE_SCREEN)
+    expect(res.status).toBe(400)
+    expect(await res.text()).toContain('ia_link.category_node')
+  })
+
+  it('다른 메뉴에 이미 붙은 화면은 붙이지 않는다 — 한 화면은 메뉴 한 곳에만', async () => {
+    const h = harness()
+    withFreePair(h)
+    const res = await link(h, FREE_NODE, SEED.screens['SAMPLE-quote-list'])
+    expect(res.status).toBe(400)
+    expect(await res.text()).toContain('ia_link.screen_taken')
+  })
+
+  it('낡은 revision 은 규칙보다 먼저 409 다 (데모와 같은 순서)', async () => {
+    const h = harness()
+    withFreePair(h)
+    // 규칙 위반(분류 노드)과 낡은 revision 이 동시여도 양쪽이 같은 오류를 돌려줘야 한다.
+    const res = await h.patch(`/api/ia-nodes/${SEED.ia_nodes.quote}`, { ...ACTOR, revision: 99, screen_plan_id: FREE_SCREEN })
+    expect(res.status).toBe(409)
+    expect(await res.text()).toContain('stale_revision')
+  })
+
+  it('이미 화면이 붙은 노드에는 덮어쓰지 않는다 (교체는 별개 작업)', async () => {
+    const h = harness()
+    withFreePair(h)
+    const res = await link(h, LIST_NODE, FREE_SCREEN)
+    expect(res.status).toBe(400)
+    expect(await res.text()).toContain('ia_link.occupied')
+  })
+})
+
+/**
+ * 한 노드에 미발번 기능이 2개 이상일 때 **둘째도 발번된다.**
+ * stale 검사가 (kind, 노드) 로만 제안을 찾던 때는 늘 첫 건이 집혀 둘째는 409 로 영구히 막혔다.
+ */
+describe('POST id-issuances — 미발번 기능이 여러 건이어도 각자 발번된다', () => {
+  it('둘째 기능을 그 제안의 해시로 승인하면 발번되고, 남의 해시로는 409 다', async () => {
+    const h = harness()
+    // IA 번호를 먼저 발번한다 (FN 은 소속 IA 가 발번된 뒤에만 가능하다).
+    const iaProposal = (await h.rtm()).proposals.find((p) => p.kind === 'issue_ia_id' && p.ia_node_id === LIST_NODE)
+    const iaRes = await h.post(`/api/ia-nodes/${LIST_NODE}/id-issuances`, {
+      ...ACTOR,
+      external_id: iaProposal?.suggested_value ?? 'IA-1.1.1',
+      revision: h.node(LIST_NODE)!.revision,
+      expected_proposal_hash: iaProposal?.proposal_hash,
+    })
+    expect(iaRes.status, await iaRes.clone().text()).toBe(200)
+
+    for (const name of ['검색', '다운로드']) {
+      const res = await h.patch(`/api/ia-nodes/${LIST_NODE}`, { ...ACTOR, revision: h.node(LIST_NODE)!.revision, add_function: { name } })
+      expect(res.status, await res.clone().text()).toBe(200)
+    }
+    const fns = h.node(LIST_NODE)!.data.functions ?? []
+    expect(fns).toHaveLength(2)
+    const second = fns[1]!
+
+    const proposals = (await h.rtm()).proposals.filter((p) => p.kind === 'issue_fn_id' && p.ia_node_id === LIST_NODE)
+    expect(proposals).toHaveLength(2)
+    const mine = proposals.find((p) => p.function_id === second.id)
+    const other = proposals.find((p) => p.function_id === fns[0]!.id)
+    expect(mine, '제안이 대상 기능을 들고 와야 한다').toBeDefined()
+
+    // 남의 해시로는 거부된다 (stale 검사가 살아 있다)
+    const wrong = await h.post(`/api/ia-nodes/${LIST_NODE}/id-issuances`, {
+      ...ACTOR,
+      external_id: mine?.suggested_value ?? 'FN-1.1.1-02',
+      revision: h.node(LIST_NODE)!.revision,
+      function_id: second.id,
+      expected_proposal_hash: other?.proposal_hash,
+    })
+    expect(wrong.status).toBe(409)
+
+    // 자기 해시로는 발번된다 (예전에는 이것도 409 였다)
+    const ok = await h.post(`/api/ia-nodes/${LIST_NODE}/id-issuances`, {
+      ...ACTOR,
+      external_id: mine?.suggested_value ?? 'FN-1.1.1-02',
+      revision: h.node(LIST_NODE)!.revision,
+      function_id: second.id,
+      expected_proposal_hash: mine?.proposal_hash,
+    })
+    expect(ok.status, await ok.clone().text()).toBe(200)
+    const after = h.node(LIST_NODE)!.data.functions ?? []
+    expect(after.find((f) => f.id === second.id)?.external_id).toBeTruthy()
+    expect(after.find((f) => f.id === fns[0]!.id)?.external_id).toBeUndefined()
+  })
+})

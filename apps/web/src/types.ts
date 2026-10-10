@@ -150,6 +150,8 @@ export interface RtmGapProposal {
   kind: 'link_requirement' | 'define_function' | 'link_screen' | 'issue_ia_id' | 'issue_fn_id'
   requirement_external_id?: string
   ia_node_id?: string
+  /** issue_fn_id 의 대상 기능(내부 UUID). 화면은 이 값을 그대로 발번 요청에 싣는다. */
+  function_id?: string
   suggested_value?: string
   rationale: string
   proposal_hash: string
