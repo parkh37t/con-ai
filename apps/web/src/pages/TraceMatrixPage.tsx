@@ -166,8 +166,14 @@ function KpiRow({ report }: { report: RtmReport }) {
         <div key={k.key} className="kpi" data-testid={`trace-kpi-${k.key}`}>
           <span className="kpi-label">{k.label}</span>
           <span className="kpi-value">
-            <span className={k.alert ? 'kpi-alert' : undefined}>{k.value}</span>
-            <span className="kpi-note">{k.note}</span>
+            {/* 값과 각주를 **따로** 집을 수 있게 둔다 — 한 요소에 섞어 두면 `toContainText('0%')` 가
+                40% 에서도 통과한다(「40%」가 「0%」를 포함한다). 검사가 거짓으로 통과하던 자리다. */}
+            <span className={k.alert ? 'kpi-alert' : undefined} data-testid={`trace-kpi-${k.key}-value`}>
+              {k.value}
+            </span>
+            <span className="kpi-note" data-testid={`trace-kpi-${k.key}-note`}>
+              {k.note}
+            </span>
           </span>
         </div>
       ))}

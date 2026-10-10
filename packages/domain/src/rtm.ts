@@ -125,7 +125,14 @@ export interface RtmElementTagging {
   refs_live: number
   /** 명세가 바뀌어 사라진 참조 (고아). 자동 복구하지 않고 사람에게 알린다. */
   refs_stale: number
-  /** 아직 생성되지 않아 판정할 수 없는 화면. untagged 0 으로 세지 않는다. */
+  /**
+   * 요소 태깅을 **판정할 수 없는 화면**. untagged 0 으로 세지 않는다. 두 가지가 섞여 들어온다:
+   * ① 메뉴(IA)에 붙었지만 목업이 없는 화면 ② 요소 참조가 가리키는 명세 색인을 읽지 못한 화면.
+   * 화면 각주도 두 이유를 함께 적는다 (`apps/web/src/rtm-view.ts`).
+   *
+   * **메뉴에 붙지 않은 화면은 담지 않는다** — 태깅은 체인에 들어온 화면만 본다.
+   * 그래서 이 수를 「프로젝트의 미생성 화면 수」로 읽으면 안 된다 (그 값은 `screens_total - screens_built` 다).
+   */
   not_run_screens: readonly string[]
 }
 

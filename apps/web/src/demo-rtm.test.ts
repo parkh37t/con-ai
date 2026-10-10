@@ -147,6 +147,29 @@ describe('GET /api/projects/:id/rtm — 서버와 같은 규칙으로 계산한�
     expect(report.summary.req_to_scr_ratio).toBe(0.5)
   })
 
+  it('브라우저 경로에서도 «연결만 된 화면»은 분자에 들지 않는다', () => {
+    // 이 규칙(연결 ≠ 생성)을 pnpm check 안에서 **브라우저 경로로** 확인하는 단언이 없었다.
+    // 스냅샷의 「견적 등록 팝업」 화면(SCREEN_POPUP)은 메뉴에 붙어 있지만 목업이 없다.
+    useMemoryStore()
+    setBrowserRuntime({ newId: () => 'a7000000-0000-4000-8000-000000000002' })
+    const state = newState()
+    handleWith(state, 'PATCH', `/api/ia-nodes/${NODE_POPUP}`, { revision: 1, by: '기획자', reason: '연결', requirement_ids: ['REQ-QT-002'] })
+    handleWith(state, 'PATCH', `/api/ia-nodes/${NODE_POPUP}`, { revision: 2, by: '기획자', reason: '기능 정의', add_function: { name: '견적 등록' } })
+    const report = rtm(state)
+    const row = report.rows.find((r) => r.requirement_external_id === 'REQ-QT-002')
+    // IA·FN·SCR 이 모두 붙었는데도 목업이 없어 mapped 가 아니다.
+    expect(row?.ia).toHaveLength(1)
+    expect(row?.fn).toHaveLength(1)
+    expect(row?.scr[0]?.external_id).toBe('SAMPLE-quote-new')
+    expect(row?.scr[0]?.built).toBe(false)
+    expect(row?.status).toBe('partial')
+    expect(row?.gap_kind).toBe('screen_not_built')
+    expect(report.summary.mapped).toBe(0)
+    expect(report.summary).toMatchObject({ screens_total: 2, screens_built: 1, partial_screen_not_built: 1 })
+    // 서버와 같은 규칙인지도 함께 못 박는다 (apps/api/src/rtm.test.ts 와 같은 단언).
+    expect(report.summary.element_tagging.not_run_screens).toEqual(['SAMPLE-quote-new'])
+  })
+
   it('없는 프로젝트는 404 다', () => {
     useMemoryStore()
     expect(handleWith(newState(), 'GET', '/api/projects/없는것/rtm').status).toBe(404)

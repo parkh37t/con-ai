@@ -98,8 +98,11 @@ test('ID 매핑: 갭 확인 → 기능 정의 → 발번 → 커버리지 상승
     await page.goto('/#/trace')
     await expect(page.getByTestId('trace-kpis')).toBeVisible({ timeout: 30_000 })
     // 시드는 일부만 연결돼 있고 FN 이 0건이므로 완전히 이어진 체인은 없다.
-    await expect(page.getByTestId('trace-kpi-coverage')).toContainText('0%')
-    await expect(page.getByTestId('trace-kpi-fn')).toContainText('0')
+    // **값 칸을 정확히** 비교한다. 예전에는 칸 전체에 toContainText('0%') 를 걸어 40%·100% 에서도
+    // 통과했고(「40%」⊃「0%」), FN 은 각주의 「발번 0」 때문에 총계가 3이어도 통과했다.
+    await expect(page.getByTestId('trace-kpi-coverage-value')).toHaveText('0%')
+    await expect(page.getByTestId('trace-kpi-coverage-note')).toHaveText('0/5 요구사항')
+    await expect(page.getByTestId('trace-kpi-fn-value')).toHaveText('0')
     // 미발번을 빈칸으로 두지 않는다
     await expect(page.locator('[data-testid="rtm-row"]').first()).toContainText('IA 코드 미발번')
     // 100% 배너는 없고 G1 미충족 이유가 적힌다
@@ -137,12 +140,12 @@ test('ID 매핑: 갭 확인 → 기능 정의 → 발번 → 커버리지 상승
   await test.step('커버리지가 실제로 오른다 (목업이 있는 화면만)', async () => {
     // 「견적 목록」 노드에는 REQ-QT-001·004 가 걸려 있어 기능 하나로 두 건이 함께 연결된다 → 2/5
     await expect(rowStatus('REQ-QT-004')).toHaveAttribute('data-status', 'mapped')
-    await expect(page.getByTestId('trace-kpi-coverage')).toContainText('40%')
-    await expect(page.getByTestId('trace-kpi-coverage')).toContainText('2/5')
-    await expect(page.getByTestId('trace-kpi-fn')).toContainText('1')
+    await expect(page.getByTestId('trace-kpi-coverage-value')).toHaveText('40%')
+    await expect(page.getByTestId('trace-kpi-coverage-note')).toHaveText('2/5 요구사항')
+    await expect(page.getByTestId('trace-kpi-fn-value')).toHaveText('1')
     // 생성된 화면 수를 함께 적는다 — 「연결된 화면」과 「만들어진 화면」을 한 칸에서 구분한다.
     const scr = await screenState(page.request)
-    await expect(page.getByTestId('trace-kpi-scr')).toContainText(`생성 ${scr.built}`)
+    await expect(page.getByTestId('trace-kpi-scr-note')).toHaveText(`총계(분모 아님) · 생성 ${scr.built}`)
     expect(scr.built, '목업이 있는 화면이 적어도 하나 있어야 한다').toBeGreaterThan(0)
   })
 
@@ -161,7 +164,7 @@ test('ID 매핑: 갭 확인 → 기능 정의 → 발번 → 커버리지 상승
     await expect(row).toContainText('아직 생성되지 않았다')
     await expect(row).toContainText('(미생성)')
     // 분자가 오르지 않는다
-    await expect(page.getByTestId('trace-kpi-coverage')).toContainText('2/5')
+    await expect(page.getByTestId('trace-kpi-coverage-note')).toHaveText('2/5 요구사항')
     await expect(page.getByTestId('trace-footnotes')).toContainText(`목업이 만들어진 것은 ${before.built}건`)
   })
 

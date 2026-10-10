@@ -33,8 +33,9 @@ test('정적 데모 ID 매핑: 갭 → 기능 정의 → IA 발번 → 새로고
   const rowStatus = (req: string) => page.locator(`[data-testid="rtm-row"][data-req="${req}"]`)
 
   await test.step('첫 화면 — 갭을 정직하게 보여 준다', async () => {
-    await expect(page.getByTestId('trace-kpi-coverage')).toContainText('0%')
-    await expect(page.getByTestId('trace-kpi-fn')).toContainText('0')
+    // 값 칸을 정확히 비교한다 (칸 전체 비교는 「40%」가 「0%」를 포함해 거짓으로 통과했다).
+    await expect(page.getByTestId('trace-kpi-coverage-value')).toHaveText('0%')
+    await expect(page.getByTestId('trace-kpi-fn-value')).toHaveText('0')
     await expect(page.locator('[data-testid="rtm-row"]').first()).toContainText('IA 코드 미발번')
     await expect(page.getByTestId('trace-full')).toHaveCount(0)
     await expect(rowStatus('REQ-QT-001')).toHaveAttribute('data-status', 'partial')
@@ -56,7 +57,7 @@ test('정적 데모 ID 매핑: 갭 → 기능 정의 → IA 발번 → 새로고
     await expect(rowStatus('REQ-QT-001')).toHaveAttribute('data-status', 'mapped')
     // 기능을 추가해도 번호는 아직 없다 — 발번은 따로 누른다
     await expect(rowStatus('REQ-QT-001')).toContainText('FN 코드 미발번')
-    await expect(page.getByTestId('trace-kpi-coverage')).toContainText('40%')
+    await expect(page.getByTestId('trace-kpi-coverage-value')).toHaveText('40%')
   })
 
   await test.step('화면이 아직 만들어지지 않았으면 기능을 정의해도 mapped 가 아니다', async () => {
@@ -72,9 +73,9 @@ test('정적 데모 ID 매핑: 갭 → 기능 정의 → IA 발번 → 새로고
     await expect(row).toContainText('아직 생성되지 않았다')
     await expect(row).toContainText('(미생성)')
     // 분자가 오르지 않는다 — 40% 그대로다.
-    await expect(page.getByTestId('trace-kpi-coverage')).toContainText('40%')
+    await expect(page.getByTestId('trace-kpi-coverage-value')).toHaveText('40%')
     // 세지 못한 것을 각주에 자백한다 (화면 3건 중 생성 1건).
-    await expect(page.getByTestId('trace-kpi-scr')).toContainText('생성 1')
+    await expect(page.getByTestId('trace-kpi-scr-note')).toHaveText('총계(분모 아님) · 생성 1')
     await expect(page.getByTestId('trace-footnotes')).toContainText('목업이 만들어진 것은 1건')
   })
 
@@ -94,7 +95,7 @@ test('정적 데모 ID 매핑: 갭 → 기능 정의 → IA 발번 → 새로고
   await test.step('새로고침해도 결과가 남는다 (이 브라우저에 저장된다)', async () => {
     await page.reload()
     await expect(page.getByTestId('trace-kpis')).toBeVisible({ timeout: 30_000 })
-    await expect(page.getByTestId('trace-kpi-coverage')).toContainText('40%')
+    await expect(page.getByTestId('trace-kpi-coverage-value')).toHaveText('40%')
     await expect(rowStatus('REQ-QT-001')).toContainText(issuedId)
     await expect(rowStatus('REQ-QT-001')).toHaveAttribute('data-status', 'mapped')
   })
