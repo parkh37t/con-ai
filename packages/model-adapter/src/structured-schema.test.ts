@@ -11,8 +11,8 @@
  */
 import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod'
 import { describe, expect, it } from 'vitest'
-import { PAIN_POINT_DRAFT_JSON_SCHEMA, REVISION_DRAFT_JSON_SCHEMA, SCREEN_OUTPUT_JSON_SCHEMA } from './structured-schema.js'
-import { countOptionalParameters, STRUCTURED_OUTPUT_OPTIONAL_LIMIT, structuredVariant, WireOutput, WirePainPointDraft, WireRevisionDraft } from './wire-schema.js'
+import { PAIN_POINT_DRAFT_JSON_SCHEMA, REVISION_DRAFT_JSON_SCHEMA, RFP_EXTRACT_JSON_SCHEMA, SCREEN_OUTPUT_JSON_SCHEMA } from './structured-schema.js'
+import { countOptionalParameters, STRUCTURED_OUTPUT_OPTIONAL_LIMIT, structuredVariant, WireOutput, WirePainPointDraft, WireRevisionDraft, WireRfpExtraction } from './wire-schema.js'
 
 const REGENERATE = '`pnpm gen:schema` 로 다시 만든다 (structured-schema.ts 는 생성물이라 손으로 고치지 않는다)'
 
@@ -32,10 +32,16 @@ describe('구조화 출력 스키마 생성물', () => {
     expect(PAIN_POINT_DRAFT_JSON_SCHEMA, REGENERATE).toEqual(generated)
   })
 
+  it('RFP 추출 스키마가 현재 wire 스키마에서 만든 것과 같다', () => {
+    const generated = zodOutputFormat(structuredVariant(WireRfpExtraction)).schema
+    expect(RFP_EXTRACT_JSON_SCHEMA, REGENERATE).toEqual(generated)
+  })
+
   it('선택 파라미터가 상한(24) 이하다', () => {
     expect(countOptionalParameters(SCREEN_OUTPUT_JSON_SCHEMA)).toBeLessThanOrEqual(STRUCTURED_OUTPUT_OPTIONAL_LIMIT)
     expect(countOptionalParameters(REVISION_DRAFT_JSON_SCHEMA)).toBeLessThanOrEqual(STRUCTURED_OUTPUT_OPTIONAL_LIMIT)
     expect(countOptionalParameters(PAIN_POINT_DRAFT_JSON_SCHEMA)).toBeLessThanOrEqual(STRUCTURED_OUTPUT_OPTIONAL_LIMIT)
+    expect(countOptionalParameters(RFP_EXTRACT_JSON_SCHEMA)).toBeLessThanOrEqual(STRUCTURED_OUTPUT_OPTIONAL_LIMIT)
   })
 
   /** 변환기가 걷어내는 것들. 하나라도 남아 있으면 API 가 400 으로 거부한다. */
@@ -61,6 +67,7 @@ describe('구조화 출력 스키마 생성물', () => {
     walk(SCREEN_OUTPUT_JSON_SCHEMA, 'screen')
     walk(REVISION_DRAFT_JSON_SCHEMA, 'draft')
     walk(PAIN_POINT_DRAFT_JSON_SCHEMA, 'painPoints')
+    walk(RFP_EXTRACT_JSON_SCHEMA, 'rfp')
     expect(found).toEqual([])
   })
 
@@ -84,6 +91,7 @@ describe('구조화 출력 스키마 생성물', () => {
     walk(SCREEN_OUTPUT_JSON_SCHEMA, 'screen')
     walk(REVISION_DRAFT_JSON_SCHEMA, 'draft')
     walk(PAIN_POINT_DRAFT_JSON_SCHEMA, 'painPoints')
+    walk(RFP_EXTRACT_JSON_SCHEMA, 'rfp')
     expect(problems).toEqual([])
   })
 

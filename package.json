@@ -9,6 +9,7 @@
   "type": "module",
   "scripts": {
     "bootstrap": "bash scripts/setup.sh",
+    "bridge": "tsx --env-file-if-exists=.env apps/api/src/bridge-cli.ts",
     "build:web": "pnpm --filter @con-ai/web build",
     "check": "pnpm typecheck && pnpm test",
     "bundle:knowledge": "node scripts/bundle-knowledge.mjs",
@@ -20,6 +21,8 @@
     "e2e:demo": "playwright test -c playwright.demo.config.ts",
     "gen:schema": "tsx packages/model-adapter/scripts/gen-structured-schema.mts",
     "probe:vocab": "tsx --env-file-if-exists=.env scripts/probe-vocab.mts",
+    "probe:claude-code": "tsx --env-file-if-exists=.env scripts/probe-claude-code.mts",
+    "probe:rfp": "tsx --env-file-if-exists=.env scripts/probe-rfp.mts",
     "serve": "pnpm build:web && pnpm start",
     "start": "tsx --env-file-if-exists=.env apps/api/src/server.ts",
     "test": "vitest run",

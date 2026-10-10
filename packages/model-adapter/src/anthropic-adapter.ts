@@ -14,8 +14,8 @@ import type { ScreenSpecShape } from '@con-ai/schemas'
 import type { AssembledPrompt, GenerationContext, SliceGenerationRequest } from '@con-ai/prompt-templates'
 import { AdapterError } from './errors.js'
 import type { AdapterAuth, AdapterResult, AsisStructure, ModelAdapter, PainPointDraftResult } from './types.js'
-import { PAIN_POINT_DRAFT_SYSTEM, REVISION_DRAFT_SYSTEM, painPointDraftUser, revisionDraftUser } from './prompts.js'
-import { stripNulls, structuredVariant, toGenerationOutputInput, WireOutput, WirePainPointDraft, WireRevisionDraft } from './wire-schema.js'
+import { PAIN_POINT_DRAFT_SYSTEM, REVISION_DRAFT_SYSTEM, RFP_EXTRACT_SYSTEM, painPointDraftUser, revisionDraftUser, rfpExtractUser, type RfpExtractInput } from './prompts.js'
+import { stripNulls, structuredVariant, toGenerationOutputInput, WireOutput, WirePainPointDraft, WireRevisionDraft, WireRfpExtraction } from './wire-schema.js'
 
 export const DEFAULT_MODEL = 'claude-opus-5'
 export const DEFAULT_MAX_TOKENS = 16000
@@ -84,6 +84,12 @@ export class AnthropicAdapter implements ModelAdapter {
     // 프롬프트는 브라우저 직접 호출과 **같은 문구**를 쓴다 (asis-prompt.ts 한 곳).
     const r = await this.#parse(PAIN_POINT_DRAFT_SYSTEM, painPointDraftUser(input), WirePainPointDraft)
     return { summary: r.parsed.summary, pain_points: r.parsed.pain_points }
+  }
+
+  /** RFP 원문 → 요구사항·평가항목. 공유 프롬프트·공유 스키마를 쓴다 (prompts.ts · structured-schema.ts). */
+  async extractRfp(input: RfpExtractInput): Promise<WireRfpExtraction> {
+    const r = await this.#parse(RFP_EXTRACT_SYSTEM, rfpExtractUser(input), WireRfpExtraction)
+    return r.parsed
   }
 
   /**

@@ -308,6 +308,7 @@ describe('runAsisAnalysis — 실패는 code 와 함께 failed 로 기록한다 
         draftRevisionPrompt: async () => {
           throw new Error('이 테스트에서 쓰지 않는다')
         },
+        extractRfp: () => Promise.reject(new Error('이 테스트는 RFP 추출을 실행하지 않는다')),
         draftPainPoints: async () => {
           throw new Error('모델 출력 파싱 실패 (가짜)')
         },

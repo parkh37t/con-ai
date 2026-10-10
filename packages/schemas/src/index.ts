@@ -5,6 +5,7 @@
 export * from './common.js'
 export * from './source.js'
 export * from './requirement.js'
+export * from './rfp.js'
 export * from './policy.js'
 export * from './baseline.js'
 export * from './id-registry.js'

@@ -26,6 +26,7 @@ function fakeAdapter(kind: ModelAdapter['kind'] = 'fixture'): ModelAdapter {
     generateSpec: fail,
     reviseSpec: fail,
     draftRevisionPrompt: fail,
+    extractRfp: () => Promise.reject(new Error('이 테스트는 RFP 추출을 실행하지 않는다')),
     draftPainPoints: fail,
   }
 }

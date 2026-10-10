@@ -1036,3 +1036,234 @@ export const PAIN_POINT_DRAFT_JSON_SCHEMA: StructuredJsonSchema = {
   ],
   "description": "{$schema: \"https://json-schema.org/draft/2020-12/schema\"}"
 }
+
+/** RFP 원문 → 요구사항·평가항목 추출 (WireRfpExtraction). 발번은 서버가 다시 계산하므로 external_id 는 받지 않는다. */
+export const RFP_EXTRACT_JSON_SCHEMA: StructuredJsonSchema = {
+  "$defs": {
+    "__schema0": {
+      "type": "string"
+    },
+    "__schema1": {
+      "type": "string"
+    }
+  },
+  "type": "object",
+  "properties": {
+    "overview": {
+      "type": "object",
+      "properties": {
+        "org": {
+          "type": "string"
+        },
+        "project_name": {
+          "type": "string"
+        },
+        "period": {
+          "type": "string"
+        },
+        "budget": {
+          "type": "string"
+        },
+        "deliverables": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "constraints": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "org",
+        "project_name",
+        "period",
+        "budget",
+        "deliverables",
+        "constraints"
+      ]
+    },
+    "evaluation_items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "weight": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "description": {
+            "type": "string"
+          },
+          "source": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "$ref": "#/$defs/__schema0"
+              },
+              "quote": {
+                "$ref": "#/$defs/__schema1"
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "label",
+              "quote"
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "label",
+          "weight",
+          "description",
+          "source"
+        ]
+      }
+    },
+    "requirements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "description": "{enum: [\"FR\",\"NFR\",\"TR\",\"OR\",\"CR\"]}"
+          },
+          "title": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "priority": {
+            "type": "string",
+            "description": "{enum: [\"M\",\"S\",\"C\",\"W\"]}"
+          },
+          "priority_reason": {
+            "type": "string"
+          },
+          "source": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "$ref": "#/$defs/__schema0"
+              },
+              "quote": {
+                "$ref": "#/$defs/__schema1"
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "label",
+              "quote"
+            ]
+          },
+          "criteria": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "text": {
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string",
+                  "description": "{enum: [\"ui\",\"non_ui\"]}"
+                }
+              },
+              "additionalProperties": false,
+              "required": [
+                "text",
+                "kind"
+              ]
+            }
+          },
+          "nfr_axis": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "{enum: [\"performance\",\"availability\",\"security\",\"accessibility\",\"compatibility\",\"audit\"]}"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "title",
+          "detail",
+          "priority",
+          "priority_reason",
+          "source",
+          "criteria",
+          "nfr_axis"
+        ]
+      }
+    },
+    "unresolved": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "description": "{enum: [\"question\",\"conflict\",\"missing_evidence\"]}"
+          },
+          "text": {
+            "type": "string"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "$ref": "#/$defs/__schema0"
+                  },
+                  "quote": {
+                    "$ref": "#/$defs/__schema1"
+                  }
+                },
+                "additionalProperties": false,
+                "required": [
+                  "label",
+                  "quote"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "text",
+          "source"
+        ]
+      }
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "overview",
+    "evaluation_items",
+    "requirements",
+    "unresolved"
+  ],
+  "description": "{$schema: \"https://json-schema.org/draft/2020-12/schema\"}"
+}

@@ -57,6 +57,9 @@ function fakeAdapter(): ModelAdapter & { calls: string[] } {
       return { prompt: `다음 코멘트를 반영해 수정: ${comments.map((c) => c.text).join(' / ')}`, rationale: `${comments.length}건의 코멘트를 요약했다` }
     },
     // 계약 §12 (AS-IS) — 이 통합 테스트는 asis 를 실행하지 않지만 ModelAdapter 인터페이스가 요구한다 (asis 통합은 asis.test.ts).
+    async extractRfp(): Promise<never> {
+      throw new Error('이 테스트는 RFP 추출을 실행하지 않는다')
+    },
     async draftPainPoints() {
       return { summary: '가짜 요약', pain_points: [] }
     },

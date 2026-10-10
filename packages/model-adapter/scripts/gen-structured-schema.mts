@@ -4,11 +4,12 @@
  */
 import { writeFileSync } from 'node:fs'
 import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod'
-import { WireOutput, WirePainPointDraft, WireRevisionDraft, structuredVariant } from '../src/wire-schema.js'
+import { WireOutput, WirePainPointDraft, WireRevisionDraft, WireRfpExtraction, structuredVariant } from '../src/wire-schema.js'
 
 const screen = zodOutputFormat(structuredVariant(WireOutput) as never).schema
 const draft = zodOutputFormat(structuredVariant(WireRevisionDraft) as never).schema
 const painPoints = zodOutputFormat(structuredVariant(WirePainPointDraft) as never).schema
+const rfp = zodOutputFormat(structuredVariant(WireRfpExtraction) as never).schema
 
 const header = `/**
  * 구조화 출력으로 **실제로 보내는 JSON Schema** — 생성물이다. 손으로 고치지 않는다.
@@ -33,11 +34,14 @@ const body =
   JSON.stringify(draft, null, 2) +
   `\n\n/** AS-IS 구조 요약 → 페인포인트 초안 (WirePainPointDraft). 서버·브라우저가 같이 쓴다. */\nexport const PAIN_POINT_DRAFT_JSON_SCHEMA: StructuredJsonSchema = ` +
   JSON.stringify(painPoints, null, 2) +
+  `\n\n/** RFP 원문 → 요구사항·평가항목 추출 (WireRfpExtraction). 발번은 서버가 다시 계산하므로 external_id 는 받지 않는다. */\nexport const RFP_EXTRACT_JSON_SCHEMA: StructuredJsonSchema = ` +
+  JSON.stringify(rfp, null, 2) +
   '\n'
 
 writeFileSync(new URL('../src/structured-schema.ts', import.meta.url), body)
 console.log(
   '생성 완료 — 화면 출력', JSON.stringify(screen).length,
   '바이트 / 수정 초안', JSON.stringify(draft).length,
-  '바이트 / 페인포인트 초안', JSON.stringify(painPoints).length, '바이트',
+  '바이트 / 페인포인트 초안', JSON.stringify(painPoints).length,
+  '바이트 / RFP 추출', JSON.stringify(rfp).length, '바이트',
 )

@@ -15,6 +15,9 @@
 import { looksLikeMainScreen, shellKindOf, ScreenSpecShape } from '@con-ai/schemas'
 import type { GenerationContext, SliceCase, SliceGenerationRequest } from '@con-ai/prompt-templates'
 import type { AdapterResult, AsisStructure, ModelAdapter, PainPointDraft, PainPointDraftResult } from './types.js'
+import type { RfpExtractInput } from './prompts.js'
+import { extractRfpByRules } from './rfp-fixture.js'
+import type { WireRfpExtraction } from './wire-schema.js'
 import type { WireOutput, WireScreenSpec } from './wire-schema.js'
 
 export const FIXTURE_MODEL = 'fixture' as const
@@ -608,6 +611,14 @@ export class FixtureAdapter implements ModelAdapter {
       '규칙 기반 초안이므로 기획자 채택·거부 확인이 필요하다.',
     ].join(' ')
     return { summary, pain_points: points }
+  }
+
+  /**
+   * RFP 추출 — **규칙 기반**이라 인용을 지어낼 수 없다 (`rfp-fixture.ts`).
+   * 뽑지 못한 것은 `unresolved` 에 적는다 — 「문제 없음」으로 두지 않는다.
+   */
+  async extractRfp(input: RfpExtractInput): Promise<WireRfpExtraction> {
+    return extractRfpByRules(input)
   }
 }
 

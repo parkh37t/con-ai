@@ -14,10 +14,10 @@
 import type { ScreenSpecShape } from '@con-ai/schemas'
 import type { AssembledPrompt, GenerationContext, SliceGenerationRequest } from '@con-ai/prompt-templates'
 import { DEFAULT_CLI_BUDGET_USD, DEFAULT_CLI_TIMEOUT_MS, describeCliAuth, runClaudeCli, type ClaudeCliOptions } from './claude-code-cli.js'
-import { PAIN_POINT_DRAFT_SYSTEM, REVISION_DRAFT_SYSTEM, painPointDraftUser, revisionDraftUser } from './prompts.js'
-import { PAIN_POINT_DRAFT_JSON_SCHEMA, REVISION_DRAFT_JSON_SCHEMA, SCREEN_OUTPUT_JSON_SCHEMA } from './structured-schema.js'
+import { PAIN_POINT_DRAFT_SYSTEM, REVISION_DRAFT_SYSTEM, RFP_EXTRACT_SYSTEM, painPointDraftUser, revisionDraftUser, rfpExtractUser, type RfpExtractInput } from './prompts.js'
+import { PAIN_POINT_DRAFT_JSON_SCHEMA, REVISION_DRAFT_JSON_SCHEMA, RFP_EXTRACT_JSON_SCHEMA, SCREEN_OUTPUT_JSON_SCHEMA } from './structured-schema.js'
 import type { AdapterResult, AsisStructure, ModelAdapter, PainPointDraftResult } from './types.js'
-import { WireOutput, WirePainPointDraft, WireRevisionDraft, toGenerationOutputInput } from './wire-schema.js'
+import { WireOutput, WirePainPointDraft, WireRevisionDraft, WireRfpExtraction, toGenerationOutputInput } from './wire-schema.js'
 
 /** CLI 는 모델 별칭(`opus`)도 받지만, 저장 기록과 화면 문구를 맞추려고 정식 이름을 기본으로 둔다. */
 export const DEFAULT_CLI_MODEL = 'claude-opus-5'
@@ -90,6 +90,19 @@ export class ClaudeCodeAdapter implements ModelAdapter {
       this.#options(SHORT_TASK_TIMEOUT_MS),
     )
     return { prompt: run.output.prompt, rationale: run.output.rationale }
+  }
+
+  /**
+   * RFP 원문 → 요구사항·평가항목. 원문이 길어 **생성과 같은 제한 시간**을 쓴다.
+   * 인용 검사(`checkRfpExtraction`)는 서버가 한다 — 모델 판단에 맡기지 않는다.
+   */
+  async extractRfp(input: RfpExtractInput): Promise<WireRfpExtraction> {
+    const run = await runClaudeCli(
+      { system: RFP_EXTRACT_SYSTEM, user: rfpExtractUser(input), json_schema: RFP_EXTRACT_JSON_SCHEMA, label: 'RFP 분석' },
+      WireRfpExtraction,
+      this.#options(this.#timeoutMs),
+    )
+    return run.output
   }
 
   async draftPainPoints(input: { url: string; note?: string | undefined; structure: AsisStructure }): Promise<PainPointDraftResult> {

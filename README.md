@@ -39,9 +39,13 @@ pnpm dev                  # 웹 http://localhost:5173 , API http://localhost:878
 
   ```bash
   claude                                      # 한 번 로그인 (Pro·Max·Team·Enterprise 구독)
-  # .env: MODEL_ADAPTER=claude_code
-  pnpm dev                                    # API 가 .env 를 스스로 읽는다 (source 불필요)
+  pnpm bridge                                 # 웹+API 를 127.0.0.1 한 포트로 — 내 Claude Code 로 호출
   ```
+
+  `pnpm bridge` 가 **로컬 브리지**다: 브라우저는 프로세스를 띄울 수 없으므로 모델 호출을 대신할 로컬 종단이
+  필요하고, 그 종단이 웹 화면을 **같은 출처로** 함께 서빙한다. 그래서 Chrome 의 로컬 네트워크 권한 프롬프트나
+  Safari 의 혼합 콘텐츠 차단에 걸리지 않는다. `claude` 가 없으면 **더미로 바꿔 띄우지 않고** 설치 방법을 적고 끝낸다.
+  (`.env` 에 `MODEL_ADAPTER=claude_code` 를 넣고 `pnpm dev`·`pnpm serve` 로 써도 된다.)
 
   실측(2026-10): 이 경로로 화면명세 생성이 **87초에 성공**했고 검증 14건 전부 pass 였다. 모델 호출은
   `claude -p --output-format json --json-schema …` 이고, 도구·설정·MCP 를 모두 끈 빈 디렉터리에서 돈다

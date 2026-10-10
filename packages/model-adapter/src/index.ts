@@ -38,8 +38,10 @@ export {
   type ClaudeCliRun,
   type ResolvedClaudeBin,
 } from './claude-code-cli.js'
-export { PAIN_POINT_DRAFT_JSON_SCHEMA, REVISION_DRAFT_JSON_SCHEMA, SCREEN_OUTPUT_JSON_SCHEMA, type StructuredJsonSchema } from './structured-schema.js'
-export { PAIN_POINT_DRAFT_SYSTEM, REVISION_DRAFT_SYSTEM, painPointDraftUser, revisionDraftUser } from './prompts.js'
+export { PAIN_POINT_DRAFT_JSON_SCHEMA, REVISION_DRAFT_JSON_SCHEMA, RFP_EXTRACT_JSON_SCHEMA, SCREEN_OUTPUT_JSON_SCHEMA, type StructuredJsonSchema } from './structured-schema.js'
+export { MATERIAL_BEGIN, MATERIAL_END, PAIN_POINT_DRAFT_SYSTEM, REVISION_DRAFT_SYSTEM, RFP_EXTRACT_SYSTEM, painPointDraftUser, revisionDraftUser, rfpExtractUser, type RfpExtractInput } from './prompts.js'
+export { extractEvaluationItems, extractRfpByRules, splitSentences } from './rfp-fixture.js'
+export { WireRfpExtraction, type WireRfpRequirement } from './wire-schema.js'
 export { WireOutput, WirePainPoint, WirePainPointDraft, WireRevisionDraft, WireScreenSpec, toGenerationOutputInput } from './wire-schema.js'
 
 /** OAuth 토큰(Authorization: Bearer)에 필요한 beta 헤더. SDK 는 authToken 을 직접 넘길 때 이 헤더를 붙이지 않으므로 defaultHeaders 로 넣는다. */

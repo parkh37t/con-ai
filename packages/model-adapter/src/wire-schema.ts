@@ -174,10 +174,45 @@ export const WirePainPoint = z.object({
 })
 export const WirePainPointDraft = z.object({ summary: z.string(), pain_points: z.array(WirePainPoint) })
 
+/**
+ * RFP 분석 (extractRfp 의 구조화 출력).
+ *
+ * 모델에게 **원문 그대로의 인용**(`source.quote`)을 받는 것이 이 스키마의 핵심이다 — 그 인용이 원문에
+ * 실제로 있는지는 `@con-ai/domain` 의 `checkRfpExtraction` 이 규칙으로 확인한다(지어낸 인용 차단).
+ * `external_id` 는 **받지 않는다**: 발번은 서버가 `{코드}-{분류}-{번호}` 규칙으로 다시 계산한다.
+ * enum 은 구조화 출력에서 설명으로 밀려나므로 API 가 강제하지 않는다 — 받은 뒤 이 스키마로 다시 읽는다.
+ */
+export const WireRfpSource = z.object({ label: z.string(), quote: z.string() })
+export const WireRfpRequirement = z.object({
+  kind: z.enum(['FR', 'NFR', 'TR', 'OR', 'CR']),
+  title: z.string(),
+  detail: z.string(),
+  priority: z.enum(['M', 'S', 'C', 'W']),
+  priority_reason: z.string(),
+  source: WireRfpSource,
+  criteria: z.array(z.object({ text: z.string(), kind: z.enum(['ui', 'non_ui']) })),
+  nfr_axis: z.enum(['performance', 'availability', 'security', 'accessibility', 'compatibility', 'audit']).optional(),
+})
+export const WireRfpExtraction = z.object({
+  overview: z.object({
+    org: z.string(),
+    project_name: z.string(),
+    period: z.string(),
+    budget: z.string(),
+    deliverables: z.array(z.string()),
+    constraints: z.array(z.string()),
+  }),
+  evaluation_items: z.array(z.object({ label: z.string(), weight: z.number().optional(), description: z.string(), source: WireRfpSource })),
+  requirements: z.array(WireRfpRequirement),
+  unresolved: z.array(z.object({ kind: z.enum(['question', 'conflict', 'missing_evidence']), text: z.string(), source: WireRfpSource.optional() })),
+})
+
 export type WireScreenSpec = z.infer<typeof WireScreenSpec>
 export type WireOutput = z.infer<typeof WireOutput>
 export type WireRevisionDraft = z.infer<typeof WireRevisionDraft>
 export type WirePainPointDraft = z.infer<typeof WirePainPointDraft>
+export type WireRfpRequirement = z.infer<typeof WireRfpRequirement>
+export type WireRfpExtraction = z.infer<typeof WireRfpExtraction>
 
 /** wire 결과는 그대로 GenerationOutputInput 이어야 한다 — 어긋나면 여기서 컴파일이 실패한다. */
 export function toGenerationOutputInput(wire: WireOutput): GenerationOutputInput {

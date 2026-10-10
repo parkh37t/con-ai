@@ -1,6 +1,8 @@
 /** 세로 조각 계약 §3 — 모델 어댑터 인터페이스. */
 import type { GenerationOutputInput, ScreenSpecShape } from '@con-ai/schemas'
 import type { AssembledPrompt, GenerationContext, SliceGenerationRequest } from '@con-ai/prompt-templates'
+import type { RfpExtractInput } from './prompts.js'
+import type { WireRfpExtraction } from './wire-schema.js'
 
 /**
  * 어댑터 종류. `claude_code` 는 **그 기계의 Claude Code CLI** 를 불러 쓰는 경로다 (claude-code-cli.ts).
@@ -72,4 +74,12 @@ export interface ModelAdapter {
   draftRevisionPrompt(input: { ctx: GenerationContext; current: ScreenSpecShape; comments: NonNullable<GenerationContext['comments']> }): Promise<{ prompt: string; rationale: string }>
   /** AS-IS 분석 페인포인트 초안 (계약 §12) — anthropic 은 구조화 출력, fixture 는 structure 규칙 기반 결정적. */
   draftPainPoints(input: { url: string; note?: string | undefined; structure: AsisStructure }): Promise<PainPointDraftResult>
+  /**
+   * RFP 원문 → 요구사항·평가항목 추출 (사내 BA 표준).
+   *
+   * 돌려주는 것은 **wire 모양**이고 아직 기준정보가 아니다 — 서버가 `checkRfpExtraction` 으로
+   * 인용을 원문과 맞춰 보고 외부 ID 를 다시 계산한 뒤에야 사람이 채택할 수 있다.
+   * fixture 는 규칙으로 뽑으므로 **인용을 지어낼 수 없다**.
+   */
+  extractRfp(input: RfpExtractInput): Promise<WireRfpExtraction>
 }
