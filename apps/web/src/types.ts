@@ -4,9 +4,13 @@
  */
 
 // ---------------------------------------------------------------- 메타 (§7 GET /api/meta)
-export type AdapterKind = 'anthropic' | 'fixture'
-/** 인증 방식 — 구버전 API 는 이 필드가 없을 수 있다. */
-export type AuthKind = 'api_key' | 'token' | 'profile' | 'none'
+/**
+ * 어댑터 종류. `claude_code` 는 서버가 **그 기계의 Claude Code CLI** 를 불러 쓰는 경로다 —
+ * 우리가 자격 증명을 보지 않고, API 키도 쓰지 않는다. 세 값을 화면에서 **구분해 적는다**.
+ */
+export type AdapterKind = 'anthropic' | 'fixture' | 'claude_code'
+/** 인증 방식 — 구버전 API 는 이 필드가 없을 수 있다. `claude_code_cli` 는 「우리가 자격 증명을 보지 않는다」는 뜻이다. */
+export type AuthKind = 'api_key' | 'token' | 'profile' | 'none' | 'claude_code_cli'
 export interface Meta {
   adapter: AdapterKind
   model: string

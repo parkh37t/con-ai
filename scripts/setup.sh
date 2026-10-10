@@ -3,8 +3,9 @@
 #
 #   bash scripts/setup.sh                  # 대화형: 어댑터·인증 방식을 물어본다
 #   bash scripts/setup.sh --yes            # 비대화: 기본값(fixture 더미 어댑터)으로 진행
+#   bash scripts/setup.sh --adapter claude_code                # 실제 모델, **내 Claude 로그인** (API 키 불필요 · 권장)
 #   bash scripts/setup.sh --adapter anthropic --auth api_key   # 실제 모델, API 키 방식 (.env 에 키를 채워야 함)
-#   bash scripts/setup.sh --adapter anthropic --auth token     # 실제 모델, 토큰(Bearer) 방식
+#   bash scripts/setup.sh --adapter anthropic --auth token     # 토큰(Bearer) — 제3자 사용 금지·거부 보고, 권하지 않음
 #   옵션: --no-check (설치 후 검사 생략), --no-browser (Playwright 브라우저 설치 생략)
 #
 # 하는 일: Node/pnpm 확인 → 의존성 설치 → .env 생성(없을 때만) → Playwright 브라우저 확인/설치 → pnpm check → 시작 방법 안내.
@@ -16,7 +17,10 @@ YES=0; ADAPTER=""; AUTH=""; RUN_CHECK=1; INSTALL_BROWSER=1
 while [ $# -gt 0 ]; do
   case "$1" in
     --yes|-y) YES=1 ;;
-    --adapter) ADAPTER="$2"; shift ;;
+    --adapter)
+      ADAPTER="$2"; shift
+      case "$ADAPTER" in claude_code|anthropic|fixture) ;; *) fail "--adapter 값이 올바르지 않습니다: $ADAPTER (claude_code | anthropic | fixture)" ;; esac
+      ;;
     --auth) AUTH="$2"; shift ;;
     --no-check) RUN_CHECK=0 ;;
     --no-browser) INSTALL_BROWSER=0 ;;
@@ -54,25 +58,35 @@ if [ -f .env ]; then
   # 플래그를 줬는데 조용히 버리면 사용자는 토큰 세팅이 먹은 줄 안다 (SessionStart 훅이 매 세션 fixture .env 를 먼저 만든다).
   if [ -n "$ADAPTER" ] || [ -n "$AUTH" ]; then
     echo "  ⚠ --adapter/--auth 는 적용되지 않았습니다. 기존 .env 를 고치지 않습니다."
-    echo "    토큰으로 바꾸려면 .env 의 세 줄을 직접 고치세요:"
-    echo "      MODEL_ADAPTER=anthropic"
-    echo "      MODEL_AUTH=token"
+    echo "    내 Claude 계정으로 바꾸려면 .env 의 한 줄만 고치세요 (API 키·토큰 불필요):"
+    echo "      MODEL_ADAPTER=claude_code"
     echo "      ANTHROPIC_AUTH_TOKEN=<\`claude setup-token\` 으로 받은 값>"
     echo "    (또는 .env 를 지우고 이 스크립트를 다시 실행하세요)"
   fi
 else
   if [ -z "$ADAPTER" ]; then
     if [ "$YES" = 1 ]; then ADAPTER=fixture; else
-      printf '\n모델 어댑터를 고르세요 [1] fixture(더미, 모델 호출 없음, 기본)  [2] anthropic(실제 호출): '
-      read -r a; case "$a" in 2) ADAPTER=anthropic ;; *) ADAPTER=fixture ;; esac
+      printf '\n모델 어댑터를 고르세요 [1] claude_code(내 Claude 로그인으로 실제 호출 — API 키 불필요, 권장)  [2] fixture(더미, 기본)  [3] anthropic(API 키): '
+      read -r a; case "$a" in 1) ADAPTER=claude_code ;; 3) ADAPTER=anthropic ;; *) ADAPTER=fixture ;; esac
     fi
   fi
   KEY=""; TOKEN=""
+  # claude_code 는 자격 증명을 받지 않는다 — 그 기계의 Claude Code 로그인이 인증한다.
+  if [ "$ADAPTER" = claude_code ]; then
+    if command -v claude >/dev/null 2>&1; then
+      echo "  claude CLI 확인: $(claude --version 2>/dev/null | head -1)"
+      echo "  로그인이 안 되어 있으면 터미널에서 claude 를 한 번 실행하세요 (구독 필요)."
+    else
+      echo "  ⚠ claude 를 찾지 못했습니다. 설치 후 다시 실행하세요: https://code.claude.com/docs/en/setup"
+      echo "    (설치 전까지는 생성이 「Claude Code CLI 를 찾지 못했습니다」로 정직하게 실패합니다 — 더미로 바꾸지 않습니다.)"
+    fi
+  fi
   if [ "$ADAPTER" = anthropic ]; then
     if [ -z "$AUTH" ]; then
-      if [ "$YES" = 1 ]; then AUTH=token; else
-        printf '인증 방식을 고르세요 [1] 내 구독 토큰(ANTHROPIC_AUTH_TOKEN, 기본 — `claude setup-token` 으로 발급)  [2] API 키(ANTHROPIC_API_KEY): '
-        read -r b; case "$b" in 2) AUTH=api_key ;; *) AUTH=token ;; esac
+      if [ "$YES" = 1 ]; then AUTH=api_key; else
+        # 구독 토큰 직접 호출은 Anthropic 이 제3자 사용을 금지했고 API 가 거부한다는 보고가 다수다 — 기본값에서 뺐다.
+        printf '인증 방식을 고르세요 [1] API 키(ANTHROPIC_API_KEY, 기본)  [2] 구독 토큰(권하지 않음 — 제3자 사용 금지·거부 보고): '
+        read -r b; case "$b" in 2) AUTH=token ;; *) AUTH=api_key ;; esac
       fi
     fi
     if [ "$YES" != 1 ]; then
@@ -135,6 +149,6 @@ say "준비 완료"
 cat <<'EOF'
 시작:  pnpm dev     (.env 는 API 가 스스로 읽습니다 — source 불필요)
        → 웹 http://localhost:5173 , API http://localhost:8787
-실제 모델 호출로 바꾸기: .env 에 MODEL_ADAPTER=anthropic, MODEL_AUTH=token, ANTHROPIC_AUTH_TOKEN=<`claude setup-token` 으로 받은 값> 을 채우고 API 를 재시작
-       (API 키를 쓰려면 MODEL_AUTH=api_key 와 ANTHROPIC_API_KEY)
+실제 모델 호출로 바꾸기: .env 에 MODEL_ADAPTER=claude_code 를 넣고 API 를 재시작 (API 키 불필요 — 터미널에서 claude 로 한 번 로그인)
+       (API 키로 쓰려면 MODEL_ADAPTER=anthropic, MODEL_AUTH=api_key, ANTHROPIC_API_KEY)
 EOF

@@ -34,6 +34,8 @@ const AUTH_HINT: Record<AdapterAuth, string> = {
   token: 'ANTHROPIC_AUTH_TOKEN 이 만료·폐기되지 않았는지 확인 (`claude setup-token` 으로 다시 발급해 .env 에 넣고 API 를 재시작)',
   profile: '`ant auth login` 프로필이 있는지·만료되지 않았는지 확인 (ant auth status)',
   none: '인증 수단 없음',
+  // anthropic 어댑터에는 올 수 없는 값이다 (CLI 경로는 ClaudeCodeAdapter 가 쓴다). 전수 Record 를 비우지 않기 위해 적는다.
+  claude_code_cli: '이 어댑터의 인증 방식이 아님 (Claude Code CLI 경로)',
 }
 
 /** draftRevisionPrompt 용 system 프롬프트 — 명세가 아니라 수정 지시문만 만든다. */

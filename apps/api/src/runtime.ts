@@ -141,6 +141,15 @@ export function buildStartupLines(info: StartupInfo): string[] {
   )
   if (info.adapter === 'anthropic') {
     lines.push(RULE, NO_AUTH_WARNING, '[경고] 어댑터 anthropic — 접속하는 누구나 실제 모델을 호출하고, 그 비용은 이 서버의 자격 증명으로 청구된다.', RULE)
+  } else if (info.adapter === 'claude_code') {
+    // 자격 증명을 우리가 들고 있지 않다. 그래도 **접속하는 누구나** 이 기계의 Claude 계정을 쓰게 되는 것은 같다.
+    lines.push(
+      RULE,
+      NO_AUTH_WARNING,
+      '[경고] 어댑터 claude_code — 접속하는 누구나 실제 모델을 호출하고, 그 사용량은 **이 기계에 로그인된 Claude 계정**에 쌓인다 (API 키는 쓰지 않는다).',
+      '        혼자 쓰려면 HOST=127.0.0.1 로 띄운다.',
+      RULE,
+    )
   } else {
     lines.push(NO_AUTH_WARNING)
   }

@@ -1,6 +1,40 @@
 # @con-ai/model-adapter — 모델 호출 어댑터
 
-> 세로 조각 계약 §3 의 `ModelAdapter` 구현. `anthropic`(실제 호출, 구조화 출력) / `fixture`(더미, 네트워크 없음). 모델 호출은 서버(API·워커)에서만 하고 키·토큰은 환경변수에서만 읽으며 어디에도 로그·응답하지 않는다 (CLAUDE.md AI 경계).
+> 세로 조각 계약 §3 의 `ModelAdapter` 구현. **`claude_code`(권장 — 그 기계의 Claude Code CLI)** / `anthropic`(SDK 직접 호출, 구조화 출력) / `fixture`(더미, 네트워크 없음). 모델 호출은 서버(API·워커·로컬 브리지)에서만 하고 키·토큰은 환경변수에서만 읽으며 어디에도 로그·응답하지 않는다 (CLAUDE.md AI 경계).
+
+## claude_code — 내 Claude 계정으로, API 키 없이 (1순위)
+
+`MODEL_ADAPTER=claude_code` 는 **그 기계에 로그인된 Claude Code CLI** 를 자식 프로세스로 부른다.
+우리는 자격 증명을 읽지 않는다 — 인증은 그 기계의 `claude` 로그인이 한다.
+
+왜 이 경로인가: Anthropic 이 2026-02 부터 **구독 OAuth 토큰의 제3자 도구 사용을 금지**했고,
+`sk-ant-oat01-…` 을 Messages API 에 보내면 `OAuth authentication is currently not supported` 로
+거부된다는 보고가 다수다. 「각자 자기 Claude 계정으로, API 키 없이」는 1st-party 클라이언트를 부르는
+길 하나만 남는다.
+
+```bash
+claude                       # 한 번 로그인 (Pro·Max·Team·Enterprise)
+# .env: MODEL_ADAPTER=claude_code
+```
+
+**실측으로 고정한 사실** (`claude 2.1.296`, `packages/model-adapter/src/claude-code-cli.ts` 머리말):
+
+| 사실 | 코드에서 하는 일 |
+|---|---|
+| `--json-schema <inline>` 가 동작하고 envelope 에 `structured_output`(파싱된 객체)이 온다 | 생성물 스키마(`structured-schema.ts`) 한 벌을 **그대로** 넘긴다 |
+| 구조화 출력이 **선택 키를 `null` 로** 보낸다 | `stripNulls` 후 wire zod 로 **다시 읽는다**. 빼면 성공한 호출이 전건 거부된다 |
+| `--system-prompt-file` 이 동작한다 | system 프롬프트를 argv 에 넣지 않는다 (Windows 명령행 상한·`ps` 노출 회피) |
+| **`--tools ""` 만으로는 격리가 안 된다** — cwd 의 `CLAUDE.md`·훅이 그대로 돈다 | 빈 임시 디렉터리 + `--setting-sources ""` + `--strict-mcp-config` 로 돌린다 |
+| `total_cost_usd` 는 `costBasis: "list"` | `list_cost_usd` 로 돌려주고 화면 문구에 「정가 환산 추정」이라 적는다 |
+| stdin 을 닫지 않으면 호출마다 3초를 버린다 | user 프롬프트를 stdin 으로 쓰고 `end()` 한다 |
+
+실패를 **구분해** 올린다: `cli_missing`(설치 필요) · `not_logged_in`(`claude` 로그인 필요) ·
+`rate_limit` · `timeout` · `budget` · `cancelled` · `parse`(스키마 불일치 — **1회만** 수리 재시도).
+
+검증: `claude-code-cli.test.ts`·`claude-code-adapter.test.ts` 가 **가짜 `claude` 실행 파일**로 실제
+spawn·stdin·종료 코드를 지난다(모델 호출 없음). 실제 호출은 `.local/probe-claude-code.mts` 로
+한 번 확인했다 — 화면명세 생성 **87초 성공 · 검증 14건 pass**. Windows 배치 shim(`claude.cmd`) 분기는
+경로 계산만 단언했고 **실행 검증은 하지 못했다(not_run)**.
 
 근거 문서: `docs/plan/세로조각_계약.md` §3, 설계 §5·§8·§9, Anthropic SDK 사용법은 claude-api skill 의 `typescript/claude-api/README.md`(클라이언트 초기화·오류 처리·stop reason)·`tool-use.md` "Structured Outputs"(`client.messages.parse` + `zodOutputFormat`)·`shared/anthropic-cli.md`(OAuth 토큰 헤더) 에서 확인했다. SDK 는 `@anthropic-ai/sdk@0.124.0`.
 
@@ -15,7 +49,8 @@ pnpm check                                 # 저장소 전체
 
 | 변수 | 값 | 기본 | 뜻 |
 |---|---|---|---|
-| `MODEL_ADAPTER` | `anthropic` \| `fixture` | `fixture` | 실제 호출 / 더미. 화면 배지에 `anthropic(모델)` / `fixture(더미)` 로 표시한다 |
+| `MODEL_ADAPTER` | `claude_code` \| `anthropic` \| `fixture` | `fixture` | 내 Claude Code / SDK 직접 / 더미. **셋 중 하나가 아니면 거절한다**(오타로 더미로 도는 것을 막는다) |
+| `CLAUDE_BIN` | 경로 | PATH 탐색 | `claude` 실행 파일을 직접 지정 (claude_code 전용) |
 | `MODEL_ID` | 모델 ID | `claude-opus-5` | anthropic 어댑터가 쓰는 모델 |
 | `MODEL_AUTH` | `api_key` \| `token` \| `auto` | `auto` | 인증 방식 선택. `auto` 는 `ANTHROPIC_API_KEY` → `ANTHROPIC_AUTH_TOKEN` → `ant auth login` 프로필 순 |
 | `ANTHROPIC_API_KEY` | API 키 | — | API 키 방식 |
@@ -27,7 +62,9 @@ pnpm check                                 # 저장소 전체
 
 ### 인증 방식 두 가지 (+ 프로필)
 
-**1순위는 토큰이다.** `MODEL_AUTH=auto` 는 API 키를 먼저 잡으므로, 토큰을 쓰려면 `token` 으로 고정한다.
+**이 표는 `anthropic` 어댑터에만 해당한다.** 1순위는 위의 `claude_code` 이고, anthropic 어댑터 안에서는
+**API 키가 권하는 수단**이다 — 토큰(`ANTHROPIC_AUTH_TOKEN`) 직접 호출은 제3자 사용이 금지됐고 API 가
+거부한다는 보고가 다수다(아래 「토큰」 행은 역사적 기록으로 남긴다).
 
 | 방식 | 설정 | 요청 헤더 | 비고 |
 |---|---|---|---|

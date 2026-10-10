@@ -17,7 +17,7 @@ if [ -n "${CLAUDE_ENV_FILE:-}" ]; then
   # 사용자가 `.env` 에 토큰과 MODEL_ADAPTER=anthropic 을 제대로 채워도 조용히 더미로 돈다 — 실제로 그랬다.
   # `.env` 에 적힌 값을 기본값으로 삼고, 없을 때만 fixture 로 둔다(돈이 드는 쪽을 기본으로 하지 않는다).
   ENV_ADAPTER=$(sed -n 's/^[[:space:]]*MODEL_ADAPTER[[:space:]]*=[[:space:]]*//p' .env 2>/dev/null | tail -1 | tr -d "\"'" | tr -d '[:space:]')
-  case "$ENV_ADAPTER" in anthropic|fixture) ;; *) ENV_ADAPTER=fixture ;; esac
+  case "$ENV_ADAPTER" in claude_code|anthropic|fixture) ;; *) ENV_ADAPTER=fixture ;; esac
   echo "export MODEL_ADAPTER=\"\${MODEL_ADAPTER:-$ENV_ADAPTER}\"" >> "$CLAUDE_ENV_FILE"
 fi
 echo "[con-ai] 세션 준비 완료 (pnpm check 로 검사, pnpm dev 로 실행)"

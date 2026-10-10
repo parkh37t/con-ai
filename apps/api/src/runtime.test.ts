@@ -242,6 +242,13 @@ describe('runtime 보조 함수', () => {
     expect(off.join('\n')).toContain('웹 빌드 없음 — pnpm build:web 후 다시 시작하면 같은 포트에서 UI 를 제공한다')
     expect(off).toContain(NO_AUTH_WARNING)
 
+    const cli = buildStartupLines({ host: '0.0.0.0', port: 8787, adapter: 'claude_code', web: { dir, available: true, from_env: false } }).join('\n')
+    // claude_code 는 「서버 자격 증명으로 청구」가 아니다 — 사용량이 **이 기계의 Claude 계정**에 쌓인다.
+    expect(cli).toContain('claude_code')
+    expect(cli).toContain('이 기계에 로그인된 Claude 계정')
+    expect(cli).toContain('API 키는 쓰지 않는다')
+    expect(cli).not.toContain('이 서버의 자격 증명으로 청구')
+
     const real = buildStartupLines({ host: '0.0.0.0', port: 8787, adapter: 'anthropic', web: { dir, available: true, from_env: false } })
     expect(real).toContain(NO_AUTH_WARNING)
     expect(real.join('\n')).toContain('====')

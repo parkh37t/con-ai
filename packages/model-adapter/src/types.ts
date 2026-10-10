@@ -2,12 +2,18 @@
 import type { GenerationOutputInput, ScreenSpecShape } from '@con-ai/schemas'
 import type { AssembledPrompt, GenerationContext, SliceGenerationRequest } from '@con-ai/prompt-templates'
 
-export type AdapterKind = 'anthropic' | 'fixture'
+/**
+ * 어댑터 종류. `claude_code` 는 **그 기계의 Claude Code CLI** 를 불러 쓰는 경로다 (claude-code-cli.ts).
+ * 화면은 세 값을 **구분해 적는다** — 더미(fixture)와 실제를 섞어 보여주지 않는다 (CLAUDE.md).
+ */
+export type AdapterKind = 'anthropic' | 'fixture' | 'claude_code'
 /**
  * 인증 방식 (anthropic 어댑터): api_key=ANTHROPIC_API_KEY(x-api-key), token=ANTHROPIC_AUTH_TOKEN(Authorization: Bearer + oauth beta 헤더),
  * profile=`ant auth login` 프로필(SDK 기본 해석). fixture 는 none. 값(키·토큰)은 절대 노출·로그하지 않는다.
+ *
+ * `claude_code_cli` 는 **우리가 자격 증명을 보지 않는다**는 뜻이다 — 인증은 그 기계의 Claude Code 로그인이 한다.
  */
-export type AdapterAuth = 'api_key' | 'token' | 'profile' | 'none'
+export type AdapterAuth = 'api_key' | 'token' | 'profile' | 'none' | 'claude_code_cli'
 export interface AdapterResult {
   output: GenerationOutputInput
   raw_text?: string

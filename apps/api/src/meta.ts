@@ -5,7 +5,8 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { ModelAdapter } from '@con-ai/model-adapter'
 
-export type AdapterAuth = 'api_key' | 'token' | 'profile' | 'none'
+/** 웹 `AuthKind` 와 **같은 집합**이어야 한다 (apps/web/src/types.ts). 빠뜨리면 화면이 「인증 없음」이라 거짓을 적는다. */
+export type AdapterAuth = 'api_key' | 'token' | 'profile' | 'none' | 'claude_code_cli'
 
 export interface MetaResponse {
   adapter: ModelAdapter['kind']
@@ -16,7 +17,7 @@ export interface MetaResponse {
   playwright: boolean
 }
 
-const AUTH_VALUES = new Set<string>(['api_key', 'token', 'profile', 'none'])
+const AUTH_VALUES = new Set<string>(['api_key', 'token', 'profile', 'none', 'claude_code_cli'])
 
 /** 어댑터의 auth 표기를 읽는다. model-adapter 가 `readonly auth` 를 추가하기 전이면 'none'. */
 export function adapterAuthOf(adapter: ModelAdapter): AdapterAuth {

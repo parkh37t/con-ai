@@ -65,6 +65,7 @@ pnpm dev              # api + web (준비되면)
 - **AI 경계**: 모델 호출은 서버 어댑터에서만 한다. 최종 승인·스키마 검사·ID 무결성은 모델 판단에 맡기지 않는다.
 - **공개 저장소**: 고객 요구사항 원문·내부 화면 경로를 코드·문서·fixture 에 복사하지 않는다.
 - **라이브러리 버전 고정**: TypeScript 5.9.3, vitest 4.1.11, zod 4.5.4, Node 22, pnpm 10.33.0. 모델 SDK 는 `@anthropic-ai/sdk`, 기본 모델 `claude-opus-5`.
+- **모델 호출 경로**: 기본은 `MODEL_ADAPTER=claude_code` — **그 기계에 로그인된 Claude Code CLI** 를 부른다(API 키 없음, 자격 증명을 우리가 보지 않는다). 구독 토큰(`ANTHROPIC_AUTH_TOKEN`)을 우리 코드가 직접 API 에 보내는 경로는 **권하지 않는다**: Anthropic 이 2026-02 부터 제3자 도구 사용을 금지했고 Messages API 가 거부한다는 보고가 다수다. 새 기능의 안내 문구를 그 경로로 되돌리지 않는다.
 
 ## 허용 수정 범위와 기록
 

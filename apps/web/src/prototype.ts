@@ -11,7 +11,7 @@
  */
 
 import { guessScreenKind } from './browser-run/deps.js'
-import type { CommentRole } from './types.js'
+import type { AdapterKind, CommentRole } from './types.js'
 
 export type PrototypeStepId = 'asis' | 'generate' | 'review' | 'approve'
 
@@ -76,8 +76,9 @@ export const PROTOTYPE_STEPS: readonly PrototypeStepSpec[] = [
  * ①·② 는 모델을 쓰므로 어댑터에 따라 갈리고, ③ 는 모델을 쓰지만 문구에 더미 언급이 없어 그대로,
  * ④ 는 모델을 쓰지 않아 그대로다.
  */
-export function prototypeStepText(spec: PrototypeStepSpec, adapter: 'anthropic' | 'fixture' | null): { runs: string; sampled: string } {
-  const real = adapter === 'anthropic'
+export function prototypeStepText(spec: PrototypeStepSpec, adapter: AdapterKind | null): { runs: string; sampled: string } {
+  // claude_code 도 «실제 호출» 이다 (내 기계의 Claude Code 가 부른다).
+  const real = adapter === 'anthropic' || adapter === 'claude_code'
   if (spec.id === 'asis') {
     return {
       runs: real

@@ -19,10 +19,14 @@ export const AUTH_LABELS: Readonly<Record<AuthKind, string>> = {
   token: '토큰',
   profile: '프로파일',
   none: '인증 없음',
+  claude_code_cli: '내 Claude 로그인',
 }
 
 export function adapterBadgeText(meta: Pick<Meta, 'adapter' | 'model' | 'auth'>, opts: { browser?: boolean } = {}): string {
   if (meta.adapter === 'fixture') return 'fixture 더미 어댑터(모델 호출 없음)'
+  // Claude Code CLI 경로: **내 기계의 로그인**으로 호출한다. 자격 증명을 우리가 보지 않으므로
+  // 「내 토큰」이라고 적지 않는다 — 토큰을 어디에 넣은 적이 없는 사람에게 틀린 안내가 된다.
+  if (meta.adapter === 'claude_code') return ['내 Claude Code 로 호출(API 키 없음)', meta.model].join(' · ')
   // 브라우저 모드: 서버가 아니라 이 브라우저가 **사용자의 자격 증명으로** 직접 호출한다.
   // 종류를 보지 않고 「내 토큰」이라 적으면 API 키를 넣은 사용자에게 한 줄 안에서 모순된 문구가 된다
   // (예전에 «내 토큰으로 실제 호출 · … · API 키» 가 나왔고 테스트가 그 값을 고정하고 있었다).
@@ -43,5 +47,7 @@ export function realModelHint(meta: Pick<Meta, 'adapter'> | null, opts: { demo?:
     // 칩 위치는 셸마다 다르므로(작업대는 좌측 레일 아래, 진입 화면은 상단 바) 위치를 못박지 않는다.
     return '지금은 더미 어댑터(fixture)입니다 — 모델을 호출하지 않고 규칙으로 명세를 만듭니다. 문맥 조립·스키마 검사·목업 렌더·V1·V2·V3 검사는 실제로 실행됩니다. 자격 증명 칩에 내 Claude 토큰(「claude setup-token」 으로 발급)을 넣으면 명세도 모델이 직접 씁니다.'
   }
-  return '지금은 fixture 더미 어댑터입니다. 실제 모델을 쓰려면 .env 에 MODEL_ADAPTER=anthropic · MODEL_AUTH=token · ANTHROPIC_AUTH_TOKEN(발급 「claude setup-token」)을 설정하고 API 를 재시작하세요. API 키를 쓰려면 MODEL_AUTH=api_key 와 ANTHROPIC_API_KEY 입니다.'
+  // 권하는 순서가 바뀌었다: 구독 토큰(ANTHROPIC_AUTH_TOKEN) 직접 호출은 Anthropic 이 제3자 사용을 금지하고
+  // Messages API 에서 거부한다는 보고가 많다. **내 기계의 Claude Code 를 부르는 길**이 1순위다.
+  return '지금은 fixture 더미 어댑터입니다. 실제 모델을 쓰려면 .env 에 MODEL_ADAPTER=claude_code 를 넣고 API 를 재시작하세요 — 이 기계에 로그인된 Claude Code 로 호출합니다(API 키 없음, 설치·로그인은 터미널에서 `claude` 한 번). API 키로 쓰려면 MODEL_ADAPTER=anthropic · MODEL_AUTH=api_key · ANTHROPIC_API_KEY 입니다.'
 }

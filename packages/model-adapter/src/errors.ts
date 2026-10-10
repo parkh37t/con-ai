@@ -10,6 +10,14 @@ export type AdapterErrorCode =
   | 'refusal' // stop_reason === 'refusal'
   | 'empty_output' // parsed_output 이 null (텍스트 블록 없음 등)
   | 'parse' // 구조화 출력이 wire 스키마에 맞지 않음 (SDK 가 던진 파싱 오류)
+  // 아래 5개는 Claude Code CLI 경로(claude-code-cli.ts) 전용이다. 「CLI 가 없다」와 「로그인하지 않았다」를
+  // 섞지 않는다 — 사용자가 할 일이 다르다(설치 vs `claude` 로그인).
+  | 'cli_missing' // `claude` 실행 파일을 찾지 못함
+  | 'not_logged_in' // CLI 는 있는데 그 기계에 로그인되어 있지 않음
+  | 'timeout' // 제한 시간 초과로 중단
+  | 'budget' // 한 호출의 정가 환산 상한(--max-budget-usd) 초과
+  | 'cancelled' // 사용자가 취소
+  | 'cli_error' // 그 밖의 CLI 실패 (종료 코드·실행 오류)
   | 'unknown'
 
 export class AdapterError extends Error {

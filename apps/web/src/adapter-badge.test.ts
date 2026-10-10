@@ -23,11 +23,22 @@ describe('adapterBadgeText — 어댑터 배지 문구', () => {
 })
 
 describe('realModelHint — fixture 일 때만 안내', () => {
-  it('fixture 면 .env 안내, anthropic·미확인이면 null', () => {
-    expect(realModelHint({ adapter: 'fixture' })).toContain('MODEL_ADAPTER=anthropic')
-    expect(realModelHint({ adapter: 'fixture' })).toContain('ANTHROPIC_AUTH_TOKEN')
+  it('fixture 면 .env 안내 — **claude_code 를 1순위로** 적는다', () => {
+    const hint = realModelHint({ adapter: 'fixture' }) ?? ''
+    // 구독 토큰 직접 호출(ANTHROPIC_AUTH_TOKEN)을 권하던 문구였다. 그 경로는 약관상 쓸 수 없다.
+    expect(hint).toContain('MODEL_ADAPTER=claude_code')
+    expect(hint).not.toContain('ANTHROPIC_AUTH_TOKEN')
+    expect(hint).toContain('API 키 없음')
     expect(realModelHint({ adapter: 'anthropic' })).toBeNull()
+    expect(realModelHint({ adapter: 'claude_code' })).toBeNull()
     expect(realModelHint(null)).toBeNull()
+  })
+
+  it('claude_code 배지는 「내 토큰」이 아니라 「내 Claude Code」라고 적는다', () => {
+    // 토큰을 넣은 적이 없는 사람에게 「내 토큰으로 호출」은 거짓이다. 우리는 자격 증명을 보지 않는다.
+    const text = adapterBadgeText({ adapter: 'claude_code', model: 'claude-opus-5', auth: 'claude_code_cli' })
+    expect(text).toBe('내 Claude Code 로 호출(API 키 없음) · claude-opus-5')
+    expect(text).not.toContain('토큰')
   })
   it('정적 배포(브라우저 모드)에서는 서버 .env 대신 자격 증명 칩을 안내한다', () => {
     const hint = realModelHint({ adapter: 'fixture' }, { demo: true })
@@ -58,19 +69,23 @@ describe('credentialChipLabel — 무엇이 명세를 쓰는지 적는다', () =
   })
 })
 
-describe('realModelHint — 토큰을 먼저 안내한다', () => {
-  it('서버 모드 안내가 MODEL_AUTH=token 과 발급 명령을 담는다', () => {
+/**
+ * 이 describe 는 예전에 「토큰을 먼저 안내한다」였다. **그 사실이 바뀌었다** —
+ * Anthropic 이 2026-02 부터 구독 OAuth 토큰의 제3자 사용을 금지했고 Messages API 가 거부한다는 보고가 다수다.
+ * 그래서 1순위 안내는 `MODEL_ADAPTER=claude_code`(내 기계의 Claude Code 호출)다.
+ * 단언을 지우지 않고 **새 사실로 바꿔** 둔다 — 되돌아가면 여기서 깨진다.
+ */
+describe('realModelHint — claude_code 를 먼저 안내한다', () => {
+  it('서버 모드 안내가 claude_code 를 먼저 적고, 금지된 토큰 경로를 권하지 않는다', () => {
     const hint = realModelHint({ adapter: 'fixture' }) ?? ''
-    expect(hint).toContain('MODEL_AUTH=token')
-    expect(hint).toContain('claude setup-token')
-    expect(hint.indexOf('MODEL_AUTH=token')).toBeLessThan(hint.indexOf('MODEL_AUTH=api_key'))
+    expect(hint).toContain('MODEL_ADAPTER=claude_code')
+    expect(hint).not.toContain('MODEL_AUTH=token')
+    expect(hint).not.toContain('claude setup-token')
+    expect(hint.indexOf('MODEL_ADAPTER=claude_code')).toBeLessThan(hint.indexOf('MODEL_AUTH=api_key'))
   })
 
-  it('정적 배포 안내도 토큰 발급 명령을 담는다', () => {
-    expect(realModelHint({ adapter: 'fixture' }, { demo: true }) ?? '').toContain('claude setup-token')
-  })
-
-  it('anthropic 이면 안내하지 않는다', () => {
+  it('anthropic·claude_code 면 안내하지 않는다 (이미 실제 호출이다)', () => {
     expect(realModelHint({ adapter: 'anthropic' })).toBeNull()
+    expect(realModelHint({ adapter: 'claude_code' })).toBeNull()
   })
 })

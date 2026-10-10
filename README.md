@@ -33,18 +33,27 @@ pnpm bootstrap            # Node 22·pnpm 확인 → 설치 → .env 생성(어�
 pnpm dev                  # 웹 http://localhost:5173 , API http://localhost:8787 (.env 는 API 가 스스로 읽는다)
 ```
 
-- 비대화형: `bash scripts/setup.sh --yes` (fixture 더미 어댑터). 실제 모델: `--adapter anthropic --auth token` (기본) 또는 `--auth api_key`.
-- **내 Claude 구독 토큰으로 돌리는 것이 1순위다.** `claude setup-token` (Claude Code CLI, 구독 필요)으로 받아 `.env` 의 `MODEL_AUTH=token` · `ANTHROPIC_AUTH_TOKEN` 에 넣는다. 콘솔 결제 설정이 필요 없다.
+- 비대화형: `bash scripts/setup.sh --yes` (fixture 더미 어댑터). 실제 모델: `--adapter claude_code`.
+- **내 Claude 계정으로 돌리는 것이 1순위다 — API 키도, 토큰 붙여넣기도 없다.** 이 기계에 로그인된
+  **Claude Code CLI** 를 서버가 불러 쓴다(`MODEL_ADAPTER=claude_code`). 자격 증명은 우리가 보지 않는다.
 
   ```bash
-  claude setup-token                          # 토큰 발급 (구독 필요)
-  # .env: MODEL_ADAPTER=anthropic / MODEL_AUTH=token / ANTHROPIC_AUTH_TOKEN=<받은 값>
+  claude                                      # 한 번 로그인 (Pro·Max·Team·Enterprise 구독)
+  # .env: MODEL_ADAPTER=claude_code
   pnpm dev                                    # API 가 .env 를 스스로 읽는다 (source 불필요)
   ```
 
-  API 키(`MODEL_AUTH=api_key` · `ANTHROPIC_API_KEY`, platform.claude.com)는 대안이고 사용한 만큼 과금된다.
-  둘 다 채운 채 `MODEL_AUTH=auto` 로 두면 **API 키가 먼저 잡힌다** — 토큰을 쓰려면 `token` 으로 고정한다.
-  값은 `.env` 에만 두고 커밋하지 않는다. 만료되면 HTTP 401 로 끝나고 `claude setup-token` 을 다시 실행하면 된다.
+  실측(2026-10): 이 경로로 화면명세 생성이 **87초에 성공**했고 검증 14건 전부 pass 였다. 모델 호출은
+  `claude -p --output-format json --json-schema …` 이고, 도구·설정·MCP 를 모두 끈 빈 디렉터리에서 돈다
+  (원본 자료를 도구 붙은 세션에 먹이지 않는다).
+
+  > **`ANTHROPIC_AUTH_TOKEN`(구독 토큰) 직접 호출은 더 이상 권하지 않는다.** Anthropic 이 2026-02 부터
+  > 구독 OAuth 토큰의 **제3자 도구 사용을 금지**했고, `sk-ant-oat01-…` 을 Messages API 에 보내면
+  > `OAuth authentication is currently not supported` 로 거부된다는 보고가 다수다. 그 경로는 남아 있지만
+  > (`MODEL_ADAPTER=anthropic` · `MODEL_AUTH=token`) **동작을 보장하지 않는다.**
+
+  API 키(`MODEL_ADAPTER=anthropic` · `MODEL_AUTH=api_key` · `ANTHROPIC_API_KEY`, platform.claude.com)는
+  사용한 만큼 과금되는 대안이다. 값은 `.env` 에만 두고 커밋하지 않는다.
 - Claude Code 로 이 저장소를 열면 `.claude/hooks/session-start.sh` 가 같은 세팅을 자동으로 수행한다.
 
 ## 현재 상태

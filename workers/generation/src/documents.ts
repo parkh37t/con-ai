@@ -2,6 +2,7 @@
  * 저장 문서 형태 (계약 §1). apps/api 의 Store 와 workers/generation 파이프라인이 같은 형태를 쓴다.
  * schemas 타입이 있는 것은 그 이름을 그대로 쓰고, 계약에 없는 필드는 주석으로 표시한다.
  */
+import type { AdapterKind } from '@con-ai/model-adapter'
 import type { SliceGenerationRequest } from '@con-ai/prompt-templates'
 import type { Approval, Artifact, ChangeSummary, GenerationJob, IANode, JobStage, PromptTemplate, ScreenSpec, ValidationResult } from '@con-ai/schemas'
 
@@ -68,7 +69,8 @@ export interface ScreenRevisionDocument {
 export interface JobResult { revision_id: string; artifact_id: string }
 export interface JobDocument extends GenerationJob {
   request: SliceGenerationRequest
-  adapter: 'anthropic' | 'fixture'
+  /** 어댑터 종류. 사본을 적지 않고 `@con-ai/model-adapter` 의 타입을 그대로 쓴다 (예전에 두 곳이 어긋났다). */
+  adapter: AdapterKind
   model: string
   prompt_text: string
   context_summary: string[]

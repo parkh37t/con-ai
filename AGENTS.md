@@ -33,7 +33,7 @@ packages/schemas/           zod 스키마 (ScreenSpec·TraceLink·검증·작업
 packages/domain/            ID·별칭·커버리지·상태 전이·승인 판정·메뉴 규칙
 packages/importers/         CSV·XLSX·INDEX 읽기
 packages/prompt-templates/  버전 관리된 프롬프트 템플릿과 문맥 조립
-packages/model-adapter/     모델 호출 어댑터 (anthropic 실제 / fixture 더미)
+packages/model-adapter/     모델 호출 어댑터 (claude_code = 내 Claude Code CLI / anthropic = SDK 직접 / fixture = 더미)
 packages/renderer/          ScreenSpec → HTML 목업 + 우측 설명 (오프라인)
 packages/validators/        V1 명세 · V2 렌더 · V3 실행 검사
 docs/reference|knowledge|decisions|plan
@@ -56,7 +56,8 @@ pnpm e2e:demo         # 정적 데모 e2e (API 서버도 자격증명도 없이 
 - 네트워크가 차단된 환경이면 `pnpm install` 을 **setup 단계**에서 끝낸다. 작업 중에 설치가 필요하면 막힌다.
 - 브라우저가 필요한 검사(`pnpm e2e`, `pnpm demo:snapshot`)는 Playwright 브라우저가 없으면 돌지 않는다. **그때는 `not_run` 이다.**
 - 모델 자격 증명은 없어도 된다. 더미 어댑터(`MODEL_ADAPTER=fixture`)로 전 경로가 돈다.
-- 실제 모델을 쓸 때 **1순위는 내 Claude 구독 토큰**이다: `.env` 에 `MODEL_ADAPTER=anthropic` · `MODEL_AUTH=token` · `ANTHROPIC_AUTH_TOKEN`(발급 `claude setup-token`). API 키(`MODEL_AUTH=api_key` · `ANTHROPIC_API_KEY`)는 대안이다. `MODEL_AUTH=auto` 는 API 키를 먼저 잡으므로 토큰을 쓰려면 고정한다.
+- 실제 모델을 쓸 때 **1순위는 `MODEL_ADAPTER=claude_code`** 다 — 그 기계에 로그인된 **Claude Code CLI**(`claude -p --output-format json --json-schema …`)를 부른다. **API 키도 토큰도 넣지 않는다**(준비: 터미널에서 `claude` 로 한 번 로그인). API 키(`MODEL_ADAPTER=anthropic` · `MODEL_AUTH=api_key` · `ANTHROPIC_API_KEY`)는 대안이다.
+- 구독 토큰(`ANTHROPIC_AUTH_TOKEN`)을 우리 코드가 직접 API 에 보내는 경로는 **권하지 않는다**: Anthropic 이 2026-02 부터 제3자 도구 사용을 금지했고 Messages API 가 거부한다는 보고가 다수다. 안내 문구를 그 경로로 되돌리지 않는다.
 
 ## 반드시 지킬 것
 

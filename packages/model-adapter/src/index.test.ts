@@ -31,12 +31,19 @@ afterEach(() => {
 })
 
 describe('createAdapter — 어댑터 선택 (MODEL_ADAPTER)', () => {
-  it('MODEL_ADAPTER 가 없거나 anthropic 이 아니면 FixtureAdapter (더미) 다', () => {
+  it('MODEL_ADAPTER 가 없거나 fixture 면 FixtureAdapter (더미) 다', () => {
     const a: ModelAdapter = createAdapter({})
     expect(a).toBeInstanceOf(FixtureAdapter)
     expect([a.kind, a.model, a.auth]).toEqual(['fixture', 'fixture', 'none'])
     expect(createAdapter({ MODEL_ADAPTER: 'fixture', ANTHROPIC_API_KEY: KEY }).kind).toBe('fixture')
-    expect(createAdapter({ MODEL_ADAPTER: 'other' }).kind).toBe('fixture')
+  })
+
+  it('알 수 없는 값은 **조용히 더미로 떨어지지 않고** 거절한다', () => {
+    // 이 단언은 예전에 `MODEL_ADAPTER: 'other'` → fixture 를 기대했다. 그 관대함이 위험하다:
+    // `claud_code` 처럼 한 글자만 틀려도 더미로 돌면서 화면은 그 사실을 말하지 않는다
+    // (CLAUDE.md: 더미 동작과 실제를 사용자에게 명확히 구분한다).
+    expect(() => createAdapter({ MODEL_ADAPTER: 'other' })).toThrow(/MODEL_ADAPTER/)
+    expect(() => createAdapter({ MODEL_ADAPTER: 'claud_code' })).toThrow(/claude_code \| anthropic \| fixture/)
   })
 
   it('MODEL_ADAPTER=anthropic 이면 AnthropicAdapter, 모델은 MODEL_ID (기본 claude-opus-5)', () => {

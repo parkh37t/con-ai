@@ -17,7 +17,7 @@ import { notifyDataChanged, useAsync, useStoredValue } from '../hooks.js'
 import { PROTOTYPE_APPROVER, PROTOTYPE_STEPS, clearRun, doneCount, isComplete, loadRun, progressText, prototypeComments, prototypeStepText, prototypeTarget, saveRun, stepStatus, type PrototypeRun, type PrototypeStepId, type PrototypeStepSpec } from '../prototype.js'
 import { autoReferenceIds, buildSimpleCreateRequest, buildSimpleEditRequest, sampleDataReferenceId } from '../simple-flow.js'
 import { hrefTo, hrefToAsisDetail, hrefToDesign, hrefToScreen } from '../router.js'
-import type { Job, Project, ScreenCreateInput } from '../types.js'
+import type { AdapterKind, Job, Project, ScreenCreateInput } from '../types.js'
 
 /** 작업·분석이 끝날 때까지 기다린다 (실제 화면의 폴링과 같은 간격). */
 const POLL_MS = 700
@@ -268,7 +268,7 @@ function StepCard({
 }: {
   spec: PrototypeStepSpec
   /** 지금 무엇이 모델을 쓰는지 — 카드 문구가 더미·실제를 구분해 적는 데 쓴다. */
-  adapter: 'anthropic' | 'fixture' | null
+  adapter: AdapterKind | null
   status: ReturnType<typeof stepStatus>
   busy: boolean
   disabled: boolean
