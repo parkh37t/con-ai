@@ -142,6 +142,38 @@ describe('행 상태 분류', () => {
     expect(r.summary.screens_built).toBe(0)
   })
 
+  it('미생성 화면 때문에 막힌 요구사항만 센다 — 아무 메뉴에도 붙지 않은 미생성 화면은 세지 않는다', () => {
+    // 각주가 「화면 N건 중 M건만 생성 → 그 행은 부분 연결로 남는다」고 **추론**하던 자리다.
+    // 떠 있는 화면(메뉴 미연결)은 어떤 행도 막지 않는다.
+    const sid = uuid()
+    const floating = uuid()
+    const n = node({ id: uuid(), kind: 'screen', screen_plan_id: sid, requirement_ids: ['REQ-1'], functions: [{ id: uuid(), name: 'f', kind: 'normal' }] })
+    const built = computeRtm({ requirements: [req('REQ-1', 1)], ia_nodes: [n], screens: [screen(sid, 'S-1'), screen(floating, 'S-떠있음', false)] })
+    expect(built.rows[0]?.status).toBe('mapped')
+    expect(built.summary).toMatchObject({ screens_total: 2, screens_built: 1, partial_screen_not_built: 0 })
+
+    const blocked = computeRtm({ requirements: [req('REQ-1', 1)], ia_nodes: [n], screens: [screen(sid, 'S-1', false), screen(floating, 'S-떠있음', false)] })
+    expect(blocked.rows[0]?.gap_kind).toBe('screen_not_built')
+    expect(blocked.summary.partial_screen_not_built).toBe(1)
+  })
+
+  it('사유의 종류를 값으로 적는다 (화면이 사유 문장을 다시 파싱하지 않는다)', () => {
+    const sid = uuid()
+    const noIa = computeRtm({ requirements: [req('REQ-X', 1)], ia_nodes: [], screens: [] })
+    expect(noIa.rows[0]?.gap_kind).toBe('no_ia')
+    const noFn = node({ id: uuid(), kind: 'screen', screen_plan_id: sid, requirement_ids: ['REQ-1'] })
+    expect(computeRtm({ requirements: [req('REQ-1', 1)], ia_nodes: [noFn], screens: [screen(sid, 'S-1')] }).rows[0]?.gap_kind).toBe('no_function')
+    const noScr = node({ id: uuid(), kind: 'screen', requirement_ids: ['REQ-1'], functions: [{ id: uuid(), name: 'f', kind: 'normal' }] })
+    expect(computeRtm({ requirements: [req('REQ-1', 1)], ia_nodes: [noScr], screens: [] }).rows[0]?.gap_kind).toBe('no_screen')
+    const nonUi = computeRtm({ requirements: [req('REQ-N', 0, 1)], ia_nodes: [], screens: [] })
+    expect(nonUi.rows[0]?.gap_kind).toBe('non_ui_only')
+    // mapped 면 사유도 종류도 없다
+    const ok = node({ id: uuid(), kind: 'screen', screen_plan_id: sid, requirement_ids: ['REQ-1'], functions: [{ id: uuid(), name: 'f', kind: 'normal' }] })
+    const mapped = computeRtm({ requirements: [req('REQ-1', 1)], ia_nodes: [ok], screens: [screen(sid, 'S-1')] })
+    expect(mapped.rows[0]?.gap_kind).toBeUndefined()
+    expect(mapped.rows[0]?.gap_reason).toBeUndefined()
+  })
+
   it('걸친 화면 중 하나라도 미생성이면 partial 이다 (부분 생성을 분자로 올리지 않는다)', () => {
     const s1 = uuid()
     const s2 = uuid()
@@ -343,6 +375,7 @@ describe('G1 추적성 판정', () => {
     functions_issued: 1,
     screens_total: 1,
     screens_built: 1,
+    partial_screen_not_built: 0,
     test_pass: { status: 'not_run' as const, reason: 'r' },
     element_tagging: { refs_total: 0, refs_live: 0, refs_stale: 0, not_run_screens: [] },
   }

@@ -98,6 +98,9 @@ export interface RtmScrCell {
   built: boolean
 }
 
+/** mapped 가 아닌 이유의 **종류**. 사유 문장(`gap_reason`)을 화면이 다시 파싱하지 않게 한다. */
+export type RtmGapKind = 'no_ia' | 'no_function' | 'no_screen' | 'screen_not_built' | 'non_ui_only'
+
 export interface RtmRow {
   requirement_external_id: string
   title: string
@@ -110,6 +113,8 @@ export interface RtmRow {
   status: RtmRowStatus
   /** mapped 가 아닌 이유. mapped 면 없다. */
   gap_reason?: string | undefined
+  /** 그 이유의 종류. mapped 면 없다. */
+  gap_kind?: RtmGapKind | undefined
 }
 
 /** 요소 태깅 판정 — 「요소는 FN·IA 없이 저장 불가」를 이 조각에서는 G1 미통과로만 강제한다. */
@@ -146,6 +151,14 @@ export interface RtmSummary {
   screens_total: number
   /** 그중 목업이 실제로 만들어진 화면 수. `screens_total` 과 다르면 화면에 그 차이를 적는다. */
   screens_built: number
+  /**
+   * **미생성 화면 때문에** `partial` 로 남은 요구사항 수.
+   *
+   * `screens_total - screens_built` 로 짐작하면 안 된다 — 그 차이에는 **어느 메뉴에도 붙지 않은 화면**과
+   * REQ 가 걸리지 않은 메뉴의 화면이 섞여 있어서, 미생성 화면이 있는데도 막힌 요구사항은 0건일 수 있다.
+   * 화면 각주가 「그 행은 부분 연결로 남는다」고 단정하던 자리다.
+   */
+  partial_screen_not_built: number
   test_pass: RtmTestPass
   element_tagging: RtmElementTagging
 }
@@ -325,23 +338,30 @@ export function computeRtm(input: RtmInput): RtmReport {
 
     let status: RtmRowStatus
     let gapReason: string | undefined
+    // 왜 mapped 가 아닌지를 **문구가 아니라 값으로** 둔다 — 화면이 사유 문장을 다시 해석하지 않게 한다.
+    let gapKind: RtmGapKind | undefined
     if (uiCriteria === 0) {
       // 화면에 그릴 UI 수용조건이 하나도 없다. 분모에는 남기되 분자에는 넣지 않는다.
       status = 'non_ui_only'
+      gapKind = 'non_ui_only'
       gapReason = 'UI 수용조건이 없어 화면으로 확인할 수 없는 요구사항이다 (분모에는 남긴다)'
     } else if (owningNodes.length === 0) {
       status = 'unmapped'
+      gapKind = 'no_ia'
       gapReason = '이 요구사항을 담당하는 IA 노드가 없다'
     } else if (fn.length === 0) {
       status = 'partial'
+      gapKind = 'no_function'
       gapReason = 'IA 노드는 연결됐지만 기능(FN)이 정의되지 않았다'
     } else if (scr.length === 0) {
       status = 'partial'
+      gapKind = 'no_screen'
       gapReason = 'IA 노드는 연결됐지만 화면(SCR)이 연결되지 않았다'
     } else if (scr.some((s) => !s.built)) {
       // 연결만 된 화면을 mapped 로 세면 목업 0건에 커버리지 100% 가 뜬다 (파일 머리말 규칙).
       const missing = scr.filter((s) => !s.built).map((s) => s.external_id)
       status = 'partial'
+      gapKind = 'screen_not_built'
       gapReason = `화면은 연결됐지만 아직 생성되지 않았다 — 미생성 ${missing.length}건: ${missing.join(', ')}`
     } else {
       status = 'mapped'
@@ -357,6 +377,7 @@ export function computeRtm(input: RtmInput): RtmReport {
       scr,
       status,
       gap_reason: gapReason,
+      gap_kind: gapKind,
     })
   }
 
@@ -386,6 +407,7 @@ export function computeRtm(input: RtmInput): RtmReport {
     functions_issued: fnIssued,
     screens_total: input.screens.length,
     screens_built: input.screens.filter(isBuilt).length,
+    partial_screen_not_built: rows.filter((r) => r.gap_kind === 'screen_not_built').length,
     test_pass: { status: 'not_run', reason: '수용 테스트(AcceptanceTest)를 저장하는 곳이 아직 없어 실행하지 않았다 — 미실행은 통과가 아니다' },
     element_tagging: taggingOf(input),
   }

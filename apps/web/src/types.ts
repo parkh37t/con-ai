@@ -129,6 +129,8 @@ export interface RtmRow {
   scr: RtmScrCell[]
   status: RtmRowStatus
   gap_reason?: string
+  /** 사유의 종류 — 화면이 사유 문장을 다시 파싱하지 않게 한다. */
+  gap_kind?: 'no_ia' | 'no_function' | 'no_screen' | 'screen_not_built' | 'non_ui_only'
 }
 
 export interface RtmSummary {
@@ -146,6 +148,8 @@ export interface RtmSummary {
   screens_total: number
   /** 그중 목업이 만들어진 화면 수. screens_total 과 다르면 그 차이를 화면에 적는다. */
   screens_built: number
+  /** 미생성 화면 **때문에** 부분 연결로 남은 요구사항 수. screens_total - screens_built 로 짐작하면 안 된다. */
+  partial_screen_not_built: number
   test_pass: { status: 'not_run'; reason: string }
   element_tagging: { refs_total: number; refs_live: number; refs_stale: number; not_run_screens: string[] }
 }

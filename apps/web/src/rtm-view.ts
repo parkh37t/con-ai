@@ -104,10 +104,13 @@ export function footnotes(summary: RtmSummary): string[] {
     )
   }
   if (summary.screens_built < summary.screens_total) {
-    notes.push(
-      // 표의 배지와 **같은 말**을 쓴다 (ROW_STATUS_LABELS.partial = 「부분 연결」) — 같은 상태를 두 이름으로 부르지 않는다.
-      `화면 ${summary.screens_total}건 중 목업이 만들어진 것은 ${summary.screens_built}건이다. 메뉴에 «연결» 만 된 화면은 커버리지 분자에 넣지 않는다 — 그 행은 ${ROW_STATUS_LABELS.partial}로 남는다.`,
-    )
+    // 숫자만 적는다. 「그래서 어떤 행이 부분 연결로 남는다」는 **추론은 아래 줄에서 값으로** 적는다 —
+    // 이 차이에는 어느 메뉴에도 붙지 않은 화면이 섞여 있어, 미생성 화면이 있어도 막힌 요구사항은 0건일 수 있다.
+    notes.push(`화면 ${summary.screens_total}건 중 목업이 만들어진 것은 ${summary.screens_built}건이다. 메뉴에 «연결» 만 된 화면은 커버리지 분자에 넣지 않는다.`)
+  }
+  if (summary.partial_screen_not_built > 0) {
+    // 표의 배지와 **같은 말**을 쓴다 (ROW_STATUS_LABELS.partial) — 같은 상태를 두 이름으로 부르지 않는다.
+    notes.push(`그중 목업이 없어 ${ROW_STATUS_LABELS.partial}로 남은 요구사항 ${summary.partial_screen_not_built}건 — 화면을 만들면 분자에 들어간다.`)
   }
   if (summary.element_tagging.refs_stale > 0) {
     notes.push(`화면을 다시 만들어 사라진 요소 참조 ${summary.element_tagging.refs_stale}건 — 사람이 다시 연결해야 한다 (자동 복구하지 않는다).`)

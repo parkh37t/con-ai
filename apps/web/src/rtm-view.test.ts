@@ -17,6 +17,7 @@ function summary(over: Partial<RtmSummary> = {}): RtmSummary {
     functions_issued: 0,
     screens_total: 3,
     screens_built: 1,
+    partial_screen_not_built: 1,
     test_pass: { status: 'not_run', reason: '수용 테스트가 아직 없다 — 미실행은 통과가 아니다' },
     element_tagging: { refs_total: 0, refs_live: 0, refs_stale: 0, not_run_screens: [] },
     ...over,
@@ -120,8 +121,22 @@ describe('footnotes — 세지 않은 것을 자백한다', () => {
   })
 
   it('화면이 모두 생성됐으면 생성 수 각주를 적지 않는다 (없는 문제를 만들지 않는다)', () => {
-    const notes = footnotes(summary({ screens_total: 3, screens_built: 3 }))
+    const notes = footnotes(summary({ screens_total: 3, screens_built: 3, partial_screen_not_built: 0 }))
     expect(notes.some((n) => n.includes('목업이 만들어진 것은'))).toBe(false)
+  })
+
+  it('미생성 화면이 있어도 **막힌 요구사항이 없으면** 「부분 연결로 남는다」고 적지 않는다', () => {
+    // 적대적 리뷰가 잡은 자리: screens_total - screens_built 에는 **어느 메뉴에도 붙지 않은 화면**이 섞인다.
+    // 그걸로 「그 행은 부분 연결로 남는다」를 추론하면 없는 사실을 적는 것이 된다.
+    const notes = footnotes(summary({ screens_total: 3, screens_built: 1, partial_screen_not_built: 0 }))
+    expect(notes.some((n) => n.includes('목업이 만들어진 것은 1건'))).toBe(true)
+    expect(notes.some((n) => n.includes('부분 연결'))).toBe(false)
+  })
+
+  it('막힌 요구사항이 있으면 그 수를 적는다 (짐작한 수가 아니라 센 수다)', () => {
+    const notes = footnotes(summary({ screens_total: 3, screens_built: 1, partial_screen_not_built: 2 }))
+    const line = notes.find((n) => n.includes('부분 연결')) ?? ''
+    expect(line).toContain('2건')
   })
 
   it('고아 참조가 있으면 자동 복구하지 않는다고 적는다', () => {
