@@ -105,7 +105,8 @@ export function footnotes(summary: RtmSummary): string[] {
   }
   if (summary.screens_built < summary.screens_total) {
     notes.push(
-      `화면 ${summary.screens_total}건 중 목업이 만들어진 것은 ${summary.screens_built}건이다. 메뉴에 «연결» 만 된 화면은 커버리지 분자에 넣지 않는다 — 그 행은 부분 매핑으로 남는다.`,
+      // 표의 배지와 **같은 말**을 쓴다 (ROW_STATUS_LABELS.partial = 「부분 연결」) — 같은 상태를 두 이름으로 부르지 않는다.
+      `화면 ${summary.screens_total}건 중 목업이 만들어진 것은 ${summary.screens_built}건이다. 메뉴에 «연결» 만 된 화면은 커버리지 분자에 넣지 않는다 — 그 행은 ${ROW_STATUS_LABELS.partial}로 남는다.`,
     )
   }
   if (summary.element_tagging.refs_stale > 0) {
