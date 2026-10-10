@@ -107,7 +107,10 @@ describe('footnotes — 세지 않은 것을 자백한다', () => {
   it('검증 미실행·출처 미기록·충돌 미집계를 항상 적는다', () => {
     const notes = footnotes(summary())
     expect(notes.some((n) => n.includes('미실행은 통과가 아니다'))).toBe(true)
-    expect(notes.some((n) => n.includes('출처'))).toBe(true)
+    // 출처 각주는 **어디에 있고 어디에 없는지**를 적는다 (예전에는 「필드가 아직 없다」고만 적었다).
+    const sourceNote = notes.find((n) => n.includes('출처')) ?? ''
+    expect(sourceNote).toContain('RFP 분석에서 채택한 요구사항에만')
+    expect(sourceNote).toContain('출처 미기록')
     expect(notes.some((n) => n.includes('「충돌 없음」 이 아니라'))).toBe(true)
   })
 

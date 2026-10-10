@@ -93,7 +93,7 @@ export function kpiCells(summary: RtmSummary): KpiCell[] {
 export function footnotes(summary: RtmSummary): string[] {
   const notes: string[] = [
     `검증 완료: ${summary.test_pass.reason}`,
-    'REQ 출처(회의·RFP·페인포인트) 필드가 아직 없어 표에 적지 않는다 — 값이 없는 칸을 만들지 않았다.',
+    'REQ 출처는 **RFP 분석에서 채택한 요구사항에만** 있다 (표에 「출처 RFP 3.2.1」처럼 적는다). 시드·수동 입력 요구사항은 「출처 미기록」이다 — 값이 없는 칸을 만들지 않았다.',
     '충돌·제외 상태는 이 화면에서 기록할 수단이 없어 항상 0 이다. 「충돌 없음」 이 아니라 「세지 않음」 이다.',
   ]
   if (summary.element_tagging.not_run_screens.length > 0) {

@@ -8,6 +8,8 @@
  *   대신 `non_ui_only` 로 따로 세고 화면에 그 수를 함께 적는다.
  * - **한 REQ 가 여러 화면에 걸쳐도 분자는 1 이다.** 화면 수를 분자로 세면 100% 를 넘는다.
  * - **분모가 0 이면 비율은 null 이다.** 0/0 을 100% 로 표시하지 않는다 (coverage.ts 와 같은 규칙).
+ * - **「수용조건이 없다」와 「비UI 전용」을 섞지 않는다.** 조건이 하나도 없는 요구사항은 판정할 수 없으므로
+ *   `unmapped`(gap_kind `no_criteria`)로 둔다. 그것을 `non_ui_only` 로 적으면 **모르는 것을 판정으로 적는 것**이다.
  * - 체인이 SCR 까지 닿아야 `mapped` 다. IA 까지만 닿으면 `partial` 이며 통과로 세지 않는다.
  * - **화면이 «연결» 된 것과 «생성» 된 것은 다르다.** `screen_plan_id` 만 붙은 화면(목업 없음)을
  *   `mapped` 로 세면 목업이 0건인데 커버리지가 100% 로 뜬다. 그래서 행의 화면이 **모두 생성된 뒤**에만
@@ -31,6 +33,8 @@ export interface RtmRequirement {
   external_id: string
   title: string
   criteria: readonly { id: string; kind: 'ui' | 'non_ui' }[]
+  /** 출처 표기 (`RFP 3.2.1`). RFP 에서 채택한 요구사항에만 있다 — 없으면 화면이 「출처 미기록」이라고 적는다. */
+  source_label?: string | undefined
 }
 
 /** 화면 — 목록 요약이면 충분하다. */
@@ -99,11 +103,13 @@ export interface RtmScrCell {
 }
 
 /** mapped 가 아닌 이유의 **종류**. 사유 문장(`gap_reason`)을 화면이 다시 파싱하지 않게 한다. */
-export type RtmGapKind = 'no_ia' | 'no_function' | 'no_screen' | 'screen_not_built' | 'non_ui_only'
+export type RtmGapKind = 'no_ia' | 'no_function' | 'no_screen' | 'screen_not_built' | 'non_ui_only' | 'no_criteria'
 
 export interface RtmRow {
   requirement_external_id: string
   title: string
+  /** 출처 표기. 없으면 화면이 「출처 미기록」으로 적는다 (빈칸으로 두지 않는다). */
+  source_label?: string | undefined
   /** 이 REQ 의 UI 수용조건 수. 0 이면 화면에 그릴 것이 없는 요구사항이다. */
   ui_criteria: number
   non_ui_criteria: number
@@ -347,8 +353,15 @@ export function computeRtm(input: RtmInput): RtmReport {
     let gapReason: string | undefined
     // 왜 mapped 가 아닌지를 **문구가 아니라 값으로** 둔다 — 화면이 사유 문장을 다시 해석하지 않게 한다.
     let gapKind: RtmGapKind | undefined
-    if (uiCriteria === 0) {
-      // 화면에 그릴 UI 수용조건이 하나도 없다. 분모에는 남기되 분자에는 넣지 않는다.
+    if (req.criteria.length === 0) {
+      // **수용조건이 아예 없다.** 「비UI 전용」과 섞지 않는다 — 그쪽은 「화면으로 확인할 수 없다」는 **판정**이고
+      // 이쪽은 「아직 분해하지 않아 모른다」다. RFP 에서 채택한 요구사항이 이 상태로 들어온다.
+      // 모르는 것을 판정으로 적지 않기 위해 unmapped(분자 밖)로 두고 사유를 분명히 적는다.
+      status = 'unmapped'
+      gapKind = 'no_criteria'
+      gapReason = '수용조건이 아직 없다 — 조건으로 분해해야 화면으로 확인할 수 있다 (「비UI 전용」이라는 뜻이 아니다)'
+    } else if (uiCriteria === 0) {
+      // 수용조건은 있는데 전부 비UI 다. 화면에 그릴 것이 없다 — 분모에는 남기되 분자에는 넣지 않는다.
       status = 'non_ui_only'
       gapKind = 'non_ui_only'
       gapReason = 'UI 수용조건이 없어 화면으로 확인할 수 없는 요구사항이다 (분모에는 남긴다)'
@@ -377,6 +390,7 @@ export function computeRtm(input: RtmInput): RtmReport {
     rows.push({
       requirement_external_id: req.external_id,
       title: req.title,
+      source_label: req.source_label,
       ui_criteria: uiCriteria,
       non_ui_criteria: nonUiCriteria,
       ia,

@@ -156,6 +156,35 @@ export const AsisCreateBody = z.strictObject({
 })
 export type AsisCreateBody = z.infer<typeof AsisCreateBody>
 
+/**
+ * RFP 분석 접수 — **원문 텍스트 붙여넣기**가 입력이다 (PDF·HWP 파싱은 아직 없다).
+ * 상한 20만자: 그보다 길면 모델 호출이 시간 초과로 끝나므로 **접수 단계에서** 거절해 작업을 만들지 않는다.
+ */
+export const RFP_TEXT_MAX = 200_000
+export const RfpCreateBody = z.strictObject({
+  source_name: NonEmpty.describe('문서 이름 (출처 표기에 쓴다)'),
+  project_code: z
+    .string()
+    .trim()
+    .regex(/^[A-Z][A-Z0-9-]{0,15}$/, '프로젝트 코드는 대문자·숫자·하이픈 1~16자다 (예: S2B)')
+    .describe('REQ ID 접두어'),
+  text: z.string().trim().min(50, '원문이 너무 짧다 (50자 이상)').max(RFP_TEXT_MAX, `원문이 너무 길다 (${RFP_TEXT_MAX}자 이하)`),
+  note: z.string().optional(),
+})
+export type RfpCreateBody = z.infer<typeof RfpCreateBody>
+
+/**
+ * RFP 초안 **채택** — 채택하면 `requirement` 문서가 되고 그때부터 RTM 분모에 들어간다.
+ * 행위자·사유를 받는다 (ID 발번·화면 연결과 같은 규율). revision 으로 오래된 저장을 막는다.
+ */
+export const RfpAdoptBody = z.strictObject({
+  by: NonEmpty.describe('채택자'),
+  reason: NonEmpty.describe('채택 사유'),
+  external_ids: z.array(NonEmpty).min(1, '채택할 요구사항을 하나 이상 고른다'),
+  revision: z.int().min(1).describe('클라이언트가 본 문서 revision (설계 §11)'),
+})
+export type RfpAdoptBody = z.infer<typeof RfpAdoptBody>
+
 /** 계약 §12: 페인포인트 채택/거부. revision 은 클라이언트가 본 asis_analysis 문서 revision (오래된 저장 거부). */
 export const AsisPainPointPatchBody = z.strictObject({
   status: z.enum(['proposed', 'adopted', 'rejected']),

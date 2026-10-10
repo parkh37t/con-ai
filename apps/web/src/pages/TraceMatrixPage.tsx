@@ -212,7 +212,7 @@ function ChainTable({ report }: { report: RtmReport }) {
                   <td>
                     {row.title}
                     <span className="muted small rtm-sub">
-                      UI 수용조건 {row.ui_criteria} · 비UI {row.non_ui_criteria} · 출처 미기록
+                      UI 수용조건 {row.ui_criteria} · 비UI {row.non_ui_criteria} · {row.source_label === undefined ? '출처 미기록' : `출처 ${row.source_label}`}
                     </span>
                   </td>
                   <td>

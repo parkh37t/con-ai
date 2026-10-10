@@ -22,6 +22,8 @@ import type {
   Reference,
   RevisionDetail,
   RevisionPromptDraft,
+  RfpAnalysis,
+  RfpAnalysisSummary,
   RtmReport,
   Screen,
   ScreenCreateInput,
@@ -193,6 +195,19 @@ export const api = {
     request<AsisAnalysis>('PATCH', `/api/asis-analyses/${encodeURIComponent(analysisId)}/pain-points/${encodeURIComponent(painPointId)}`, body),
   /** 스크린샷 PNG URL (image/png). 데모에서는 스냅샷이 떠 둔 정적 파일(`<base>demo/asis/…`)을 가리킨다. */
   asisAssetUrl: (assetId: string) => (IS_DEMO ? `${DEMO_BASE}asis/${encodeURIComponent(assetId)}.png` : `/api/asis-assets/${encodeURIComponent(assetId)}`),
+
+  // -------------------------------------------------------------- RFP 분석 (사내 BA 표준)
+  /** 분석 접수 — 202 `{analysis_id}`. 입력은 **원문 텍스트**다 (PDF·HWP 파싱은 아직 없다). */
+  createRfpAnalysis: (projectId: string, body: { source_name: string; project_code: string; text: string; note?: string }) =>
+    request<{ analysis_id: string }>('POST', `/api/projects/${encodeURIComponent(projectId)}/rfp-analyses`, body),
+  rfpAnalyses: (projectId: string) => request<RfpAnalysisSummary[]>('GET', `/api/projects/${encodeURIComponent(projectId)}/rfp-analyses`),
+  rfpAnalysis: (id: string) => request<RfpAnalysis>('GET', `/api/rfp-analyses/${encodeURIComponent(id)}`),
+  /**
+   * **채택** — 고른 초안을 요구사항으로 만든다. 그때부터 RTM 분모에 들어간다.
+   * 행위자·사유가 필수이고 revision 으로 오래된 저장을 막는다.
+   */
+  adoptRfpRequirements: (analysisId: string, body: { by: string; reason: string; external_ids: string[]; revision: number }) =>
+    request<RfpAnalysis & { adopted: string[] }>('POST', `/api/rfp-analyses/${encodeURIComponent(analysisId)}/adoptions`, body),
 }
 
 /** 화면 표시용 오류 문자열. */

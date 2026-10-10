@@ -190,6 +190,25 @@ describe('행 상태 분류', () => {
     expect(r.summary).toMatchObject({ screens_total: 2, screens_built: 1 })
   })
 
+  it('**수용조건이 아예 없으면** non_ui_only 가 아니라 unmapped 다 (모르는 것을 판정으로 적지 않는다)', () => {
+    // RFP 에서 채택한 요구사항이 이 상태로 들어온다 (추출기가 조건을 분해하지 못할 수 있다).
+    // 「비UI 전용」은 「화면으로 확인할 수 없다」는 판정이고, 이쪽은 「아직 분해하지 않아 모른다」다.
+    const sid = uuid()
+    const n = node({ id: uuid(), kind: 'screen', screen_plan_id: sid, requirement_ids: ['REQ-0'], functions: [{ id: uuid(), name: 'f', kind: 'normal' }] })
+    const r = computeRtm({
+      requirements: [{ external_id: 'REQ-0', title: '조건 없는 요구사항', criteria: [] }],
+      ia_nodes: [n],
+      screens: [screen(sid, 'S-1')],
+    })
+    expect(r.rows[0]?.status).toBe('unmapped')
+    expect(r.rows[0]?.gap_kind).toBe('no_criteria')
+    expect(r.rows[0]?.gap_reason).toContain('수용조건이 아직 없다')
+    expect(r.rows[0]?.gap_reason).toContain('비UI 전용')  // 그 뜻이 아니라고 적는다
+    expect(r.summary.non_ui_only).toBe(0)
+    expect(r.summary.unmapped).toBe(1)
+    expect(r.summary.mapped).toBe(0)
+  })
+
   it('UI 수용조건이 0건이면 non_ui_only 이고, 분모에서 빼지 않는다', () => {
     const sid = uuid()
     const n = node({ id: uuid(), kind: 'screen', screen_plan_id: sid, requirement_ids: ['REQ-N'], functions: [{ id: uuid(), name: 'f', kind: 'normal' }] })

@@ -31,6 +31,12 @@ export interface RequirementDocument {
   title: string
   body: string
   criteria: RequirementCriterion[]
+  /**
+   * 사람이 보는 출처 표기 (`RFP 3.2.1` 처럼). RFP 분석에서 **채택한** 요구사항에만 있다 —
+   * 시드·수동 입력 요구사항에는 없고, 그 경우 화면은 「출처 미기록」이라고 적는다.
+   * 원문 인용은 `body` 안에 함께 적혀 있다 (apps/api/src/app.ts 채택 경로).
+   */
+  source_label?: string | undefined
 }
 
 export type IANodeDocument = IANode

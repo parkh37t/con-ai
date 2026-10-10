@@ -86,7 +86,13 @@ export function demoRtmInput(state: DemoRtmState, detail: ProjectDetail): RtmInp
     spec_indexes.push({ screen_plan_id: screen.id, element_or_action_ids: revision.element_index.map((e) => e.element_id) })
   }
   return {
-    requirements: detail.requirements.map((r) => ({ external_id: r.external_id, title: r.title, criteria: r.criteria.map((c) => ({ id: c.id, kind: c.kind })) })),
+    requirements: detail.requirements.map((r) => ({
+      external_id: r.external_id,
+      title: r.title,
+      criteria: r.criteria.map((c) => ({ id: c.id, kind: c.kind })),
+      // 스냅샷 요구사항에는 출처가 없다 — 그 경우 화면이 「출처 미기록」이라고 적는다 (지어내지 않는다).
+      ...((r as { source_label?: string }).source_label === undefined ? {} : { source_label: (r as { source_label?: string }).source_label }),
+    })),
     ia_nodes: detail.ia_nodes as IANodeShape[],
     screens: detail.screens.map((s) => ({ id: s.id, external_id: s.external_id, title: s.title, status: s.status, current_revision_id: s.current_revision_id })),
     spec_indexes,

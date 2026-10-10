@@ -3721,3 +3721,133 @@ button.chip:hover,
   padding-top: 14px;
   border-top: 1px solid var(--border);
 }
+
+/* ──────────────────────────────────────────────────────────────
+   RFP 분석 (#/rfp) — 원문 붙여넣기 · 추출 결과 표 · 채택
+   목록은 행 카드(접기/펼치기), 결과는 표. AS-IS 목록과 같은 리듬을 쓴다.
+   ────────────────────────────────────────────────────────────── */
+.rfp-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.rfp-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.rfp-form input,
+.rfp-form textarea {
+  font: inherit;
+  font-size: 13px;
+  font-weight: 400;
+  padding: 8px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--card);
+  color: var(--ink);
+}
+.rfp-form textarea {
+  resize: vertical;
+  min-height: 160px;
+  line-height: 1.6;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+.rfp-form .btn {
+  align-self: flex-start;
+}
+.rfp-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.rfp-item {
+  border: 1px solid var(--doc-line-soft);
+  border-radius: 8px;
+  background: var(--card);
+  overflow: hidden;
+}
+.rfp-item-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 0;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.rfp-item-head:hover {
+  background: var(--surface-quiet, rgba(0, 0, 0, 0.02));
+}
+.rfp-item-name {
+  font-weight: 700;
+  color: var(--doc-ink);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.rfp-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  flex: none;
+}
+.rfp-detail {
+  padding: 0 14px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+/* 표 안의 보조 설명 — RTM 표의 rtm-sub 와 같은 모양으로 둔다 (두 표가 같은 리듬을 쓴다). */
+.rfp-sub {
+  display: block;
+  margin-top: 3px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.rfp-adopt {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-top: 4px;
+}
+.rfp-adopt label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.rfp-adopt input {
+  width: 200px;
+  height: 32px;
+  padding: 0 10px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 400;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--card);
+  color: var(--ink);
+}
+@media (max-width: 720px) {
+  .rfp-item-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .rfp-adopt input {
+    width: 100%;
+  }
+}

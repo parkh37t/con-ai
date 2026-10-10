@@ -19,6 +19,86 @@ export interface Meta {
   auth?: AuthKind
 }
 
+// ---------------------------------------------------------------- RFP 분석 (사내 BA 표준)
+
+export type RfpStatus = 'queued' | 'running' | 'succeeded' | 'failed'
+/** 모르는 코드가 와도 그대로 보여준다 (AS-IS 실패 코드와 같은 관례). */
+export type RfpFailureCode = 'auth' | 'limit' | 'timeout' | 'extract' | 'internal'
+export type RfpRequirementClass = 'FR' | 'NFR' | 'TR' | 'OR' | 'CR'
+export type MoscowPriority = 'M' | 'S' | 'C' | 'W'
+export type NfrAxis = 'performance' | 'availability' | 'security' | 'accessibility' | 'compatibility' | 'audit'
+
+export interface RfpSourceRef {
+  label: string
+  /** 원문 그대로의 인용. 화면은 이것을 **접어서** 보여준다 (길다). */
+  quote: string
+  char_offset?: number
+}
+export interface RfpRequirementDraft {
+  external_id: string
+  kind: RfpRequirementClass
+  title: string
+  detail: string
+  priority: MoscowPriority
+  priority_reason: string
+  source: RfpSourceRef
+  criteria: Array<{ text: string; kind: CriterionKind }>
+  nfr_axis?: NfrAxis
+}
+export interface RfpEvaluationItem {
+  label: string
+  weight?: number
+  description: string
+  source: RfpSourceRef
+}
+/** 채택되지 못한 초안 — **왜** 떨어졌는지 화면에 적는다. */
+export interface RfpRejectedDraft {
+  reason: 'quote_not_found' | 'empty_title' | 'empty_priority_reason'
+  kind: RfpRequirementClass
+  title: string
+  quote: string
+}
+export interface RfpNfrGap {
+  axis: NfrAxis
+  status: 'covered' | 'missing'
+  found: string[]
+}
+export interface RfpAnalysisSummary {
+  id: string
+  source_name: string
+  project_code: string
+  status: RfpStatus
+  requirement_count: number
+  rejected_count: number
+  adopted_count: number
+  created_at: string
+}
+/** 상세 — **원문(source_text)은 응답에 없다** (고객 자료를 응답에 싣지 않는다). */
+export interface RfpAnalysis {
+  id: string
+  project_id: string
+  project_code: string
+  source_name: string
+  source_hash: string
+  source_chars: number
+  note?: string
+  status: RfpStatus
+  failure?: { code: RfpFailureCode | (string & {}); message: string }
+  adapter: AdapterKind
+  model: string
+  created_at: string
+  finished_at?: string
+  overview?: { org: string; project_name: string; period: string; budget: string; deliverables: string[]; constraints: string[] }
+  evaluation_items: RfpEvaluationItem[]
+  requirements: RfpRequirementDraft[]
+  whitespace_matches: number
+  rejected: RfpRejectedDraft[]
+  nfr_gaps: RfpNfrGap[]
+  unresolved: Array<{ kind: 'question' | 'conflict' | 'missing_evidence'; text: string; source?: RfpSourceRef }>
+  adoptions: Array<{ external_id: string; requirement_id: string; by: string; reason: string; at: string }>
+  revision: number
+}
+
 // ---------------------------------------------------------------- 프로젝트·요구사항·IA·화면 (§1)
 export interface Project {
   id: string
@@ -126,6 +206,8 @@ export interface RtmScrCell {
 export interface RtmRow {
   requirement_external_id: string
   title: string
+  /** 출처 표기 (`RFP 3.2.1`). RFP 에서 채택한 요구사항에만 있다. */
+  source_label?: string
   ui_criteria: number
   non_ui_criteria: number
   ia: RtmIaCell[]

@@ -26,6 +26,17 @@ interface ScreenState {
  * (`playwright.config.ts` — workers 1, DB 는 실행 시작에만 초기화) 그 검사들이 화면을 더 만든다.
  * 그래서 「생성 1건」 같은 절대 수치를 박으면 혼자 돌릴 때와 전체로 돌릴 때가 달라진다.
  */
+/**
+ * RTM 요약을 **API 에서 읽는다.** 요구사항 총계는 다른 검사가 바꿀 수 있다 —
+ * `rfp.spec.ts` 가 RFP 초안을 **채택**하면 요구사항이 늘어난다(분모 증가가 그 검사의 요점이다).
+ * 그래서 「0/5」 같은 절대 수치를 박으면 검사 순서에 따라 깨진다.
+ */
+async function rtmSummary(request: import('@playwright/test').APIRequestContext): Promise<{ requirements_total: number; mapped: number }> {
+  const projects = (await (await request.get(`${API}/api/projects`)).json()) as Array<{ id: string }>
+  const report = (await (await request.get(`${API}/api/projects/${projects[0]?.id}/rtm`)).json()) as { summary: { requirements_total: number; mapped: number } }
+  return report.summary
+}
+
 async function screenState(request: import('@playwright/test').APIRequestContext): Promise<ScreenState> {
   const projects = (await (await request.get(`${API}/api/projects`)).json()) as Array<{ id: string }>
   const detail = (await (await request.get(`${API}/api/projects/${projects[0]?.id}`)).json()) as {
@@ -100,8 +111,10 @@ test('ID 매핑: 갭 확인 → 기능 정의 → 발번 → 커버리지 상승
     // 시드는 일부만 연결돼 있고 FN 이 0건이므로 완전히 이어진 체인은 없다.
     // **값 칸을 정확히** 비교한다. 예전에는 칸 전체에 toContainText('0%') 를 걸어 40%·100% 에서도
     // 통과했고(「40%」⊃「0%」), FN 은 각주의 「발번 0」 때문에 총계가 3이어도 통과했다.
+    const start = await rtmSummary(page.request)
+    expect(start.mapped, '시드에는 완전히 이어진 체인이 없다').toBe(0)
     await expect(page.getByTestId('trace-kpi-coverage-value')).toHaveText('0%')
-    await expect(page.getByTestId('trace-kpi-coverage-note')).toHaveText('0/5 요구사항')
+    await expect(page.getByTestId('trace-kpi-coverage-note')).toHaveText(`0/${start.requirements_total} 요구사항`)
     await expect(page.getByTestId('trace-kpi-fn-value')).toHaveText('0')
     // 미발번을 빈칸으로 두지 않는다
     await expect(page.locator('[data-testid="rtm-row"]').first()).toContainText('IA 코드 미발번')
@@ -138,10 +151,13 @@ test('ID 매핑: 갭 확인 → 기능 정의 → 발번 → 커버리지 상승
   })
 
   await test.step('커버리지가 실제로 오른다 (목업이 있는 화면만)', async () => {
-    // 「견적 목록」 노드에는 REQ-QT-001·004 가 걸려 있어 기능 하나로 두 건이 함께 연결된다 → 2/5
+    // 「견적 목록」 노드에는 REQ-QT-001·004 가 걸려 있어 **기능 하나로 두 건**이 함께 연결된다.
+    // 분모는 다른 검사(rfp)가 바꿀 수 있으므로 API 에서 읽고, **분자가 2 로 오른 것**을 단언한다.
     await expect(rowStatus('REQ-QT-004')).toHaveAttribute('data-status', 'mapped')
-    await expect(page.getByTestId('trace-kpi-coverage-value')).toHaveText('40%')
-    await expect(page.getByTestId('trace-kpi-coverage-note')).toHaveText('2/5 요구사항')
+    const after = await rtmSummary(page.request)
+    expect(after.mapped).toBe(2)
+    await expect(page.getByTestId('trace-kpi-coverage-note')).toHaveText(`2/${after.requirements_total} 요구사항`)
+    await expect(page.getByTestId('trace-kpi-coverage-value')).not.toHaveText('0%')
     await expect(page.getByTestId('trace-kpi-fn-value')).toHaveText('1')
     // 생성된 화면 수를 함께 적는다 — 「연결된 화면」과 「만들어진 화면」을 한 칸에서 구분한다.
     const scr = await screenState(page.request)
@@ -163,8 +179,10 @@ test('ID 매핑: 갭 확인 → 기능 정의 → 발번 → 커버리지 상승
     await expect(row).toHaveAttribute('data-status', 'partial')
     await expect(row).toContainText('아직 생성되지 않았다')
     await expect(row).toContainText('(미생성)')
-    // 분자가 오르지 않는다
-    await expect(page.getByTestId('trace-kpi-coverage-note')).toHaveText('2/5 요구사항')
+    // 분자가 오르지 않는다 (분모는 다른 검사가 바꿀 수 있으므로 API 에서 읽는다)
+    const still = await rtmSummary(page.request)
+    expect(still.mapped).toBe(2)
+    await expect(page.getByTestId('trace-kpi-coverage-note')).toHaveText(`2/${still.requirements_total} 요구사항`)
     await expect(page.getByTestId('trace-footnotes')).toContainText(`목업이 만들어진 것은 ${before.built}건`)
   })
 

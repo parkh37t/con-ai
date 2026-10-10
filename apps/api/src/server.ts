@@ -50,7 +50,7 @@ function main(): void {
   const seed = seedIfEmpty(store)
   const adapter = createAdapter(env)
 
-  const { app, recovered_job_ids, recovered_asis_ids } = createApp({
+  const { app, recovered_job_ids, recovered_asis_ids, recovered_rfp_ids } = createApp({
     store,
     adapter,
     export_dir: config.export_dir,
@@ -79,6 +79,7 @@ function main(): void {
     if (seed.seeded) console.log(`[con-ai api] 샘플 프로젝트를 시드했다 (project ${seed.project_id})`)
     if (recovered_job_ids.length > 0) console.log(`[con-ai api] 서버 재시작으로 중단된 작업 ${recovered_job_ids.length}건을 failed 로 정리했다`)
     if (recovered_asis_ids.length > 0) console.log(`[con-ai api] 서버 재시작으로 중단된 AS-IS 분석 ${recovered_asis_ids.length}건을 failed 로 정리했다`)
+    if (recovered_rfp_ids.length > 0) console.log(`[con-ai api] 서버 재시작으로 중단된 RFP 분석 ${recovered_rfp_ids.length}건을 failed 로 정리했다`)
     // 접속 주소 → 웹 빌드 상태 → 인증 경고 (실제로 열린 포트 info.port 를 쓴다).
     for (const line of buildStartupLines({ host: config.host, port: info.port, adapter: adapter.kind, web: config.web })) console.log(line)
   })

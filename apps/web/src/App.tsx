@@ -16,6 +16,7 @@ import { IS_DEMO } from './demo-mode.js'
 import { useAsync, useCredentialTick, useDataTick, useHashRoute } from './hooks.js'
 import { ApprovePage } from './pages/ApprovePage.js'
 import { AsisDetailPage } from './pages/AsisDetailPage.js'
+import { RfpPage } from './pages/RfpPage.js'
 import { AsisListPage } from './pages/AsisListPage.js'
 import { DesignPage } from './pages/DesignPage.js'
 import { GeneratePage } from './pages/GeneratePage.js'
@@ -62,6 +63,8 @@ export function App() {
   const railSection: RailSection =
     route.name === 'asis' || route.name === 'asis_detail'
       ? 'asis'
+      : route.name === 'rfp'
+        ? 'rfp'
       : route.name === 'references'
         ? 'references'
         : route.name === 'prototype'
@@ -112,6 +115,8 @@ export function App() {
     body = <TraceMatrixPage key={project.id} project={project} />
   } else if (route.name === 'asis') {
     body = <AsisListPage key={project.id} project={project} />
+  } else if (route.name === 'rfp') {
+    body = <RfpPage key={project.id} project={project} />
   } else {
     body = (
       <div className="empty">

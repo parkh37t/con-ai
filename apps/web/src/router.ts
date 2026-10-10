@@ -17,6 +17,7 @@ export type Route =
   | { name: 'prototype'; query: Query }
   | { name: 'trace'; query: Query }
   | { name: 'asis'; query: Query }
+  | { name: 'rfp'; query: Query }
   | { name: 'asis_detail'; analysisId: string; query: Query }
   | { name: 'generate'; screenId: string; query: Query }
   | { name: 'review'; screenId: string; query: Query }
@@ -59,6 +60,7 @@ export function parseRoute(hash: string): Route {
   if (segments.length === 1 && segments[0] === 'prototype') return { name: 'prototype', query }
   if (segments.length === 1 && segments[0] === 'trace') return { name: 'trace', query }
   if (segments.length === 1 && segments[0] === 'asis') return { name: 'asis', query }
+  if (segments.length === 1 && segments[0] === 'rfp') return { name: 'rfp', query }
   if (segments.length === 2 && segments[0] === 'asis') {
     const analysisId = decodeURIComponent(segments[1] ?? '')
     if (analysisId) return { name: 'asis_detail', analysisId, query }
@@ -82,7 +84,7 @@ function encodeQuery(query: Query | undefined): string {
 }
 
 /** 메인·만들기·고급(프로젝트 전체)·포트폴리오·AS-IS 분석 목록 링크. */
-export type FlatRouteName = 'main' | 'create' | 'advanced' | 'references' | 'plan' | 'prototype' | 'trace' | 'asis'
+export type FlatRouteName = 'main' | 'create' | 'advanced' | 'references' | 'plan' | 'prototype' | 'trace' | 'asis' | 'rfp'
 
 const FLAT_ROUTE_PATHS: Readonly<Record<FlatRouteName, string>> = {
   main: '#/',
@@ -93,6 +95,7 @@ const FLAT_ROUTE_PATHS: Readonly<Record<FlatRouteName, string>> = {
   prototype: '#/prototype',
   trace: '#/trace',
   asis: '#/asis',
+  rfp: '#/rfp',
 }
 
 export function hrefTo(name: FlatRouteName, query?: Query): string {
@@ -140,6 +143,8 @@ export function withQuery(route: Route, patch: Query): string {
       return hrefTo('trace', query)
     case 'asis':
       return hrefTo('asis', query)
+    case 'rfp':
+      return hrefTo('rfp', query)
     case 'asis_detail':
       return hrefToAsisDetail(route.analysisId, query)
     case 'generate':

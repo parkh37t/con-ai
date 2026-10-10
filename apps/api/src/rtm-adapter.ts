@@ -21,6 +21,7 @@ export function buildRtmInput(store: Store, projectId: string): RtmInput {
       external_id: d.data.external_id,
       title: d.data.title,
       criteria: d.data.criteria.map((c) => ({ id: c.id, kind: c.kind })),
+      source_label: d.data.source_label,
     }))
 
   const ia_nodes = store.list<IANodeDocument>('ia_node', (d) => d.data.project_id === projectId).map((d) => d.data)

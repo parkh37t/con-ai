@@ -7,9 +7,10 @@
  */
 import { runGenerationJob, type JobDocument, type PipelineDeps, type Store } from '@con-ai/worker-generation'
 import { markAsisFailedIfUnfinished } from './asis-runner.js'
+import { markRfpFailedIfUnfinished } from './rfp-runner.js'
 
 /** 큐에 넣는 작업 종류 (계약 §12: asis 실행은 생성 작업과 같은 순차 큐를 쓴다). */
-export type QueueJobKind = 'generation' | 'asis'
+export type QueueJobKind = 'generation' | 'asis' | 'rfp'
 
 interface QueueEntry {
   id: string
@@ -20,6 +21,8 @@ export interface JobQueueOptions {
   deps: PipelineDeps
   /** AS-IS 분석 실행 함수 (계약 §12). enqueue(id, 'asis') 를 쓰려면 주입해야 한다. */
   runAsis?: ((analysisId: string) => Promise<void>) | undefined
+  /** RFP 분석 실행 함수. enqueue(id, 'rfp') 를 쓰려면 주입해야 한다. */
+  runRfp?: ((analysisId: string) => Promise<void>) | undefined
   /** 파이프라인·러너가 예외로 끝났을 때(정상 실패는 문서 failure 로 기록되므로 여기 오지 않는다) 호출. */
   onError?: ((jobId: string, err: unknown) => void) | undefined
 }
@@ -30,11 +33,13 @@ export class JobQueue {
   private idleWaiters: Array<() => void> = []
   private readonly deps: PipelineDeps
   private readonly runAsis: ((analysisId: string) => Promise<void>) | undefined
+  private readonly runRfp: ((analysisId: string) => Promise<void>) | undefined
   private readonly onError: (jobId: string, err: unknown) => void
 
   constructor(options: JobQueueOptions) {
     this.deps = options.deps
     this.runAsis = options.runAsis
+    this.runRfp = options.runRfp
     this.onError = options.onError ?? ((jobId, err) => console.error(`[queue] 작업 ${jobId} 실행 중 예외:`, err))
   }
 
@@ -67,6 +72,9 @@ export class JobQueue {
           if (entry.kind === 'asis') {
             if (this.runAsis === undefined) throw new Error('asis 실행 함수(runAsis)가 주입되지 않았다')
             await this.runAsis(entry.id)
+          } else if (entry.kind === 'rfp') {
+            if (this.runRfp === undefined) throw new Error('rfp 실행 함수(runRfp)가 주입되지 않았다')
+            await this.runRfp(entry.id)
           } else {
             await runGenerationJob(entry.id, this.deps)
           }
@@ -74,6 +82,7 @@ export class JobQueue {
           this.onError(entry.id, err)
           const message = `실행 중 예외: ${err instanceof Error ? err.message : String(err)}`
           if (entry.kind === 'asis') markAsisFailedIfUnfinished(this.deps.store, entry.id, this.deps.now(), message)
+          else if (entry.kind === 'rfp') markRfpFailedIfUnfinished(this.deps.store, entry.id, this.deps.now(), message)
           else markFailedIfUnfinished(this.deps.store, entry.id, this.deps.now(), message)
         }
       }

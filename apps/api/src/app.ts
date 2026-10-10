@@ -6,7 +6,7 @@ import { randomUUID } from 'node:crypto'
 import { mkdirSync } from 'node:fs'
 import { Hono, type Context } from 'hono'
 import { serveStatic } from '@hono/node-server/serve-static'
-import { DomainRuleError, assertAllowed, canIssueIaExternalId, canMarkReviewReady, computeRtm, evaluateApprovalGate, issueFnExternalId, issueIaExternalId, linkScreenToIaNode, proposeFnExternalId, proposeIaExternalId, relabelFnExternalId, relabelIaExternalId, type RuleReason } from '@con-ai/domain'
+import { DomainRuleError, assertAllowed, canIssueIaExternalId, canMarkReviewReady, computeRtm, evaluateApprovalGate, findQuote, issueFnExternalId, issueIaExternalId, linkScreenToIaNode, proposeFnExternalId, proposeIaExternalId, relabelFnExternalId, relabelIaExternalId, type RuleReason } from '@con-ai/domain'
 import type { ModelAdapter } from '@con-ai/model-adapter'
 import type { SliceGenerationRequest } from '@con-ai/prompt-templates'
 import { S2B_LEARNED_PROFILE, type RenderProfile } from '@con-ai/renderer'
@@ -37,12 +37,13 @@ import {
   type StoredDocument,
 } from '@con-ai/worker-generation'
 import { recoverInterruptedAsisAnalyses, runAsisAnalysis, type AsisAnalysisDocument, type AsisStore } from './asis-runner.js'
+import { recoverInterruptedRfpAnalyses, runRfpAnalysis, sourceHash, type RfpAnalysisDocument } from './rfp-runner.js'
 import { ASIS_SAMPLE_2_HTML, ASIS_SAMPLE_HTML } from './asis-sample.js'
 import { EXPORT_VERSION, exportApprovedRevision, summarizeValidation } from './export.js'
 import { buildMeta, detectPlaywright } from './meta.js'
 import { JobQueue, recoverInterruptedJobs } from './queue.js'
 import { mountWebStatic, notFoundBody } from './runtime.js'
-import { ApprovalBody, AsisCreateBody, AsisPainPointPatchBody, CommentBody, CommentPatchBody, IaNodePatchBody, IdIssueBody, RevisionPromptBody, ScreenCreateBody, ScreenPatchBody, SliceGenerationRequestBody, toSliceRequest } from './schemas.js'
+import { ApprovalBody, AsisCreateBody, AsisPainPointPatchBody, CommentBody, CommentPatchBody, IaNodePatchBody, IdIssueBody, RevisionPromptBody, RfpAdoptBody, RfpCreateBody, ScreenCreateBody, ScreenPatchBody, SliceGenerationRequestBody, toSliceRequest } from './schemas.js'
 import { buildRtmInput } from './rtm-adapter.js'
 import { copyDummyForNewScreen, deriveShell, newScreenDocument, nextScreenExternalId } from './screens.js'
 import { checkUrl, lookupResolve, parsePolicy, type SsrfPolicy, type SsrfResolve } from './ssrf.js'
@@ -88,6 +89,8 @@ export interface ConAiApp {
   recovered_job_ids: string[]
   /** 시작 시 failed 로 정리한(서버 재시작으로 중단된) AS-IS 분석 id (계약 §12). */
   recovered_asis_ids: string[]
+  /** 서버 재시작으로 중단된 RFP 분석을 failed 로 정리한 id 목록. */
+  recovered_rfp_ids: string[]
   /** 정적 제공 중인 웹 빌드 경로. 켜지 않았으면 null. */
   web_dist: string | null
 }
@@ -105,12 +108,14 @@ export function createApp(options: AppOptions): ConAiApp {
   const deps: PipelineDeps = { store, adapter, render: options.render, validate: options.validate, now, newId, required_check_ids: requiredCheckIds, profile, assembler: options.assembler }
   const recovered = recoverInterruptedJobs(store, now)
   const recoveredAsis = recoverInterruptedAsisAnalyses(store, now)
+  const recoveredRfp = recoverInterruptedRfpAnalyses(store, now)
   // SSRF 정책은 접수(POST)와 러너가 **같은 것**을 쓴다 — 두 곳의 판단이 갈리면 우회가 생긴다.
   const ssrfPolicy = options.ssrf_policy ?? parsePolicy(env)
   const ssrfResolve = options.ssrf_resolve ?? lookupResolve
   const queue = new JobQueue({
     deps,
     runAsis: (analysisId) => runAsisAnalysis(analysisId, { store, adapter, now, env, ssrf_policy: ssrfPolicy, ssrf_resolve: ssrfResolve }),
+    runRfp: (analysisId) => runRfpAnalysis(analysisId, { store, adapter, now, log }),
     onError: (jobId, err) => log(`[queue] 작업 ${jobId} 예외: ${err instanceof Error ? err.message : String(err)}`),
   })
 
@@ -713,6 +718,137 @@ export function createApp(options: AppOptions): ConAiApp {
     return c.html(ASIS_SAMPLE_2_HTML)
   })
 
+  // ---------- RFP 분석 (요구사항·평가항목 추출 → 채택) ----------
+
+  /**
+   * RFP 원문을 접수한다. **텍스트 붙여넣기**가 입력이다 (PDF·HWP 파싱은 아직 없다).
+   * 분석은 큐에서 실행되고, 끝나도 **요구사항이 되지 않는다** — 채택은 사람이 누르는 별개 작업이다.
+   */
+  app.post('/api/projects/:id/rfp-analyses', async (c) => {
+    const project = store.get<ProjectDocument>('project', c.req.param('id'))
+    if (!project) return notFound(c, '프로젝트')
+    const parsed = await parseJson(c, RfpCreateBody)
+    if ('response' in parsed) return parsed.response
+    const id = newId()
+    const text = parsed.data.text
+    const doc: RfpAnalysisDocument = {
+      id,
+      project_id: project.id,
+      project_code: parsed.data.project_code,
+      source_name: parsed.data.source_name,
+      source_text: text,
+      source_hash: sourceHash(text),
+      source_chars: text.length,
+      status: 'queued',
+      adapter: adapter.kind,
+      model: adapter.model,
+      created_at: now(),
+      evaluation_items: [],
+      requirements: [],
+      whitespace_matches: 0,
+      rejected: [],
+      nfr_gaps: [],
+      unresolved: [],
+      adoptions: [],
+    }
+    if (parsed.data.note !== undefined) doc.note = parsed.data.note
+    store.put<RfpAnalysisDocument>('rfp_analysis', id, doc, 0)
+    queue.enqueue(id, 'rfp')
+    return c.json({ analysis_id: id }, 202)
+  })
+
+  app.get('/api/projects/:id/rfp-analyses', (c) => {
+    const project = store.get<ProjectDocument>('project', c.req.param('id'))
+    if (!project) return notFound(c, '프로젝트')
+    const list = store
+      .list<RfpAnalysisDocument>('rfp_analysis', (d) => d.data.project_id === project.id)
+      .map((d) => ({
+        id: d.id,
+        source_name: d.data.source_name,
+        project_code: d.data.project_code,
+        status: d.data.status,
+        requirement_count: d.data.requirements.length,
+        rejected_count: d.data.rejected.length,
+        adopted_count: d.data.adoptions.length,
+        created_at: d.data.created_at,
+      }))
+    return c.json(list)
+  })
+
+  /** 상세 — **원문(source_text)은 돌려주지 않는다.** 길고, 화면이 쓰지 않으며, 응답에 고객 자료를 싣지 않는다. */
+  app.get('/api/rfp-analyses/:id', (c) => {
+    const doc = store.get<RfpAnalysisDocument>('rfp_analysis', c.req.param('id'))
+    if (!doc) return notFound(c, 'RFP 분석')
+    const { source_text: _omitted, ...rest } = doc.data
+    return c.json({ ...rest, revision: doc.revision })
+  })
+
+  /**
+   * 채택 — 고른 초안을 `requirement` 문서로 만든다. **그때부터 RTM 의 분모에 들어간다.**
+   *
+   * 다시 확인하는 것:
+   * - 인용이 **지금도** 원문에 있는가 (저장 사이에 원문이 바뀌는 경로는 없지만, 채택은 번복할 수 없으므로 다시 본다)
+   * - 그 외부 ID 가 이미 요구사항으로 있는가 (두 번 채택하지 않는다)
+   */
+  app.post('/api/rfp-analyses/:id/adoptions', async (c) => {
+    const doc = store.get<RfpAnalysisDocument>('rfp_analysis', c.req.param('id'))
+    if (!doc) return notFound(c, 'RFP 분석')
+    const parsed = await parseJson(c, RfpAdoptBody)
+    if ('response' in parsed) return parsed.response
+    if (doc.data.status !== 'succeeded') {
+      return c.json({ error: 'not_succeeded', message: `분석이 끝나야 채택할 수 있습니다 (현재 ${doc.data.status})`, reasons: ['분석 상태가 succeeded 가 아니다'] }, 400)
+    }
+    const wanted = new Set(parsed.data.external_ids)
+    const picked = doc.data.requirements.filter((r) => wanted.has(r.external_id))
+    const missing = [...wanted].filter((id) => !picked.some((r) => r.external_id === id))
+    if (missing.length > 0) {
+      return c.json({ error: 'unknown_requirement', message: `이 분석에 없는 요구사항입니다: ${missing.join(', ')}`, reasons: missing }, 400)
+    }
+    const already = new Set(
+      store.list<{ project_id: string; external_id: string }>('requirement', (d) => d.data.project_id === doc.data.project_id).map((d) => d.data.external_id),
+    )
+    const duplicated = picked.filter((r) => already.has(r.external_id)).map((r) => r.external_id)
+    if (duplicated.length > 0) {
+      return c.json({ error: 'already_adopted', message: `이미 요구사항으로 있습니다: ${duplicated.join(', ')}`, reasons: duplicated }, 400)
+    }
+    // 인용 검사는 **도메인 규칙 한 벌**을 다시 쓴다 (여기서 또 적으면 두 판단이 갈린다).
+    const stale = picked.filter((r) => findQuote(doc.data.source_text, r.source.quote).kind === 'none')
+    if (stale.length > 0) {
+      return c.json(
+        { error: 'quote_not_found', message: `원문에서 인용을 다시 찾지 못했습니다: ${stale.map((r) => r.external_id).join(', ')}`, reasons: stale.map((r) => r.external_id) },
+        400,
+      )
+    }
+
+    const at = now()
+    const adoptions = [...doc.data.adoptions]
+    for (const r of picked) {
+      const requirementId = newId()
+      // 수용조건 ID 는 `AC-{REQ}-{2자리}` — 기존 시드와 같은 모양이다.
+      const criteria = r.criteria.map((cr, i) => ({ id: `AC-${r.external_id}-${String(i + 1).padStart(2, '0')}`, text: cr.text, kind: cr.kind }))
+      store.put<RequirementDocument>(
+        'requirement',
+        requirementId,
+        {
+          id: requirementId,
+          project_id: doc.data.project_id,
+          external_id: r.external_id,
+          title: r.title,
+          // 본문에 **원문 인용과 출처**를 함께 남긴다 — 추적이 RFP 까지 올라간다.
+          body: [r.detail, '', `출처: ${r.source.label}`, `인용: ${r.source.quote}`, `우선순위: ${r.priority} (${r.priority_reason})`, `분류: ${r.kind}`].join('\n'),
+          criteria,
+          // 표에 적을 출처 — 이게 없으면 화면이 「출처 미기록」이라고 적는다 (RTM 각주가 그 사실을 적어 왔다).
+          source_label: r.source.label,
+        },
+        0,
+      )
+      adoptions.push({ external_id: r.external_id, requirement_id: requirementId, by: parsed.data.by, reason: parsed.data.reason, at })
+    }
+    const stored = store.put<RfpAnalysisDocument>('rfp_analysis', doc.id, { ...doc.data, adoptions }, parsed.data.revision)
+    const { source_text: _omitted, ...rest } = stored.data
+    return c.json({ ...rest, revision: stored.revision, adopted: picked.map((r) => r.external_id) })
+  })
+
   app.post('/api/projects/:id/asis-analyses', async (c) => {
     const project = store.get<ProjectDocument>('project', c.req.param('id'))
     if (!project) return notFound(c, '프로젝트')
@@ -790,7 +926,7 @@ export function createApp(options: AppOptions): ConAiApp {
   const webDist = options.web_dist
   if (webDist !== undefined) mountWebStatic(app, webDist)
 
-  return { app, queue, deps, recovered_job_ids: recovered, recovered_asis_ids: recoveredAsis, web_dist: webDist ?? null }
+  return { app, queue, deps, recovered_job_ids: recovered, recovered_asis_ids: recoveredAsis, recovered_rfp_ids: recoveredRfp, web_dist: webDist ?? null }
 }
 
 // ---------- 보조 ----------

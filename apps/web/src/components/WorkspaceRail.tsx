@@ -12,7 +12,7 @@ import { STAGE_NAV, stageValueText, type StageCounts, type StageKey } from '../p
 import { hrefTo } from '../router.js'
 import type { Meta, Project } from '../types.js'
 
-export type RailSection = StageKey | 'references' | 'prototype' | 'plan' | 'trace' | 'other'
+export type RailSection = StageKey | 'references' | 'prototype' | 'plan' | 'trace' | 'rfp' | 'other'
 
 function stageHref(item: (typeof STAGE_NAV)[number]): string {
   if (item.key === 'asis') return hrefTo('asis')
@@ -73,6 +73,21 @@ export function WorkspaceRail({
             </a>
           )
         })}
+
+        <span className="rail-label rail-label-gap">발주 자료</span>
+        {/*
+          RFP 분석은 AS-IS 앞 단계이지만 「작업 흐름 4항목」의 번호 체계(AS-IS→화면→검토→완료)를 흔들지 않기 위해
+          별도 묶음으로 둔다. 채택을 누르면 그 결과가 요구사항이 되어 4단계 전체의 분모가 된다.
+        */}
+        <a
+          className={`rail-item rail-item-quiet${current === 'rfp' ? ' active' : ''}`}
+          href={hrefTo('rfp')}
+          data-testid="rail-rfp"
+          {...(current === 'rfp' ? { 'aria-current': 'page' as const } : {})}
+        >
+          <span className="rail-dot" aria-hidden="true" />
+          <span className="rail-item-label">RFP 분석 (요구사항 추출)</span>
+        </a>
 
         <span className="rail-label rail-label-gap">메뉴에서 만들기</span>
         {/* 메뉴구조도 → 화면 ID → 근거 → 프롬프트 → 생성. 「무엇을 근거로 무엇을 만들었나」가 보이는 자리다. */}
