@@ -110,9 +110,18 @@ describe('footnotes — 세지 않은 것을 자백한다', () => {
     expect(notes.some((n) => n.includes('「충돌 없음」 이 아니라'))).toBe(true)
   })
 
-  it('요소 태깅 미실행 화면이 있으면 이름과 함께 적는다', () => {
+  it('요소 태깅을 판정하지 못한 화면이 있으면 이름과 **두 가지 이유**를 함께 적는다', () => {
     const notes = footnotes(summary({ element_tagging: { refs_total: 2, refs_live: 0, refs_stale: 0, not_run_screens: ['S-1', 'S-2'] } }))
     expect(notes.some((n) => n.includes('S-1, S-2'))).toBe(true)
+    // 이 목록은 「목업 미생성」과 「명세를 읽지 못함」을 함께 담는다 — 한쪽 문구로만 적으면 다른 쪽을 틀리게 적는다.
+    const note = notes.find((n) => n.includes('S-1, S-2')) ?? ''
+    expect(note).toContain('목업 미생성')
+    expect(note).toContain('명세를 읽지 못함')
+  })
+
+  it('화면이 모두 생성됐으면 생성 수 각주를 적지 않는다 (없는 문제를 만들지 않는다)', () => {
+    const notes = footnotes(summary({ screens_total: 3, screens_built: 3 }))
+    expect(notes.some((n) => n.includes('목업이 만들어진 것은'))).toBe(false)
   })
 
   it('고아 참조가 있으면 자동 복구하지 않는다고 적는다', () => {

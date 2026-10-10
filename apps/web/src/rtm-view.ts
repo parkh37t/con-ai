@@ -97,7 +97,11 @@ export function footnotes(summary: RtmSummary): string[] {
     '충돌·제외 상태는 이 화면에서 기록할 수단이 없어 항상 0 이다. 「충돌 없음」 이 아니라 「세지 않음」 이다.',
   ]
   if (summary.element_tagging.not_run_screens.length > 0) {
-    notes.push(`요소 태깅 미실행 화면 ${summary.element_tagging.not_run_screens.length}건 (아직 생성되지 않음): ${summary.element_tagging.not_run_screens.join(', ')}`)
+    // 이 목록에는 **두 가지 다른 이유**가 섞인다: ① 메뉴에 붙었지만 목업이 없다 ② 명세를 읽지 못했다.
+    // 「아직 생성되지 않음」 하나로만 적으면 ②를 잘못 적는 것이 된다 — 둘 다 적는다.
+    notes.push(
+      `요소 태깅을 판정하지 못한 화면 ${summary.element_tagging.not_run_screens.length}건 (목업 미생성 또는 명세를 읽지 못함): ${summary.element_tagging.not_run_screens.join(', ')}`,
+    )
   }
   if (summary.screens_built < summary.screens_total) {
     notes.push(
