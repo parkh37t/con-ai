@@ -3,25 +3,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { MemoryStorage } from './browser-run/test-helpers.js'
-import {
-  prototypeComments,
-  PROTOTYPE_SENTENCE_FALLBACK,
-  PROTOTYPE_STEPS,
-  clearRun,
-  doneCount,
-  isComplete,
-  isStepDone,
-  loadRun,
-  nextStep,
-  progressText,
-  prototypeSentence,
-  prototypeTarget,
-  runKey,
-  saveRun,
-  setPrototypeStorage,
-  stepStatus,
-  type PrototypeRun,
-} from './prototype.js'
+import { PROTOTYPE_SENTENCE_FALLBACK, PROTOTYPE_STEPS, clearRun, doneCount, isComplete, isStepDone, loadRun, nextStep, progressText, prototypeComments, prototypeSentence, prototypeStepText, prototypeTarget, runKey, saveRun, setPrototypeStorage, stepStatus, type PrototypeRun } from './prototype.js'
 
 const AFTER_ASIS: PrototypeRun = { analysis_id: 'a1', pain_point_count: 8 }
 const AFTER_GENERATE: PrototypeRun = { ...AFTER_ASIS, screen_id: 's1', screen_external_id: 'SCREEN-001', revision1_id: 'r1' }
@@ -164,5 +146,41 @@ describe('저장 — 깨진 값을 새 결과처럼 쓰지 않는다', () => {
     expect(loadRun(P1)).toEqual({})
     memory.setItem(runKey(P1), '깨진 JSON')
     expect(loadRun(P1)).toEqual({})
+  })
+})
+
+/**
+ * 단계 카드 문구가 어댑터를 따라간다.
+ *
+ * 고정 문자열이던 때는 자격 증명을 넣어 내 토큰으로 도는데도 ① 카드가 «더미 어댑터» 라고 적었다
+ * (CLAUDE.md: 더미 동작과 실제 모델 연계를 사용자에게 구분해 보여준다).
+ */
+describe('prototypeStepText — 토큰으로 돌 때 «더미» 라고 적지 않는다', () => {
+  const step = (id: string) => PROTOTYPE_STEPS.find((s) => s.id === id)!
+
+  it('① AS-IS: 자격 증명이 있으면 실제 모델이라고 적고, 더미라는 말을 쓰지 않는다', () => {
+    const real = prototypeStepText(step('asis'), 'anthropic')
+    expect(real.runs).toContain('실제 모델')
+    expect(real.runs).not.toContain('더미')
+    const dummy = prototypeStepText(step('asis'), 'fixture')
+    expect(dummy.runs).toContain('더미')
+  })
+
+  it('② 생성: 자격 증명이 있으면 «이 단계에 더미는 없다» 고 적는다', () => {
+    expect(prototypeStepText(step('generate'), 'anthropic').sampled).toContain('더미는 없다')
+    expect(prototypeStepText(step('generate'), 'fixture').sampled).toContain('모델만 더미')
+  })
+
+  it('어댑터를 아직 모르면(null) 원래 문구를 그대로 쓴다 — 실제라고 앞질러 말하지 않는다', () => {
+    for (const s of PROTOTYPE_STEPS) {
+      expect(prototypeStepText(s, null)).toEqual({ runs: s.runs, sampled: s.sampled })
+    }
+  })
+
+  it('③·④ 는 어댑터와 무관하게 같은 문구다 (④ 는 모델을 쓰지 않는다)', () => {
+    for (const id of ['review', 'approve']) {
+      const s = step(id)
+      expect(prototypeStepText(s, 'anthropic')).toEqual({ runs: s.runs, sampled: s.sampled })
+    }
   })
 })

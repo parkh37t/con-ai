@@ -11,6 +11,7 @@ import { runV3InBrowser } from './v3-browser.js'
 import { V3_CHECKS, makeResult, type CheckResult } from './deps.js'
 import { fakeFetch, modelOutput, modelResponse, snapshotFile, snapshotSpec, MemoryStorage } from './test-helpers.js'
 import type { StoredCredential } from './credential.js'
+import type { AsisSampleTarget } from '../asis-samples.js'
 
 const TOKEN: StoredCredential = { kind: 'token', value: '비밀-브라우저-토큰-4321', persist: false }
 const PROJECT = 'a1000000-0000-4000-8000-000000000001'
@@ -356,5 +357,94 @@ describe('화면 만들기 — 한 줄 입력 흐름 (브라우저 모드)', () 
     expect(handleWith(state, 'POST', `/api/projects/${PROJECT}/screens`, { title: 'x', sample_from: '없는-레퍼런스' }).status).toBe(400)
     expect(handleWith(state, 'POST', '/api/projects/없는것/screens', { title: 'x' }).status).toBe(404)
     expect(handleWith(state, 'PATCH', '/api/screens/없는것', { title: 'x' }).status).toBe(404)
+  })
+})
+
+/**
+ * AS-IS 페인포인트 초안의 자격 증명 경로.
+ *
+ * 예전에는 자격 증명이 있어도 **항상 더미 어댑터**였다 — `#/asis` 와 `#/prototype` ① 단계만 토큰을 못 썼다.
+ * 구조 캡처는 여전히 브라우저에서 불가하므로 **미리 녹화한 샘플 대상**에만 모델을 쓴다.
+ */
+describe('AS-IS 초안 — 자격 증명이 있으면 내 토큰으로, 없으면 더미로 (무엇이 했는지 적는다)', () => {
+  const SAMPLE_URL = 'https://sample.example/portal'
+  const SAMPLE: AsisSampleTarget = {
+    id: 'sample-portal',
+    label: '샘플 포털',
+    description: '미리 분석해 둔 대상',
+    url: SAMPLE_URL,
+    captured_at: '2026-09-01T00:00:00.000Z',
+    structure: {
+      title: '샘플 포털 메인',
+      headings: [{ level: 1, text: '공지사항' }],
+      nav_links: [{ text: '계좌', href: '/accounts' }],
+      forms: [{ name: 'search', fields: [{ type: 'text', name: 'q' }] }],
+      buttons: ['검색'],
+      counts: { links: 12, images: 3, images_without_alt: 2, tables: 1, fields_without_label: 1, iframes: 0 },
+    },
+    screenshots: { desktop: 'd.png', mobile: 'm.png' },
+  }
+  const DRAFT = {
+    summary: '레이블 없는 입력과 대체텍스트 없는 이미지가 확인된다.',
+    pain_points: [{ area: '검색', severity: 'high', description: '검색 입력에 레이블이 없다', evidence: 'fields_without_label = 1', suggestion: '라벨을 붙인다' }],
+  }
+
+  /** 샘플 대상을 가진 데모 상태. 시계를 옮겨 분석 진행을 끝까지 돌린다. */
+  function asisState(credential: StoredCredential | null, responses: Parameters<typeof fakeFetch>[0]) {
+    const { fetch, calls } = fakeFetch(responses)
+    const store = new BrowserStore(() => new MemoryStorage())
+    setBrowserRuntime({ credential: () => credential, fetch, store, now: () => '2026-10-10T00:00:00.000Z' })
+    const clock = { ms: 0 }
+    const state = createDemoState({ ...files(), asis_samples: [SAMPLE] }, { now: () => clock.ms, store })
+    return { state, clock, calls }
+  }
+
+  async function analyze(credential: StoredCredential | null, responses: Parameters<typeof fakeFetch>[0]): Promise<{ doc: AsisAnalysis; calls: ReturnType<typeof fakeFetch>['calls'] }> {
+    const { state, clock, calls } = asisState(credential, responses)
+    const created = handleWith(state, 'POST', `/api/projects/${PROJECT}/asis-analyses`, { url: SAMPLE_URL, note: '모바일 위주' })
+    expect(created.status).toBe(202)
+    const id = (created.data as { analysis_id: string }).analysis_id
+    clock.ms = 10_000
+    // 초안은 비동기다 — 끝날 때까지 읽는다 (끝나지 않으면 running 으로 남는다).
+    let doc = handleWith(state, 'GET', `/api/asis-analyses/${id}`).data as AsisAnalysis
+    for (let i = 0; i < 50 && doc.status !== 'succeeded' && doc.status !== 'failed'; i += 1) {
+      await Promise.resolve()
+      doc = handleWith(state, 'GET', `/api/asis-analyses/${id}`).data as AsisAnalysis
+    }
+    return { doc, calls }
+  }
+
+  it('자격 증명이 있으면 내 토큰으로 호출하고 adapter=anthropic 으로 적는다', async () => {
+    const { doc, calls } = await analyze(TOKEN, [modelResponse(DRAFT)])
+    expect(doc.status).toBe('succeeded')
+    expect(doc.adapter).toBe('anthropic')
+    expect(doc.model).toBe(browserRuntime.model)
+    expect(doc.summary).toBe(DRAFT.summary)
+    expect(doc.pain_points.map((p) => p.area)).toEqual(['검색'])
+    expect(doc.pain_points[0]?.status).toBe('proposed')
+    // 실제로 모델을 한 번 불렀고, 토큰 헤더로 불렀다
+    expect(calls).toHaveLength(1)
+    expect(calls[0]?.headers['authorization']).toBe(`Bearer ${TOKEN.value}`)
+  })
+
+  it('자격 증명이 없으면 모델을 부르지 않고 adapter=fixture 로 적는다', async () => {
+    const { doc, calls } = await analyze(null, [])
+    expect(doc.status).toBe('succeeded')
+    expect(doc.adapter).toBe('fixture')
+    expect(doc.model).toBe('fixture')
+    expect(doc.pain_points.length).toBeGreaterThan(0)
+    expect(calls).toHaveLength(0)
+  })
+
+  it('모델 호출이 실패하면 분석을 실패로 끝낸다 — 더미 결과로 조용히 갈아끼우지 않는다', async () => {
+    const { doc } = await analyze(TOKEN, [{ status: 401, body: { error: { message: `bad ${TOKEN.value}` } } }])
+    expect(doc.status).toBe('failed')
+    // 계약의 전용 코드를 쓴다 — 'internal' 이면 화면이 «내부 오류» 라고 말해 원인을 숨긴다.
+    expect(doc.failure?.code).toBe('draft')
+    expect(doc.failure?.message).toContain('HTTP 401')
+    expect(doc.pain_points).toEqual([])
+    expect(doc.summary).toBeUndefined()
+    // 자격 증명 값이 실패 문구에 섞이지 않는다
+    expect(JSON.stringify(doc)).not.toContain(TOKEN.value)
   })
 })

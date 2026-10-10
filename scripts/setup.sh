@@ -61,14 +61,15 @@ else
   KEY=""; TOKEN=""
   if [ "$ADAPTER" = anthropic ]; then
     if [ -z "$AUTH" ]; then
-      if [ "$YES" = 1 ]; then AUTH=api_key; else
-        printf '인증 방식을 고르세요 [1] API 키(ANTHROPIC_API_KEY, 기본)  [2] 토큰(ANTHROPIC_AUTH_TOKEN, Bearer): '
-        read -r b; case "$b" in 2) AUTH=token ;; *) AUTH=api_key ;; esac
+      if [ "$YES" = 1 ]; then AUTH=token; else
+        printf '인증 방식을 고르세요 [1] 내 구독 토큰(ANTHROPIC_AUTH_TOKEN, 기본 — `claude setup-token` 으로 발급)  [2] API 키(ANTHROPIC_API_KEY): '
+        read -r b; case "$b" in 2) AUTH=api_key ;; *) AUTH=token ;; esac
       fi
     fi
     if [ "$YES" != 1 ]; then
       if [ "$AUTH" = token ]; then
-        printf '토큰을 입력하세요 (입력이 표시되지 않음, 비워 두면 나중에 .env 에 직접 기입): '; read -rs TOKEN; echo
+        echo '토큰이 없으면 다른 터미널에서 `claude setup-token` 을 실행해 받으세요 (Claude 구독 필요).'
+        printf '토큰을 붙여넣으세요 (입력이 표시되지 않음, 비워 두면 나중에 .env 에 직접 기입): '; read -rs TOKEN; echo
       else
         printf 'API 키를 입력하세요 (입력이 표시되지 않음, 비워 두면 나중에 .env 에 직접 기입): '; read -rs KEY; echo
       fi
@@ -113,5 +114,6 @@ say "준비 완료"
 cat <<'EOF'
 시작:  set -a; source .env; set +a; pnpm dev
        → 웹 http://localhost:5173 , API http://localhost:8787
-실제 모델 호출로 바꾸기: .env 의 MODEL_ADAPTER=anthropic 과 ANTHROPIC_API_KEY(API 키) 또는 ANTHROPIC_AUTH_TOKEN(토큰) 중 하나를 채우고 API 를 재시작
+실제 모델 호출로 바꾸기: .env 에 MODEL_ADAPTER=anthropic, MODEL_AUTH=token, ANTHROPIC_AUTH_TOKEN=<`claude setup-token` 으로 받은 값> 을 채우고 API 를 재시작
+       (API 키를 쓰려면 MODEL_AUTH=api_key 와 ANTHROPIC_API_KEY)
 EOF

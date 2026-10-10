@@ -147,7 +147,7 @@ export function MainPage({ project, meta, route }: { project: Project | null; me
                 1
               </span>
               <div>
-                <strong>Claude API 키를 준비합니다</strong>
+                <strong>내 Claude 토큰을 준비합니다</strong>
                 <KeyHelp open={route.query['help'] === 'key'} />
               </div>
             </li>
@@ -235,33 +235,38 @@ function DesignSketch() {
 }
 
 /**
- * API 키 안내 — 확인된 사실만 적는다.
- * 서버 모드에서는 브라우저에 키를 넣지 않으므로 첫 줄을 실행 모드에 맞게 바꾼다.
+ * 자격 증명 안내 — 확인된 사실만 적는다. **내 Claude 구독 토큰이 1순위**다(콘솔 결제 설정 없이 쓴다).
+ * 서버 모드에서는 브라우저에 자격 증명을 넣지 않으므로 첫 줄을 실행 모드에 맞게 바꾼다.
  */
 function KeyHelp({ open }: { open: boolean }) {
   return (
     <details className="main-help" data-testid="main-key-help" open={open}>
-      <summary>Claude API 키 받는 법</summary>
+      <summary>내 Claude 토큰 넣는 법</summary>
       <ul>
         <li>
           {IS_DEMO
             ? '이 페이지는 서버가 없는 정적 배포라 브라우저가 직접 Anthropic API 를 호출합니다. 그래서 사용자의 자격 증명이 필요합니다.'
-            : '지금 이 화면은 서버 모드로 열려 있어 모델 호출은 서버가 합니다(키는 서버 환경변수에 둡니다). 아래는 서버가 없는 정적 배포에서 브라우저가 직접 호출할 때 필요한 키 이야기입니다.'}
+            : '지금 이 화면은 서버 모드로 열려 있어 모델 호출은 서버가 합니다(자격 증명은 서버 환경변수에 둡니다). 아래는 서버가 없는 정적 배포에서 브라우저가 직접 호출할 때 필요한 이야기입니다.'}
         </li>
         <li>
-          <strong>API 키(권장)</strong> —{' '}
+          <strong>내 Claude 구독 토큰 (권장)</strong> — 터미널에서 <code>claude setup-token</code> 을 실행해 받습니다(Claude Code CLI, Claude 구독이 있어야 합니다).
+          받은 값을 위 패널의 <strong>토큰(OAuth)</strong> 에 붙여넣습니다. <strong>콘솔 결제 수단·크레딧 설정이 필요하지 않습니다</strong> — 구독으로 동작합니다.
+        </li>
+        <li>
+          <strong>API 키 (대안)</strong> —{' '}
           <a href="https://platform.claude.com" target="_blank" rel="noreferrer noopener">
             platform.claude.com
           </a>{' '}
-          에서 로그인 → API 키를 만들고 복사합니다(키는 만들 때 한 번만 보입니다). 사용한 토큰만큼 과금되므로 결제 수단·크레딧 설정이 필요합니다.
+          에서 로그인 → API 키를 만들고 복사합니다(키는 만들 때 한 번만 보입니다). 이쪽은 <strong>사용한 만큼 과금</strong>되어 결제 수단·크레딧 설정이 필요합니다.
         </li>
         <li>
-          <strong>OAuth 토큰(대안)</strong> — Anthropic CLI 로 <code>ant auth login</code> 후 <code>ant auth print-credentials --access-token</code> 으로 얻습니다.{' '}
-          <strong>수명이 짧아 만료되면 다시 붙여넣어야 합니다</strong> — 계속 쓰려면 API 키가 편합니다.
+          <strong>만료되면</strong> 인증 실패(HTTP 401)로 끝나고 화면이 그 이유를 그대로 보여줍니다. <code>claude setup-token</code> 을 다시 실행해 새 값을 넣으면 됩니다.
         </li>
-        <li>키는 이 브라우저에만 저장되고 api.anthropic.com 으로만 전송됩니다. 공용 PC 에서는 저장하지 마세요.</li>
+        <li>값은 이 브라우저에만 저장되고 api.anthropic.com 으로만 전송됩니다. 공용 PC 에서는 저장하지 마세요.</li>
         <li>
-          아무도 키를 넣지 않게 하려면 서버를 두고 서버에 키 하나를 두는 방법이 있습니다(<code>docs/plan/배포.md</code>).
+          아무도 자격 증명을 넣지 않게 하려면 서버를 두고 서버에 하나만 두는 방법이 있습니다 — <code>.env</code> 에{' '}
+          <code>MODEL_ADAPTER=anthropic</code>, <code>MODEL_AUTH=token</code>, <code>ANTHROPIC_AUTH_TOKEN</code> 을 채웁니다(<code>docs/plan/배포.md</code>).
+          Anthropic 내부 CLI 가 있는 환경이라면 <code>ant auth login</code> 프로필로 두 변수 없이도 됩니다(<code>MODEL_AUTH=auto</code>).
         </li>
       </ul>
     </details>

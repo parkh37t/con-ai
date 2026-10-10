@@ -47,14 +47,15 @@ test('메인: 4단계 프로세스 → 설계서 만들기 → 결과 → 예시
     expect(available === 'true', `최근 설계서 ${recentCount}개일 때 예시 링크 available=${available}`).toBe(recentCount > 0)
   })
 
-  // ---------------------------------------------------------------- (2) API 키 안내
-  await test.step('«Claude API 키 받는 법» 접이식 — 기본은 접혀 있고 펼치면 키 받는 곳과 보관 규칙이 나온다', async () => {
+  // ---------------------------------------------------------------- (2) 자격 증명 안내 (토큰 우선)
+  await test.step('«내 Claude 토큰 넣는 법» 접이식 — 기본은 접혀 있고 펼치면 토큰 받는 명령·대안·보관 규칙이 나온다', async () => {
     const help = page.getByTestId('main-key-help')
     await expect(help).toHaveJSProperty('open', false)
     await help.locator('summary').click()
     await expect(help).toHaveJSProperty('open', true)
     await expect(help).toContainText('platform.claude.com')
-    await expect(help).toContainText('ant auth login')
+    await expect(help).toContainText('claude setup-token')
+    await expect(help).toContainText('ANTHROPIC_AUTH_TOKEN')
     await expect(help).toContainText('api.anthropic.com 으로만 전송')
     await expect(help.locator('a[href="https://platform.claude.com"]')).toHaveCount(1)
 

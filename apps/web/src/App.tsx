@@ -13,7 +13,7 @@ import { ErrorBox, Loading } from './components/common.js'
 import { CredentialChip, CredentialPanel } from './components/CredentialPanel.js'
 import { WorkspaceRail, type RailSection } from './components/WorkspaceRail.js'
 import { IS_DEMO } from './demo-mode.js'
-import { useAsync, useDataTick, useHashRoute } from './hooks.js'
+import { useAsync, useCredentialTick, useDataTick, useHashRoute } from './hooks.js'
 import { ApprovePage } from './pages/ApprovePage.js'
 import { AsisDetailPage } from './pages/AsisDetailPage.js'
 import { AsisListPage } from './pages/AsisListPage.js'
@@ -32,7 +32,10 @@ import { hrefTo } from './router.js'
 
 export function App() {
   const route = useHashRoute()
-  const meta = useAsync(() => api.meta(), [])
+  // 자격 증명이 바뀌면 meta 를 다시 읽는다. 이게 없으면 «만들기» 화면에서 인라인으로 토큰을 넣었을 때
+  // 실제로는 내 토큰으로 호출하는데 상단 배지가 «fixture 더미» 에 머문다 (CLAUDE.md: 더미와 실제를 구분해 보여준다).
+  const credentialTick = useCredentialTick()
+  const meta = useAsync(() => api.meta(), [credentialTick])
   const projects = useAsync(() => api.projects(), [])
 
   const requestedProject = route.query['project']

@@ -9,6 +9,7 @@ import {
   BrowserModelError,
   DEFAULT_BROWSER_MODEL,
   OAUTH_BETA,
+  REDACT_SKIPPED,
   REVISION_DRAFT_JSON_SCHEMA,
   SCREEN_OUTPUT_JSON_SCHEMA,
   authHeaders,
@@ -167,5 +168,30 @@ describe('JSON Schema — wire-schema 와 같은 모양', () => {
 
   it('수정 초안 스키마는 prompt·rationale 두 개', () => {
     expect(REVISION_DRAFT_JSON_SCHEMA['required']).toEqual(['prompt', 'rationale'])
+  })
+})
+
+/**
+ * 짧은 자격 증명의 가리기.
+ *
+ * 예전 구현은 8자 미만이면 **치환을 건너뛰고 외부 문장을 그대로** 넘겼다 — 값이 화면에 남을 수 있었다.
+ * 지금은 치환이 위험한 경우 외부 문장을 아예 쓰지 않는다.
+ */
+describe('가리기(redact) — 짧은 값도 새지 않는다', () => {
+  const SHORT: StoredCredential = { kind: 'token', value: 'abc', persist: false }
+
+  it('8자 미만이면 API 가 돌려준 문장을 쓰지 않는다', async () => {
+    const { fetch } = fakeFetch([{ status: 401, body: { error: { message: 'bad key abc here' } } }])
+    const err = (await callAnthropic({ credential: SHORT, system: 's', user: 'u', schema: SCREEN_OUTPUT_JSON_SCHEMA }, { fetch }).catch((e: unknown) => e)) as BrowserModelError
+    expect(err.code).toBe('auth')
+    expect(err.details).toEqual([REDACT_SKIPPED])
+    expect(err.details.join(' ')).not.toContain('abc')
+  })
+
+  it('8자 이상이면 값만 가리고 나머지 문장은 남긴다', async () => {
+    const long: StoredCredential = { kind: 'token', value: 'sk-ant-oat01-저장된토큰값', persist: false }
+    const { fetch } = fakeFetch([{ status: 401, body: { error: { message: `invalid token ${long.value} supplied` } } }])
+    const err = (await callAnthropic({ credential: long, system: 's', user: 'u', schema: SCREEN_OUTPUT_JSON_SCHEMA }, { fetch }).catch((e: unknown) => e)) as BrowserModelError
+    expect(err.details[0]).toBe('invalid token *** supplied')
   })
 })

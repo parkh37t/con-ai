@@ -30,10 +30,12 @@ export interface CreateAdapterOptions {
 
 const AUTH_GUIDE = [
   'anthropic 어댑터에 쓸 인증 수단이 없다. 다음 중 하나를 설정한다:',
-  '  1) API 키: ANTHROPIC_API_KEY=<키>  (콘솔에서 발급, x-api-key 헤더)',
-  '  2) 토큰: ANTHROPIC_AUTH_TOKEN=<OAuth 토큰>  (`set -a; eval "$(ant auth print-credentials --env)"; set +a`, Authorization: Bearer + anthropic-beta oauth-2025-04-20)',
-  '  3) 프로필: `ant auth login` 후 두 변수 없이 실행 (MODEL_AUTH=auto)',
-  '또는 MODEL_ADAPTER=fixture 로 더미 어댑터를 쓴다.',
+  '  1) 내 Claude 구독 토큰 (권장): MODEL_AUTH=token 과 ANTHROPIC_AUTH_TOKEN=<토큰>',
+  '     발급은 `claude setup-token` (Claude Code CLI, 구독 필요 · 장수명). Authorization: Bearer + anthropic-beta oauth-2025-04-20 로 나간다',
+  '  2) API 키: MODEL_AUTH=api_key 와 ANTHROPIC_API_KEY=<키>  (platform.claude.com 에서 발급, x-api-key 헤더)',
+  '  3) 프로필: 두 변수 없이 MODEL_AUTH=auto — SDK 가 `ant auth login` 프로필을 찾는다 (Anthropic 내부 CLI 가 깔려 있을 때만)',
+  '또는 MODEL_ADAPTER=fixture 로 더미 어댑터를 쓴다 (자격 증명 없이 전 경로가 돈다).',
+  '값은 .env 에만 두고 로그·응답·커밋에 넣지 않는다.',
 ].join('\n')
 
 function nonEmpty(value: string | undefined): string | undefined {

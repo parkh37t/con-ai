@@ -8,7 +8,9 @@
  * - 브라우저에 쌓인 생성 결과(revision·코멘트·승인)를 지우는 버튼도 여기 둔다.
  */
 import { useEffect, useMemo, useState } from 'react'
-import { CREDENTIAL_KIND_LABELS, credentialStore, type CredentialInfo, type CredentialKind } from '../browser-run/credential.js'
+import { credentialStore, type CredentialInfo, type CredentialKind } from '../browser-run/credential.js'
+// 칩·배지 문구는 표시 규칙 한 집에서 가져온다 (adapter-badge.ts).
+import { CREDENTIAL_KIND_LABELS, credentialChipLabel } from '../adapter-badge.js'
 import { releaseArtifactUrls } from '../browser-run/artifact-urls.js'
 import { browserStore } from '../browser-run/store.js'
 import { CREDENTIAL_EVENT, useCredentialTick } from '../hooks.js'
@@ -26,11 +28,6 @@ function notifyChanged(onChanged: () => void): void {
   }
 }
 
-/** 칩 문구 — 저장돼 있으면 종류와 끝 4자리, 없으면 스냅샷 데모임을 밝힌다 (순수 함수). */
-export function credentialChipLabel(info: CredentialInfo | null): string {
-  return info === null ? '키 없음 — 스냅샷 데모' : `내 ${CREDENTIAL_KIND_LABELS[info.kind]} ····${info.last4}`
-}
-
 /** 상단 바 오른쪽의 자격 증명 칩. 누르면 입력 패널이 열린다. */
 export function CredentialChip({ open, onToggle }: { open: boolean; onToggle: () => void }) {
   const tick = useCredentialTick()
@@ -42,7 +39,11 @@ export function CredentialChip({ open, onToggle }: { open: boolean; onToggle: ()
       data-testid="cred-toggle"
       aria-expanded={open}
       onClick={onToggle}
-      title={info ? `${CREDENTIAL_KIND_LABELS[info.kind]} 저장됨 (${info.persist ? '이 브라우저' : '이 탭에서만'}) — 누르면 바꾸거나 삭제합니다` : '이 브라우저에 Claude 자격 증명이 없어 저장된 스냅샷만 봅니다 — 누르면 입력합니다'}
+      title={
+        info
+          ? `${CREDENTIAL_KIND_LABELS[info.kind]} 저장됨 (${info.persist ? '이 브라우저' : '이 탭에서만'}) — 누르면 바꾸거나 삭제합니다`
+          : '자격 증명이 없어 더미 어댑터(fixture)가 명세를 씁니다 — 나머지 단계는 실제로 돕니다. 누르면 내 토큰을 넣습니다'
+      }
     >
       <span data-testid="cred-status">{credentialChipLabel(info)}</span>
     </button>
@@ -97,7 +98,11 @@ export function CredentialPanel({ open, onClose, onChanged }: { open: boolean; o
     <section className="cred-panel" data-testid="cred-panel" data-active={info !== null} data-open={open} hidden={!open} aria-label="내 Claude 자격 증명">
       <div className="cred-head">
         <strong>내 Claude 자격 증명</strong>
-        <span className="muted small">{info ? `${CREDENTIAL_KIND_LABELS[info.kind]} ····${info.last4} · ${info.persist ? '이 브라우저에 저장됨' : '이 탭에서만'}` : '아직 없습니다 — 저장된 스냅샷만 볼 수 있습니다'}</span>
+        <span className="muted small">
+          {info
+            ? `${CREDENTIAL_KIND_LABELS[info.kind]} ····${info.last4} · ${info.persist ? '이 브라우저에 저장됨' : '이 탭에서만'}`
+            : '아직 없습니다 — 더미 어댑터(fixture)로 만듭니다. 토큰을 넣으면 실제 모델이 씁니다'}
+        </span>
         <span className="cred-head-right">
           {info && (
             <button type="button" className="btn btn-small" data-testid="cred-clear" onClick={clear}>
@@ -112,10 +117,10 @@ export function CredentialPanel({ open, onClose, onChanged }: { open: boolean; o
       <div className="cred-body">
         <div className="cred-fields">
           <label className="inline">
-            <input type="radio" name="cred-kind" data-testid="cred-kind-token" checked={kind === 'token'} onChange={() => setKind('token')} /> 토큰 (OAuth)
+            <input type="radio" name="cred-kind" data-testid="cred-kind-token" checked={kind === 'token'} onChange={() => setKind('token')} /> 내 구독 토큰 (권장)
           </label>
           <label className="inline">
-            <input type="radio" name="cred-kind" data-testid="cred-kind-api-key" checked={kind === 'api_key'} onChange={() => setKind('api_key')} /> API 키
+            <input type="radio" name="cred-kind" data-testid="cred-kind-api-key" checked={kind === 'api_key'} onChange={() => setKind('api_key')} /> API 키 (대안)
           </label>
           <input
             type="password"
@@ -124,7 +129,7 @@ export function CredentialPanel({ open, onClose, onChanged }: { open: boolean; o
             value={value}
             autoComplete="off"
             spellCheck={false}
-            placeholder={kind === 'api_key' ? 'sk-ant-…' : 'OAuth 액세스 토큰'}
+            placeholder={kind === 'api_key' ? 'sk-ant-…' : 'claude setup-token 으로 받은 값'}
             aria-label="자격 증명 값"
             onChange={(e) => setValue(e.target.value)}
           />
@@ -143,7 +148,7 @@ export function CredentialPanel({ open, onClose, onChanged }: { open: boolean; o
         <p className="muted small cred-notice">
           {CREDENTIAL_NOTICE}{' '}
           <a data-testid="cred-key-help" href={hrefTo('main', { help: 'key' })}>
-            Claude API 키 받는 법
+            내 Claude 토큰 받는 법 (claude setup-token)
           </a>
         </p>
       </div>

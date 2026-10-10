@@ -11,8 +11,8 @@
  */
 import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod'
 import { describe, expect, it } from 'vitest'
-import { REVISION_DRAFT_JSON_SCHEMA, SCREEN_OUTPUT_JSON_SCHEMA } from './structured-schema.js'
-import { countOptionalParameters, STRUCTURED_OUTPUT_OPTIONAL_LIMIT, structuredVariant, WireOutput, WireRevisionDraft } from './wire-schema.js'
+import { PAIN_POINT_DRAFT_JSON_SCHEMA, REVISION_DRAFT_JSON_SCHEMA, SCREEN_OUTPUT_JSON_SCHEMA } from './structured-schema.js'
+import { countOptionalParameters, STRUCTURED_OUTPUT_OPTIONAL_LIMIT, structuredVariant, WireOutput, WirePainPointDraft, WireRevisionDraft } from './wire-schema.js'
 
 const REGENERATE = '`pnpm gen:schema` 로 다시 만든다 (structured-schema.ts 는 생성물이라 손으로 고치지 않는다)'
 
@@ -27,9 +27,15 @@ describe('구조화 출력 스키마 생성물', () => {
     expect(REVISION_DRAFT_JSON_SCHEMA, REGENERATE).toEqual(generated)
   })
 
+  it('페인포인트 초안 스키마가 현재 wire 스키마에서 만든 것과 같다', () => {
+    const generated = zodOutputFormat(structuredVariant(WirePainPointDraft)).schema
+    expect(PAIN_POINT_DRAFT_JSON_SCHEMA, REGENERATE).toEqual(generated)
+  })
+
   it('선택 파라미터가 상한(24) 이하다', () => {
     expect(countOptionalParameters(SCREEN_OUTPUT_JSON_SCHEMA)).toBeLessThanOrEqual(STRUCTURED_OUTPUT_OPTIONAL_LIMIT)
     expect(countOptionalParameters(REVISION_DRAFT_JSON_SCHEMA)).toBeLessThanOrEqual(STRUCTURED_OUTPUT_OPTIONAL_LIMIT)
+    expect(countOptionalParameters(PAIN_POINT_DRAFT_JSON_SCHEMA)).toBeLessThanOrEqual(STRUCTURED_OUTPUT_OPTIONAL_LIMIT)
   })
 
   /** 변환기가 걷어내는 것들. 하나라도 남아 있으면 API 가 400 으로 거부한다. */
@@ -54,6 +60,7 @@ describe('구조화 출력 스키마 생성물', () => {
     }
     walk(SCREEN_OUTPUT_JSON_SCHEMA, 'screen')
     walk(REVISION_DRAFT_JSON_SCHEMA, 'draft')
+    walk(PAIN_POINT_DRAFT_JSON_SCHEMA, 'painPoints')
     expect(found).toEqual([])
   })
 
@@ -75,12 +82,28 @@ describe('구조화 출력 스키마 생성물', () => {
       for (const [k, v] of Object.entries(rec)) walk(v, `${path}.${k}`)
     }
     walk(SCREEN_OUTPUT_JSON_SCHEMA, 'screen')
+    walk(REVISION_DRAFT_JSON_SCHEMA, 'draft')
+    walk(PAIN_POINT_DRAFT_JSON_SCHEMA, 'painPoints')
     expect(problems).toEqual([])
   })
 
   it('브라우저도 같은 한 벌을 쓴다 (손으로 적은 복사본을 두지 않는다)', async () => {
     // apps/web 은 SDK 를 번들에 넣지 않으므로 이 생성물을 그대로 가져다 쓴다.
-    const browser = (await import('../../../apps/web/src/browser-run/anthropic.js')) as { SCREEN_OUTPUT_JSON_SCHEMA: unknown }
+    const browser = (await import('../../../apps/web/src/browser-run/anthropic.js')) as {
+      SCREEN_OUTPUT_JSON_SCHEMA: unknown
+      REVISION_DRAFT_JSON_SCHEMA: unknown
+      PAIN_POINT_DRAFT_JSON_SCHEMA: unknown
+    }
     expect(browser.SCREEN_OUTPUT_JSON_SCHEMA).toBe(SCREEN_OUTPUT_JSON_SCHEMA)
+    expect(browser.REVISION_DRAFT_JSON_SCHEMA).toBe(REVISION_DRAFT_JSON_SCHEMA)
+    expect(browser.PAIN_POINT_DRAFT_JSON_SCHEMA).toBe(PAIN_POINT_DRAFT_JSON_SCHEMA)
+  })
+
+  it('서버와 브라우저가 프롬프트 문구를 공유한다 (한쪽만 고쳐 어긋나지 않게)', async () => {
+    const shared = await import('./prompts.js')
+    const asis = (await import('../../../apps/web/src/browser-run/asis.js')) as { PAIN_POINT_DRAFT_SYSTEM: unknown }
+    const pipeline = (await import('../../../apps/web/src/browser-run/pipeline.js')) as { REVISION_DRAFT_SYSTEM: unknown }
+    expect(asis.PAIN_POINT_DRAFT_SYSTEM).toBe(shared.PAIN_POINT_DRAFT_SYSTEM)
+    expect(pipeline.REVISION_DRAFT_SYSTEM).toBe(shared.REVISION_DRAFT_SYSTEM)
   })
 })

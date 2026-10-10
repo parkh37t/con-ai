@@ -18,6 +18,8 @@ import { FixtureAdapter, ScreenSpecShape, assemblePrompt, assembleRevisionPrompt
 import { findAsisSample, loadAsisSamples, type AsisSampleTarget } from './asis-samples.js'
 import { buildContext, draftRevisionPromptInBrowser, engineNote, engineOf, revisionInstruction, runBrowserPipeline, type PipelineInput } from './browser-run/pipeline.js'
 import { browserRuntime, toJobFailure } from './browser-run/runtime.js'
+import { draftPainPointsInBrowser } from './browser-run/asis.js'
+import { BrowserModelError } from './browser-run/anthropic.js'
 import { buildExportBundle } from './browser-run/export-bundle.js'
 import { registerArtifactHtml, type BrowserApprovalRecord, type BrowserIaNodeRecord, type BrowserRevisionRecord, type BrowserScreenRecord, type BrowserStore } from './browser-run/store.js'
 import { demoIaNode, demoIssueId, demoPatchIaNode, demoRelabelId, demoRtm } from './demo-rtm.js'
@@ -247,7 +249,8 @@ function advanceAsis(state: DemoState, run: DemoAsisRun): AsisAnalysis {
     doc.finished_at = new Date(run.started_ms + DEMO_ASIS_RUNNING_MS).toISOString()
   } else if (run.draft_error !== undefined) {
     doc.status = 'failed'
-    doc.failure = { code: 'internal', message: `페인포인트 초안을 만들지 못했습니다: ${run.draft_error}` }
+    // 계약의 전용 코드는 'draft' 다 ('internal' 은 화면에서 «내부 오류» 로 읽혀 원인을 숨긴다).
+    doc.failure = { code: 'draft', message: `페인포인트 초안을 만들지 못했습니다: ${run.draft_error}` }
     doc.finished_at = nowIso(state)
   } else if (run.draft !== undefined) {
     doc.status = 'succeeded'
@@ -441,6 +444,18 @@ async function browserApprovalResponse(state: DemoState, screenId: string, revis
   }
 }
 
+/**
+ * 초안 실패를 사람이 읽을 문구로. 모델 오류는 원인(인증·한도·거부…)을 그대로 밝힌다.
+ * `BrowserModelError` 는 자격 증명 값을 이미 가려서 담는다 — 여기서 값을 다시 꺼내지 않는다.
+ */
+function asisDraftError(e: unknown): string {
+  if (e instanceof BrowserModelError) {
+    const detail = e.details.length > 0 ? ` (${e.details[0]})` : ''
+    return `${e.message}${detail}`
+  }
+  return e instanceof Error ? e.message : String(e)
+}
+
 function createAsisAnalysis(state: DemoState, projectId: string, body: unknown): DemoResponse {
   const listPath = `/api/projects/${projectId}/asis-analyses`
   const list = state.gets.get(listPath) as AsisAnalysisSummary[] | undefined
@@ -454,14 +469,18 @@ function createAsisAnalysis(state: DemoState, projectId: string, body: unknown):
   const id = nextId(state, 'asis')
   const created = nowIso(state)
   const sample = findAsisSample(state.files.asis_samples, url.trim())
+  // 자격 증명이 있고 미리 녹화한 구조가 있으면 **내 토큰으로 실제 모델**이 초안을 쓴다.
+  // 구조 캡처는 여전히 브라우저에서 불가해 샘플 대상에만 적용된다(아래 advanceAsis 가 그 밖을 실패로 끝낸다).
+  const credential = browserRuntime.credential()
+  const byModel = credential !== null && sample !== undefined
   const doc: AsisAnalysis = {
     id,
     project_id: projectId,
     url: url.trim(),
     status: 'queued',
-    // 페인포인트 초안은 언제나 더미 어댑터(fixture) 규칙으로 만든다 — 자격 증명이 있어도 그렇다. 그대로 적는다.
-    adapter: 'fixture',
-    model: 'fixture',
+    // 무엇이 초안을 썼는지 그대로 적는다 — 화면이 이 값을 그대로 보여준다(AsisDetailPage).
+    adapter: byModel ? 'anthropic' : 'fixture',
+    model: byModel ? browserRuntime.model : 'fixture',
     created_at: created,
     pain_points: [],
     revision: 1,
@@ -473,14 +492,19 @@ function createAsisAnalysis(state: DemoState, projectId: string, body: unknown):
   const run: DemoAsisRun = { id, started_ms: state.now(), summary, ...(sample ? { sample } : {}) }
   state.analyses.set(id, run)
   if (sample) {
-    // 규칙을 지금 실제로 돌린다 (서버 `MODEL_ADAPTER=fixture` 와 같은 클래스).
-    void new FixtureAdapter()
-      .draftPainPoints({ url: sample.url, structure: sample.structure, ...(doc.note === undefined ? {} : { note: doc.note }) })
+    const base = { url: sample.url, structure: sample.structure, ...(doc.note === undefined ? {} : { note: doc.note }) }
+    // 자격 증명이 있으면 내 토큰으로 api.anthropic.com 을 직접 호출하고, 없으면 더미 어댑터 규칙을 돌린다.
+    // 실패하면 그대로 실패로 끝낸다 — 더미 결과로 조용히 갈아끼우지 않는다 (CLAUDE.md).
+    const drafting =
+      credential === null
+        ? new FixtureAdapter().draftPainPoints(base)
+        : draftPainPointsInBrowser({ credential, model: browserRuntime.model, ...base }, { fetch: browserRuntime.fetch })
+    void drafting
       .then((draft) => {
         run.draft = draft
       })
       .catch((e: unknown) => {
-        run.draft_error = e instanceof Error ? e.message : String(e)
+        run.draft_error = asisDraftError(e)
       })
   }
   return { status: 202, data: { analysis_id: id } }

@@ -14,22 +14,7 @@ import { loadAsisSamples, type AsisSampleTarget } from '../asis-samples.js'
 import { Badge, ErrorBox } from '../components/common.js'
 import { IS_DEMO } from '../demo-mode.js'
 import { notifyDataChanged, useAsync, useStoredValue } from '../hooks.js'
-import {
-  PROTOTYPE_APPROVER,
-  prototypeComments,
-  PROTOTYPE_STEPS,
-  clearRun,
-  doneCount,
-  isComplete,
-  loadRun,
-  progressText,
-  prototypeTarget,
-  saveRun,
-  stepStatus,
-  type PrototypeRun,
-  type PrototypeStepId,
-  type PrototypeStepSpec,
-} from '../prototype.js'
+import { PROTOTYPE_APPROVER, PROTOTYPE_STEPS, clearRun, doneCount, isComplete, loadRun, progressText, prototypeComments, prototypeStepText, prototypeTarget, saveRun, stepStatus, type PrototypeRun, type PrototypeStepId, type PrototypeStepSpec } from '../prototype.js'
 import { autoReferenceIds, buildSimpleCreateRequest, buildSimpleEditRequest, sampleDataReferenceId } from '../simple-flow.js'
 import { hrefTo, hrefToAsisDetail, hrefToDesign, hrefToScreen } from '../router.js'
 import type { Job, Project, ScreenCreateInput } from '../types.js'
@@ -230,6 +215,7 @@ export function PrototypePage({ project, projects }: { project: Project; project
           <StepCard
             key={spec.id}
             spec={spec}
+            adapter={meta.data?.adapter ?? null}
             status={stepStatus(run, spec.id)}
             busy={busy === spec.id}
             disabled={busy !== null}
@@ -268,6 +254,7 @@ export function PrototypePage({ project, projects }: { project: Project; project
 
 function StepCard({
   spec,
+  adapter,
   status,
   busy,
   disabled,
@@ -280,6 +267,8 @@ function StepCard({
   onRun,
 }: {
   spec: PrototypeStepSpec
+  /** 지금 무엇이 모델을 쓰는지 — 카드 문구가 더미·실제를 구분해 적는 데 쓴다. */
+  adapter: 'anthropic' | 'fixture' | null
   status: ReturnType<typeof stepStatus>
   busy: boolean
   disabled: boolean
@@ -293,6 +282,8 @@ function StepCard({
 }) {
   const tone = status === 'done' ? 'green' : status === 'ready' ? 'blue' : 'gray'
   const label = status === 'done' ? '끝남' : status === 'ready' ? '지금 할 차례' : '앞 단계 먼저'
+  // 어댑터에 따라 갈리는 문구 — 고정 문자열이면 토큰으로 도는데도 «더미» 라고 적는다.
+  const text = prototypeStepText(spec, adapter)
   return (
     <li className={`card proto-step${status === 'ready' ? ' is-ready' : ''}`} data-testid="proto-step" data-step={spec.id} data-status={status}>
       <div className="proto-step-head">
@@ -311,12 +302,12 @@ function StepCard({
       <dl className="proto-facts">
         <div>
           <dt>지금 실제로 도는 것</dt>
-          <dd>{spec.runs}</dd>
+          <dd>{text.runs}</dd>
         </div>
-        {spec.sampled && (
+        {text.sampled && (
           <div>
             <dt>미리 기록해 둔 것 · 샘플</dt>
-            <dd>{spec.sampled}</dd>
+            <dd>{text.sampled}</dd>
           </div>
         )}
       </dl>

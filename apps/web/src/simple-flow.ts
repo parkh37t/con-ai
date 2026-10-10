@@ -242,3 +242,17 @@ export function recentDesigns(detail: ProjectDetail | null | undefined, limit = 
   }
   return out.reverse().slice(0, limit)
 }
+
+/**
+ * 붙여넣은 값의 모양으로 자격 증명 종류를 짐작한다 (`#/new` 인라인 입력).
+ *
+ * **`sk-ant-` 로 시작한다고 API 키가 아니다.** `claude setup-token` 이 주는 구독 토큰은
+ * `sk-ant-oat01-…` 이다 — 예전 규칙은 그걸 API 키로 보고 `x-api-key` 헤더로 보내 401 로 죽였다.
+ * 그래서 OAuth 접두사를 먼저 본다. 콘솔 API 키는 `sk-ant-api…` 다.
+ * 틀리면 사용자 토큰이 잘못된 헤더로 나가므로, 애매하면 **토큰**으로 본다 (이 제품의 1순위).
+ */
+export function guessCredentialKind(value: string): 'api_key' | 'token' {
+  const v = value.trim()
+  if (v.startsWith('sk-ant-oat')) return 'token'
+  return v.startsWith('sk-ant-') ? 'api_key' : 'token'
+}

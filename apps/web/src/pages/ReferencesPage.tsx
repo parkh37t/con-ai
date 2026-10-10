@@ -22,6 +22,10 @@ export function ReferencesPage({ projectId }: { projectId: string }) {
             골든 예시는 생성 작업대에서 「참고 화면」으로 선택됩니다. S2B 자료는 학습용 규격(좌 마커 ↔ 우 설명 1:1, 영역 카드, CASE 표기)으로만 쓰고, 실제 대상 데이터는
             합성 샘플입니다.
           </p>
+          {/* 토큰을 넣은 사용자가 «이 화면이 모델을 부르나» 를 알 수 있게 적는다 (CLAUDE.md: 더미와 실제를 구분한다). */}
+          <p className="muted small">
+            이 화면 자체는 모델을 호출하지 않습니다. 다만 여기서 고른 골든의 <strong>명세가 생성 프롬프트에 그대로 실리므로</strong>, 생성할 때 그만큼 토큰을 더 씁니다.
+          </p>
         </div>
       </header>
       <section className="card">

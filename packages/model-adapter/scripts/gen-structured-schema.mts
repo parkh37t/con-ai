@@ -4,10 +4,11 @@
  */
 import { writeFileSync } from 'node:fs'
 import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod'
-import { WireOutput, WireRevisionDraft, structuredVariant } from '../src/wire-schema.js'
+import { WireOutput, WirePainPointDraft, WireRevisionDraft, structuredVariant } from '../src/wire-schema.js'
 
 const screen = zodOutputFormat(structuredVariant(WireOutput) as never).schema
 const draft = zodOutputFormat(structuredVariant(WireRevisionDraft) as never).schema
+const painPoints = zodOutputFormat(structuredVariant(WirePainPointDraft) as never).schema
 
 const header = `/**
  * 구조화 출력으로 **실제로 보내는 JSON Schema** — 생성물이다. 손으로 고치지 않는다.
@@ -25,7 +26,18 @@ export type StructuredJsonSchema = Record<string, unknown>
 /** 생성·수정 작업의 모델 출력 전체 (WireOutput 을 structuredVariant 로 바꾼 것). */
 export const SCREEN_OUTPUT_JSON_SCHEMA: StructuredJsonSchema = `
 
-const body = header + JSON.stringify(screen, null, 2) + `\n\n/** 코멘트 → 수정 지시문 초안 (WireRevisionDraft). */\nexport const REVISION_DRAFT_JSON_SCHEMA: StructuredJsonSchema = ` + JSON.stringify(draft, null, 2) + '\n'
+const body =
+  header +
+  JSON.stringify(screen, null, 2) +
+  `\n\n/** 코멘트 → 수정 지시문 초안 (WireRevisionDraft). */\nexport const REVISION_DRAFT_JSON_SCHEMA: StructuredJsonSchema = ` +
+  JSON.stringify(draft, null, 2) +
+  `\n\n/** AS-IS 구조 요약 → 페인포인트 초안 (WirePainPointDraft). 서버·브라우저가 같이 쓴다. */\nexport const PAIN_POINT_DRAFT_JSON_SCHEMA: StructuredJsonSchema = ` +
+  JSON.stringify(painPoints, null, 2) +
+  '\n'
 
 writeFileSync(new URL('../src/structured-schema.ts', import.meta.url), body)
-console.log('생성 완료 — 화면 출력', JSON.stringify(screen).length, '바이트 / 수정 초안', JSON.stringify(draft).length, '바이트')
+console.log(
+  '생성 완료 — 화면 출력', JSON.stringify(screen).length,
+  '바이트 / 수정 초안', JSON.stringify(draft).length,
+  '바이트 / 페인포인트 초안', JSON.stringify(painPoints).length, '바이트',
+)

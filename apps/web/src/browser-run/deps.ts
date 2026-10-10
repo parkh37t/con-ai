@@ -51,7 +51,10 @@ export type { IANode as IANodeShape } from '../../../../packages/schemas/src/scr
 // (model-adapter 의 index.ts 는 `node:fs`/`node:path` 를 쓰므로 어댑터 파일에서 직접 가져온다.)
 export { FIXTURE_MODEL, FixtureAdapter } from '../../../../packages/model-adapter/src/fixture-adapter.js'
 // 구조화 출력의 «없음»(null) 을 스키마의 «없음»(키 없음) 으로 되돌린다 — 서버와 같은 함수를 쓴다.
-export { countOptionalParameters, STRUCTURED_OUTPUT_OPTIONAL_LIMIT, stripNulls } from '../../../../packages/model-adapter/src/wire-schema.js'
+export { countOptionalParameters, STRUCTURED_OUTPUT_OPTIONAL_LIMIT, WirePainPointDraft, stripNulls } from '../../../../packages/model-adapter/src/wire-schema.js'
 // 구조화 출력 JSON Schema — SDK 변환기가 만든 생성물 한 벌 (손으로 적지 않는다).
-export { REVISION_DRAFT_JSON_SCHEMA, SCREEN_OUTPUT_JSON_SCHEMA } from '../../../../packages/model-adapter/src/structured-schema.js'
+export { PAIN_POINT_DRAFT_JSON_SCHEMA, REVISION_DRAFT_JSON_SCHEMA, SCREEN_OUTPUT_JSON_SCHEMA } from '../../../../packages/model-adapter/src/structured-schema.js'
+// 모델 호출 문구는 서버와 **같은 한 벌**이다 (prompts.ts 는 SDK 를 import 하지 않아 웹 번들에 들어온다).
+export { PAIN_POINT_DRAFT_SYSTEM, REVISION_DRAFT_SYSTEM, painPointDraftUser, revisionDraftUser } from '../../../../packages/model-adapter/src/prompts.js'
+export type { PainPointDraftPromptInput, RevisionDraftPromptInput, RevisionPromptComment } from '../../../../packages/model-adapter/src/prompts.js'
 export type { AdapterResult, AsisStructure, PainPointDraft, PainPointDraftResult } from '../../../../packages/model-adapter/src/types.js'

@@ -988,3 +988,51 @@ export const REVISION_DRAFT_JSON_SCHEMA: StructuredJsonSchema = {
   ],
   "description": "{$schema: \"https://json-schema.org/draft/2020-12/schema\"}"
 }
+
+/** AS-IS 구조 요약 → 페인포인트 초안 (WirePainPointDraft). 서버·브라우저가 같이 쓴다. */
+export const PAIN_POINT_DRAFT_JSON_SCHEMA: StructuredJsonSchema = {
+  "type": "object",
+  "properties": {
+    "summary": {
+      "type": "string"
+    },
+    "pain_points": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "area": {
+            "type": "string"
+          },
+          "severity": {
+            "type": "string",
+            "description": "{enum: [\"high\",\"medium\",\"low\"]}"
+          },
+          "description": {
+            "type": "string"
+          },
+          "evidence": {
+            "type": "string"
+          },
+          "suggestion": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "area",
+          "severity",
+          "description",
+          "evidence",
+          "suggestion"
+        ]
+      }
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "summary",
+    "pain_points"
+  ],
+  "description": "{$schema: \"https://json-schema.org/draft/2020-12/schema\"}"
+}

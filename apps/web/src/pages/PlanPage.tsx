@@ -13,6 +13,9 @@ import { useState } from 'react'
 import { api } from '../api.js'
 import { Badge, ErrorBox, Loading } from '../components/common.js'
 import { useAsync } from '../hooks.js'
+// 프로파일 규칙 수는 **렌더러 프로파일에서 읽는다.** 예전에는 화면에 상수 11 이 박혀 있었고,
+// 그걸 감싼 meta 조건은 절대 걸리지 않는 죽은 분기였다 — 서버가 준 값이 아닌데 그렇게 보였다.
+import { S2B_LEARNED_PROFILE } from '../browser-run/deps.js'
 import { autoReferenceIds } from '../simple-flow.js'
 import { buildPlanRequest, buildableNodes, flattenMenu, pickRequirements, planPurpose, ssotFor, type PlanNode, type PlanScreenState } from '../plan.js'
 import { hrefTo, hrefToDesign } from '../router.js'
@@ -71,11 +74,12 @@ export function PlanPage({ project }: { project: Project }) {
     setNotice(null)
     try {
       setNotice(await fn())
-      detail.reload()
     } catch (e) {
       setError(e)
     } finally {
       setBusy(null)
+      // 실패해도 다시 읽는다 — 「모두 만들기」가 중간에 멈췄을 때 그때까지 만든 화면이 사라진 것처럼 보이지 않게.
+      detail.reload()
     }
   }
 
@@ -99,17 +103,30 @@ export function PlanPage({ project }: { project: Project }) {
       return `${plan.node.name} (${plan.screen?.external_id}) 설계서를 만들었습니다 — revision ${revisionId.slice(0, 8)}…`
     })
 
+  /**
+   * 미생성 화면을 **한 건씩 순서대로** 만든다 (동시 호출을 하지 않아 모델 요청 한도를 덜 건드린다).
+   *
+   * 중간에 실패하면 거기서 멈춘다 — 자격 증명이 만료됐거나 한도를 넘었다면 나머지도 같은 이유로 실패할
+   * 것이고, 그만큼 요청을 더 태울 이유가 없다. 다만 **그때까지 만든 화면을 보고에서 빼지 않는다.**
+   */
   const generateAll = () =>
     run('모두 만들었습니다', 'gen:all', async () => {
-      let made = 0
+      const made: string[] = []
       for (const plan of buildable) {
         const request = requestFor(plan)
         if (!request) continue
-        const { job_id } = await api.createJob(request.screen_id, request)
-        await pollJob(job_id)
-        made += 1
+        try {
+          const { job_id } = await api.createJob(request.screen_id, request)
+          await pollJob(job_id)
+          made.push(`${plan.node.name}(${plan.screen?.external_id ?? '화면 ID 없음'})`)
+        } catch (e) {
+          const why = e instanceof Error ? e.message : String(e)
+          const done = made.length === 0 ? '아직 아무것도 만들지 못했습니다' : `먼저 ${made.length}건은 만들었습니다 — ${made.join(', ')}`
+          throw new Error(`${plan.node.name} 에서 멈췄습니다: ${why}\n${done}. 남은 ${buildable.length - made.length - 1}건은 시도하지 않았습니다.`)
+        }
       }
-      return `아직 만들지 않았던 화면 ${made}건을 만들었습니다. 목업의 메뉴를 눌러 서로 오갈 수 있습니다.`
+      if (made.length === 0) return '만들 화면이 없습니다 — 메뉴구조도의 화면이 모두 생성되어 있습니다.'
+      return `아직 만들지 않았던 화면 ${made.length}건을 만들었습니다 (${made.join(', ')}). 목업의 메뉴를 눌러 서로 오갈 수 있습니다.`
     })
 
   const showPrompt = (plan: PlanNode) =>
@@ -175,7 +192,7 @@ export function PlanPage({ project }: { project: Project }) {
               project={project}
               requirements={detail.data.requirements}
               references={refs}
-              profileRules={meta.data === undefined ? null : 11}
+              profileRules={S2B_LEARNED_PROFILE.rules.length}
               request={requestFor(selected)}
               busy={busy}
               preview={preview?.node_id === selected.node.id ? preview.data : null}

@@ -12,16 +12,11 @@ import { IS_DEMO } from '../demo-mode.js'
 import { CREDENTIAL_EVENT, navigate, useAsync, useCredentialTick, useJobPolling } from '../hooks.js'
 import { isTerminalJob } from '../job-progress.js'
 import { hrefToDesign, withQuery, type Route } from '../router.js'
-import { autoReferenceIds, buildSimpleCreateRequest, sampleDataReferenceId, deriveShell, deriveTitle, failureLine, progressLine, recentDesigns } from '../simple-flow.js'
+import { autoReferenceIds, buildSimpleCreateRequest, deriveShell, deriveTitle, failureLine, guessCredentialKind, progressLine, recentDesigns, sampleDataReferenceId } from '../simple-flow.js'
 import type { Device, Meta, Project, ScreenCreateInput } from '../types.js'
 
 const PLACEHOLDER = `파트너가 견적 요청 목록을 조회하고 상태별로 검색하는 화면.
 목록에서 상세로 이동하고 엑셀 다운로드 버튼이 있다.`
-
-/** 값 모양으로 자격 증명 종류를 짐작한다 (sk-ant-… 는 API 키, 나머지는 토큰). */
-export function guessCredentialKind(value: string): 'api_key' | 'token' {
-  return value.trim().startsWith('sk-ant-') ? 'api_key' : 'token'
-}
 
 export function SimpleHomePage({ project, meta, route }: { project: Project; meta: Meta | null; route: Route }) {
   const credentialTick = useCredentialTick()
@@ -138,7 +133,8 @@ export function SimpleHomePage({ project, meta, route }: { project: Project; met
 
         {IS_DEMO && !askCredential && (
           <button type="button" className="simple-credlink" data-testid="simple-credential-toggle" onClick={() => setAskCredential(true)}>
-            {credential ? `내 토큰 ····${credential.last4} — 바꾸기` : 'Claude 토큰 넣기 (선택) — 넣으면 모델이 직접 씁니다'}
+            {/* 종류를 그대로 적는다 — API 키를 넣은 사람에게 «토큰» 이라고 말하지 않는다. */}
+            {credential ? `내 ${credential.label} ····${credential.last4} — 바꾸기` : '내 Claude 토큰 넣기 (선택) — 넣으면 실제 모델이 명세를 씁니다'}
           </button>
         )}
         {askCredential && (
@@ -229,7 +225,7 @@ function CredentialInline({ onSaved, onCancel }: { onSaved: () => void; onCancel
           value={value}
           autoComplete="off"
           spellCheck={false}
-          placeholder="토큰 또는 sk-ant-…"
+          placeholder="claude setup-token 으로 받은 토큰 (또는 sk-ant-… API 키)"
           onChange={(e) => setValue(e.target.value)}
         />
         <label className="inline">

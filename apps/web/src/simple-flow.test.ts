@@ -1,19 +1,6 @@
 /** 만들기 화면의 자동 채움 규칙 — 문장 하나에서 제목·shell·참고 화면·요청을 만든다. */
 import { describe, expect, it } from 'vitest'
-import {
-  autoReferenceIds,
-  buildSimpleCreateRequest,
-  buildSimpleEditRequest,
-  casesOfSpec,
-  deriveShell,
-  deriveTitle,
-  failureLine,
-  guessCategory,
-  nextScreenExternalId,
-  progressLine,
-  recentDesigns,
-  sampleDataReferenceId,
-} from './simple-flow.js'
+import { autoReferenceIds, buildSimpleCreateRequest, buildSimpleEditRequest, casesOfSpec, deriveShell, deriveTitle, failureLine, guessCategory, guessCredentialKind, nextScreenExternalId, progressLine, recentDesigns, sampleDataReferenceId } from './simple-flow.js'
 import type { ProjectDetail, Reference, ScreenSpecLike } from './types.js'
 
 const references = [
@@ -179,5 +166,27 @@ describe('nextScreenExternalId · recentDesigns', () => {
     ])
     expect(recentDesigns(null)).toEqual([])
     expect(recentDesigns(detail, 1)).toHaveLength(1)
+  })
+})
+
+/**
+ * 붙여넣은 자격 증명의 종류 짐작.
+ *
+ * 이 검사가 없어서 실제 버그가 살아남았다: `claude setup-token` 의 구독 토큰은 `sk-ant-oat01-…` 인데
+ * 「`sk-ant-` 면 API 키」 규칙이 그걸 API 키로 보고 `x-api-key` 헤더로 보내 401 로 죽었다.
+ */
+describe('guessCredentialKind — 구독 토큰을 API 키로 잘못 보내지 않는다', () => {
+  it('claude setup-token 의 구독 토큰(sk-ant-oat…)은 토큰이다', () => {
+    expect(guessCredentialKind('sk-ant-oat01-AbCdEf123456')).toBe('token')
+    expect(guessCredentialKind('  sk-ant-oat01-AbCdEf123456  ')).toBe('token')
+  })
+
+  it('콘솔 API 키(sk-ant-api…)는 API 키다', () => {
+    expect(guessCredentialKind('sk-ant-api03-AbCdEf123456')).toBe('api_key')
+  })
+
+  it('접두사가 없는 값은 토큰으로 본다 (이 제품의 1순위)', () => {
+    expect(guessCredentialKind('eyJhbGciOi...')).toBe('token')
+    expect(guessCredentialKind('')).toBe('token')
   })
 })

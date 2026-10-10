@@ -55,7 +55,8 @@ pnpm e2e:demo         # 정적 데모 e2e (API 서버도 자격증명도 없이 
 
 - 네트워크가 차단된 환경이면 `pnpm install` 을 **setup 단계**에서 끝낸다. 작업 중에 설치가 필요하면 막힌다.
 - 브라우저가 필요한 검사(`pnpm e2e`, `pnpm demo:snapshot`)는 Playwright 브라우저가 없으면 돌지 않는다. **그때는 `not_run` 이다.**
-- 모델 자격 증명(`ANTHROPIC_API_KEY` / `ANTHROPIC_AUTH_TOKEN`)은 없어도 된다. 더미 어댑터로 전 경로가 돈다.
+- 모델 자격 증명은 없어도 된다. 더미 어댑터(`MODEL_ADAPTER=fixture`)로 전 경로가 돈다.
+- 실제 모델을 쓸 때 **1순위는 내 Claude 구독 토큰**이다: `.env` 에 `MODEL_ADAPTER=anthropic` · `MODEL_AUTH=token` · `ANTHROPIC_AUTH_TOKEN`(발급 `claude setup-token`). API 키(`MODEL_AUTH=api_key` · `ANTHROPIC_API_KEY`)는 대안이다. `MODEL_AUTH=auto` 는 API 키를 먼저 잡으므로 토큰을 쓰려면 고정한다.
 
 ## 반드시 지킬 것
 

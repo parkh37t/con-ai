@@ -34,8 +34,18 @@ set -a; source .env; set +a
 pnpm dev                  # 웹 http://localhost:5173 , API http://localhost:8787
 ```
 
-- 비대화형: `bash scripts/setup.sh --yes` (fixture 더미 어댑터). 실제 모델: `--adapter anthropic --auth api_key` 또는 `--auth token`.
-- 모델 인증은 두 방식 모두 지원한다: **API 키**(`ANTHROPIC_API_KEY`) 또는 **토큰**(`ANTHROPIC_AUTH_TOKEN`, Bearer). `.env` 에만 두고 커밋하지 않는다.
+- 비대화형: `bash scripts/setup.sh --yes` (fixture 더미 어댑터). 실제 모델: `--adapter anthropic --auth token` (기본) 또는 `--auth api_key`.
+- **내 Claude 구독 토큰으로 돌리는 것이 1순위다.** `claude setup-token` (Claude Code CLI, 구독 필요)으로 받아 `.env` 의 `MODEL_AUTH=token` · `ANTHROPIC_AUTH_TOKEN` 에 넣는다. 콘솔 결제 설정이 필요 없다.
+
+  ```bash
+  claude setup-token                          # 토큰 발급 (구독 필요)
+  # .env: MODEL_ADAPTER=anthropic / MODEL_AUTH=token / ANTHROPIC_AUTH_TOKEN=<받은 값>
+  set -a; source .env; set +a && pnpm dev
+  ```
+
+  API 키(`MODEL_AUTH=api_key` · `ANTHROPIC_API_KEY`, platform.claude.com)는 대안이고 사용한 만큼 과금된다.
+  둘 다 채운 채 `MODEL_AUTH=auto` 로 두면 **API 키가 먼저 잡힌다** — 토큰을 쓰려면 `token` 으로 고정한다.
+  값은 `.env` 에만 두고 커밋하지 않는다. 만료되면 HTTP 401 로 끝나고 `claude setup-token` 을 다시 실행하면 된다.
 - Claude Code 로 이 저장소를 열면 `.claude/hooks/session-start.sh` 가 같은 세팅을 자동으로 수행한다.
 
 ## 현재 상태
@@ -108,7 +118,7 @@ pnpm check            # 위 둘을 순서대로
 데모·프로토타입은 더미 어댑터로 자격 증명 없이 끝까지 돈다. 아래는 **선택 사항**으로, 「실제 Claude 모델도 새 어휘를 쓰는가」를 볼 때만 쓴다 (비결정적이고 유료라 `pnpm check` 에 넣지 않는다):
 
 ```bash
-set -a; source .env; set +a                 # ANTHROPIC_API_KEY 또는 ANTHROPIC_AUTH_TOKEN
+set -a; source .env; set +a                 # MODEL_AUTH=token + ANTHROPIC_AUTH_TOKEN (또는 api_key + ANTHROPIC_API_KEY)
 MODEL_ADAPTER=anthropic pnpm probe:vocab    # 모델이 히어로·KPI 인포스트립·카드 그리드를 실제로 쓰는지
 ```
 

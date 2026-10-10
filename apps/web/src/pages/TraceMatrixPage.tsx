@@ -4,7 +4,10 @@
  * 구성: KPI 5칸 → 추적 체인(RTM) 표 → 커버리지 갭 제안 → 100% 배너 / G1 판정 → 각주.
  *
  * 이 화면이 지키는 것:
- * - **ID 발번은 사람이 누른다.** 제안은 에이전트가 만들지만 사유·행위자를 넣고 버튼을 눌러야 값이 저장된다.
+ * - **ID 발번은 사람이 누른다.** 사유·행위자를 넣고 버튼을 눌러야 값이 저장된다.
+ * - **갭 제안은 모델이 아니라 규칙 계산이다** (`packages/domain/src/rtm.ts` — 모델 호출이 없다).
+ *   자격 증명을 넣어 두면 레일 배지가 «내 토큰으로 실제 호출» 이라 이 제안도 AI 가 쓴 것으로 읽힌다 —
+ *   그래서 화면 문구에 «규칙» 이라고 못 박는다 (CLAUDE.md: 더미와 실제를 구분해 보여준다).
  * - **없는 것을 빈칸으로 두지 않는다.** 미발번은 «(IA 코드 미발번)» 이라고 적고, 세지 못한 것은 각주에 자백한다.
  * - **서버가 번호를 다시 계산한다.** 화면이 제안한 번호와 다르면 그 사실을 알린다.
  */
@@ -120,7 +123,8 @@ function TraceHeader({ project }: { project: Project }) {
         <span className="projhead-kicker">추적 체인 · {project.name}</span>
         <h1>요구사항이 화면까지 이어지는지 봅니다</h1>
         <p>
-          REQ → IA → FN → SCR. 새 단계는 새 ID 를 만들지 않고 참조만 더합니다. 갭 제안은 에이전트가 만들고, <strong>ID 발번은 사람이 사유와 함께 누릅니다</strong>.
+          REQ → IA → FN → SCR. 새 단계는 새 ID 를 만들지 않고 참조만 더합니다. 갭 제안은 <strong>모델이 아니라 규칙 계산</strong>이고(이 화면은 모델을 부르지 않습니다),{' '}
+          <strong>ID 발번은 사람이 사유와 함께 누릅니다</strong>.
         </p>
       </div>
       <span className="projhead-actions">
@@ -251,7 +255,7 @@ function GapPanel({
     <section className="card">
       <div className="card-head">
         <h3>커버리지 갭 제안</h3>
-        <span className="muted small">에이전트가 만든 초안입니다 — 사람이 승인해야 ID 가 발번됩니다</span>
+        <span className="muted small">규칙 계산으로 만든 초안입니다 (모델 호출 없음) — 사람이 승인해야 ID 가 발번됩니다</span>
       </div>
       <label className="gap-actor">
         승인자

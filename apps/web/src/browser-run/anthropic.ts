@@ -64,9 +64,19 @@ export function authHeaders(credential: StoredCredential): Record<string, string
   return { 'x-api-key': credential.value }
 }
 
-/** 오류 문구에 자격 증명 값이 섞여 들어가지 않게 한 번 더 가린다. */
+/** 너무 짧아 안전하게 치환할 수 없을 때 외부 문장을 대신하는 문구. */
+export const REDACT_SKIPPED = '(자격 증명이 너무 짧아 응답 문장을 안전하게 가릴 수 없어 생략했습니다)'
+
+/**
+ * 오류 문구에 자격 증명 값이 섞여 들어가지 않게 한 번 더 가린다.
+ *
+ * 8자 미만은 흔한 낱말과 겹칠 수 있어 치환이 위험하다(엉뚱한 글자를 지운다). 그렇다고 그대로
+ * 통과시키면 값이 화면에 남는다 — 예전 구현이 그랬다. 그래서 **외부에서 온 문장을 아예 쓰지 않는다.**
+ * 이 함수가 받는 것은 전부 외부 문장(API 오류 본문·거부 설명·네트워크 오류)이다.
+ */
 function redactWith(secret: string): (text: string) => string {
-  return (text: string) => (secret.length >= 8 ? text.split(secret).join('***') : text)
+  if (secret.length >= 8) return (text: string) => text.split(secret).join('***')
+  return () => REDACT_SKIPPED
 }
 
 function firstText(body: unknown): string | undefined {
@@ -242,4 +252,4 @@ export async function callAnthropic<T>(input: CallInput, opts: { fetch?: FetchLi
  * 설명으로 옮기는 것을 사람이 따라 적을 수 없어 계속 어긋났고 실제 호출이 400 으로 죽었다.
  */
 
-export { REVISION_DRAFT_JSON_SCHEMA, SCREEN_OUTPUT_JSON_SCHEMA } from './deps.js'
+export { PAIN_POINT_DRAFT_JSON_SCHEMA, REVISION_DRAFT_JSON_SCHEMA, SCREEN_OUTPUT_JSON_SCHEMA } from './deps.js'

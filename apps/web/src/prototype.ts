@@ -67,6 +67,36 @@ export const PROTOTYPE_STEPS: readonly PrototypeStepSpec[] = [
   },
 ]
 
+/**
+ * 단계 카드의 「지금 실제로 도는 것 / 미리 기록해 둔 것」 문구 — **어댑터에 따라 달라진다.**
+ *
+ * 고정 문자열로 두면 자격 증명을 넣어 내 토큰으로 도는데도 «더미 어댑터» 라고 적는다.
+ * CLAUDE.md 가 요구하는 「더미와 실제를 사용자에게 구분해 보여준다」를 카드 단위로 지킨다.
+ *
+ * ①·② 는 모델을 쓰므로 어댑터에 따라 갈리고, ③ 는 모델을 쓰지만 문구에 더미 언급이 없어 그대로,
+ * ④ 는 모델을 쓰지 않아 그대로다.
+ */
+export function prototypeStepText(spec: PrototypeStepSpec, adapter: 'anthropic' | 'fixture' | null): { runs: string; sampled: string } {
+  const real = adapter === 'anthropic'
+  if (spec.id === 'asis') {
+    return {
+      runs: real
+        ? '페인포인트 초안을 내 자격 증명으로 실제 모델이 쓴다 (이 브라우저가 api.anthropic.com 을 직접 호출한다).'
+        : spec.runs,
+      sampled: spec.sampled,
+    }
+  }
+  if (spec.id === 'generate') {
+    return {
+      runs: spec.runs,
+      sampled: real
+        ? '명세도 내 자격 증명으로 실제 모델이 쓴다 — 이 단계에 더미는 없다. 한 줄 요청 문장은 아래 샘플 문장이다.'
+        : spec.sampled,
+    }
+  }
+  return { runs: spec.runs, sampled: spec.sampled }
+}
+
 // ---------------------------------------------------------------- 샘플 데이터 (가상)
 
 /**
