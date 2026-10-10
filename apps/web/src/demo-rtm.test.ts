@@ -387,7 +387,9 @@ describe('PATCH /api/ia-nodes/:id — 화면 연결 (screen_plan_id)', () => {
     expect(node.functions ?? []).toEqual([])
   })
 
-  it('없는 화면·다른 프로젝트 화면은 붙이지 않는다 (고아 참조를 만들지 않는다)', () => {
+  it('없는 화면은 붙이지 않는다 (고아 참조를 만들지 않는다)', () => {
+    // 「다른 프로젝트 화면」(ia_link.other_project)은 이 호출자에서 도달 불가다 —
+    // 데모·서버 모두 프로젝트별 화면 목록만 넘긴다. 그 분기는 도메인 테스트(ia-link.test.ts)가 덮는다.
     useMemoryStore()
     const state = stateWithFreeNode()
     const res = link(state, NODE_FREE, 'a4000000-0000-4000-8000-000000000404')
@@ -411,11 +413,21 @@ describe('PATCH /api/ia-nodes/:id — 화면 연결 (screen_plan_id)', () => {
     expect(codes).toContain('ia_link.screen_taken')
   })
 
-  it('이미 화면이 붙은 노드에는 덮어쓰지 않는다 (연결 교체는 별개 작업)', () => {
+  it('같은 화면을 다시 붙이면 「바뀌는 것이 없다」로 거부한다 (빈 revision 을 만들지 않는다)', () => {
     useMemoryStore()
     const res = link(stateWithFreeNode(), NODE_POPUP, SCREEN_POPUP)
     expect(res.status).toBe(400)
     expect((res.data as { reasons: { code: string }[] }).reasons.map((r) => r.code)).toContain('ia_link.already_linked')
+  })
+
+  it('이미 **다른** 화면이 붙은 노드에는 덮어쓰지 않는다 (연결 교체는 별개 작업)', () => {
+    useMemoryStore()
+    // NODE_POPUP 에는 SCREEN_POPUP 이 붙어 있다 → 빈 화면을 붙이려 하면 occupied 다 (already_linked 가 아니다).
+    const res = link(stateWithFreeNode(), NODE_POPUP, SCREEN_FREE)
+    expect(res.status).toBe(400)
+    const codes = (res.data as { reasons: { code: string }[] }).reasons.map((r) => r.code)
+    expect(codes).toContain('ia_link.occupied')
+    expect(codes).not.toContain('ia_link.already_linked')
   })
 
   it('쓸 수 없는 screen_plan_id 를 조용히 무시하지 않는다 (서버와 같이 400)', () => {
@@ -436,7 +448,7 @@ describe('PATCH /api/ia-nodes/:id — 화면 연결 (screen_plan_id)', () => {
     expect(res.data).toHaveProperty('storage_warning')
   })
 
-  it('사유 없이 연결하지 않는다', () => {
+  it('사유 없이 연결하지 않는다 (연결 규칙 앞의 공통 본문 검사에서 걸린다)', () => {
     useMemoryStore()
     const res = handleWith(stateWithFreeNode(), 'PATCH', `/api/ia-nodes/${NODE_FREE}`, { revision: 1, by: '기획자', reason: '', screen_plan_id: SCREEN_FREE })
     expect(res.status).toBe(400)
@@ -482,8 +494,10 @@ describe('POST id-issuances — 미발번 기능이 여러 건이어도 각자 �
     expect(res.status, JSON.stringify(res.data)).toBe(200)
     const node = (res.data as IdIssueResponse).ia_node
     expect(node.functions?.find((f) => f.id === FN_B)?.external_id).toBeTruthy()
-    // 첫 기능은 건드리지 않는다
-    expect(node.functions?.find((f) => f.id === FN_A)?.external_id).toBeUndefined()
+    // 첫 기능은 **남아 있고** 번호가 붙지 않았다 (사라져도 통과하던 단언이었다).
+    const first = node.functions?.find((f) => f.id === FN_A)
+    expect(first, '첫 기능이 사라지면 안 된다').toBeDefined()
+    expect(first?.external_id).toBeUndefined()
   })
 
   it('남의 제안 해시로는 승인되지 않는다 (stale 검사가 살아 있다)', () => {

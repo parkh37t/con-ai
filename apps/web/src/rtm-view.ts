@@ -161,3 +161,45 @@ export function withStorageWarning(message: string, res: unknown): string {
   const warning = (res as { storage_warning?: unknown }).storage_warning
   return typeof warning === 'string' && warning.trim().length > 0 ? `${message} — 다만 ${warning}` : message
 }
+
+/** 제안 승인이 **어느 쓰기**로 가는가. 종류와 쓰기를 1:1 로 묶어 테스트가 직접 확인한다. */
+export type ProposalAction = 'issue' | 'link_requirement' | 'link_screen' | 'define_function'
+
+/**
+ * 제안 종류 → 쓰기.
+ *
+ * 이 함수가 있는 이유: 예전에는 화면의 `submit` 이 `else` 폴백으로 끝나 `link_screen`(화면 연결)이
+ * `onDefineFunction`(기능 추가)으로 샜다. 승인하면 화면은 안 붙고 사유·행위자가 붙은 **거짓 기능**이
+ * IA 노드에 남았다. 분기를 순수 함수로 꺼내 **테스트가 직접 확인**하고, `never` 로 새 종류를 컴파일이 막는다.
+ */
+export function proposalAction(kind: RtmGapProposal['kind']): ProposalAction {
+  switch (kind) {
+    case 'issue_ia_id':
+    case 'issue_fn_id':
+      return 'issue'
+    case 'link_requirement':
+      return 'link_requirement'
+    case 'link_screen':
+      return 'link_screen'
+    case 'define_function':
+      return 'define_function'
+    default: {
+      const never: never = kind
+      throw new Error(`모르는 제안 종류입니다: ${String(never)}`)
+    }
+  }
+}
+
+/**
+ * 사람이 넣은 **화면 외부 ID** → 저장에 쓰는 **내부 UUID**.
+ *
+ * 섞으면 연결이 조용히 어긋난다(`.claude/skills/ID와-추적체인`). 못 찾으면 있는 화면을 함께 알린다 —
+ * 외부 ID 를 외우게 하지 않는다.
+ */
+export function resolveScreenPlanId(externalId: string, screens: readonly { id: string; external_id: string }[]): string {
+  const wanted = externalId.trim()
+  const hit = screens.find((s) => s.external_id === wanted)
+  if (hit !== undefined) return hit.id
+  const known = screens.map((s) => s.external_id).join(', ')
+  throw new Error(`${wanted} 라는 화면이 이 프로젝트에 없습니다. 화면 외부 ID 를 넣으세요${known.length === 0 ? '' : ` (있는 화면: ${known})`}`)
+}

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { issuanceNotice } from './pages/TraceMatrixPage.js'
-import { PROPOSAL_INPUT_PLACEHOLDERS, PROPOSAL_SUBMIT_LABELS, canSubmit, footnotes, idCellText, isIssuanceProposal, issuanceFunctionId, kpiCells, ratioText, showsFullCoverageBanner, withStorageWarning } from './rtm-view.js'
+import { PROPOSAL_INPUT_PLACEHOLDERS, PROPOSAL_SUBMIT_LABELS, canSubmit, footnotes, idCellText, isIssuanceProposal, issuanceFunctionId, kpiCells, proposalAction, ratioText, resolveScreenPlanId, showsFullCoverageBanner, withStorageWarning } from './rtm-view.js'
 import type { RtmRow, RtmSummary } from './types.js'
 
 function summary(over: Partial<RtmSummary> = {}): RtmSummary {
@@ -218,5 +218,77 @@ describe('withStorageWarning — 조용히 성공으로 보이게 두지 않는�
     expect(withStorageWarning('연결했습니다', null)).toBe('연결했습니다')
     expect(withStorageWarning('연결했습니다', undefined)).toBe('연결했습니다')
     expect(withStorageWarning('연결했습니다', { storage_warning: '  ' })).toBe('연결했습니다')
+  })
+})
+
+/**
+ * 제안 종류 → 쓰기. **고친 버그 본체**다.
+ *
+ * 예전에는 `submit` 이 `else` 폴백으로 끝나 `link_screen`(화면 연결)이 `onDefineFunction`(기능 추가)으로
+ * 샜다. 승인하면 화면은 안 붙고 사유·행위자가 붙은 거짓 기능이 IA 노드에 남았다.
+ *
+ * 정확히 적자면 — `proposalAction` 은 **이번에 꺼낸 함수**이므로 고치기 전 코드에서는 돌 수조차 없었다.
+ * 이 테스트가 하는 일은 그때의 잘못된 매핑(link_screen → define_function)이 **다시 들어오지 못하게
+ * 못 박는 것**이다. 분기가 화면 안에 묶여 있던 동안은 실행 테스트가 아예 불가능했다.
+ */
+describe('proposalAction — 화면 연결이 기능 추가로 새지 않는다', () => {
+  it('종류마다 가는 쓰기가 정해져 있다', () => {
+    expect(proposalAction('issue_ia_id')).toBe('issue')
+    expect(proposalAction('issue_fn_id')).toBe('issue')
+    expect(proposalAction('link_requirement')).toBe('link_requirement')
+    expect(proposalAction('link_screen')).toBe('link_screen')
+    expect(proposalAction('define_function')).toBe('define_function')
+  })
+
+  it('link_screen 은 define_function 으로 가지 않는다 (고친 결함)', () => {
+    expect(proposalAction('link_screen')).not.toBe('define_function')
+  })
+
+  it('다섯 종류가 서로 다른 쓰기로 흩어지지 않고, 발번 둘만 같은 쓰기를 쓴다', () => {
+    const kinds = ['link_requirement', 'define_function', 'link_screen', 'issue_ia_id', 'issue_fn_id'] as const
+    const actions = kinds.map((k) => proposalAction(k))
+    expect(new Set(actions).size).toBe(4)
+    expect(actions.filter((a) => a === 'issue')).toHaveLength(2)
+  })
+
+  it('모르는 종류가 런타임에 오면 조용히 넘어가지 않고 던진다', () => {
+    expect(() => proposalAction('무엇인가' as Parameters<typeof proposalAction>[0])).toThrow('모르는 제안 종류')
+  })
+})
+
+/**
+ * 사람이 넣은 화면 **외부 ID** → 저장에 쓰는 **내부 UUID**.
+ * 섞으면 연결이 조용히 어긋난다 (`.claude/skills/ID와-추적체인`).
+ */
+describe('resolveScreenPlanId — 외부 ID 를 내부 UUID 로 옮긴다', () => {
+  const SCREENS = [
+    { id: 'a4000000-0000-4000-8000-000000000001', external_id: 'SCREEN-001' },
+    { id: 'a4000000-0000-4000-8000-000000000002', external_id: 'SCREEN-002' },
+  ]
+
+  it('외부 ID 로 찾아 내부 UUID 를 돌려준다 (앞뒤 공백은 떼고)', () => {
+    expect(resolveScreenPlanId('SCREEN-002', SCREENS)).toBe('a4000000-0000-4000-8000-000000000002')
+    expect(resolveScreenPlanId('  SCREEN-001  ', SCREENS)).toBe('a4000000-0000-4000-8000-000000000001')
+  })
+
+  it('내부 UUID 를 그대로 넣으면 **찾지 못한다** — 사람이 보는 값만 받는다', () => {
+    expect(() => resolveScreenPlanId('a4000000-0000-4000-8000-000000000001', SCREENS)).toThrow('없습니다')
+  })
+
+  it('없는 화면이면 있는 화면 목록을 함께 알린다 (외부 ID 를 외우게 하지 않는다)', () => {
+    const err = (() => {
+      try {
+        resolveScreenPlanId('SCREEN-999', SCREENS)
+        return ''
+      } catch (e) {
+        return e instanceof Error ? e.message : String(e)
+      }
+    })()
+    expect(err).toContain('SCREEN-999')
+    expect(err).toContain('SCREEN-001, SCREEN-002')
+  })
+
+  it('화면이 하나도 없으면 목록 문구를 붙이지 않는다', () => {
+    expect(() => resolveScreenPlanId('SCREEN-001', [])).toThrow(/없습니다\. 화면 외부 ID 를 넣으세요$/)
   })
 })

@@ -460,6 +460,9 @@ describe('POST id-issuances — 미발번 기능이 여러 건이어도 각자 �
     expect(ok.status, await ok.clone().text()).toBe(200)
     const after = h.node(LIST_NODE)!.data.functions ?? []
     expect(after.find((f) => f.id === second.id)?.external_id).toBeTruthy()
-    expect(after.find((f) => f.id === fns[0]!.id)?.external_id).toBeUndefined()
+    // 첫 기능은 **남아 있고** 번호가 붙지 않았다 (사라져도 통과하던 단언이었다).
+    const untouched = after.find((f) => f.id === fns[0]!.id)
+    expect(untouched, '첫 기능이 사라지면 안 된다').toBeDefined()
+    expect(untouched?.external_id).toBeUndefined()
   })
 })

@@ -359,7 +359,9 @@ describe('issue_fn_id 제안 — 대상 기능을 들고 온다', () => {
     expect(fn.every((p) => p.ia_node_id === NODE)).toBe(true)
   })
 
-  it('두 제안의 해시가 서로 다르다 — (kind, 노드) 로만 찾으면 둘째를 승인할 수 없었다', () => {
+  // 아래는 **성질 확인**이다 (고치기 전 코드에서도 통과했다). 결함의 재현은 API 층 테스트가 한다:
+  // apps/api/src/rtm.test.ts · apps/web/src/demo-rtm.test.ts 의 「둘째 제안을 그 해시로 승인하면 발번된다」.
+  it('두 제안의 해시가 서로 다르다 (기능 id 를 포함하므로)', () => {
     const fn = report().proposals.filter((p) => p.kind === 'issue_fn_id')
     expect(new Set(fn.map((p) => p.proposal_hash)).size).toBe(2)
     expect(fn[1]?.proposal_hash).toBe(proposalHash(['issue_fn_id', NODE, FN_B]))

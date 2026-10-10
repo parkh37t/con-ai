@@ -16,7 +16,7 @@ import { api } from '../api.js'
 import { Badge, Empty, ErrorBox, Loading } from '../components/common.js'
 import { IS_DEMO } from '../demo-mode.js'
 import { notifyDataChanged, useAsync, useStoredValue } from '../hooks.js'
-import { PROPOSAL_INPUT_PLACEHOLDERS, PROPOSAL_KIND_LABELS, PROPOSAL_SUBMIT_LABELS, ROW_STATUS_LABELS, ROW_STATUS_TONES, canSubmit, footnotes, idCellText, issuanceFunctionId, kpiCells, ratioText, showsFullCoverageBanner, withStorageWarning } from '../rtm-view.js'
+import { PROPOSAL_INPUT_PLACEHOLDERS, PROPOSAL_KIND_LABELS, PROPOSAL_SUBMIT_LABELS, ROW_STATUS_LABELS, ROW_STATUS_TONES, canSubmit, footnotes, idCellText, issuanceFunctionId, kpiCells, proposalAction, resolveScreenPlanId, ratioText, showsFullCoverageBanner, withStorageWarning } from '../rtm-view.js'
 import { hrefTo, hrefToScreen } from '../router.js'
 import type { IdIssueResponse, Project, RtmGapProposal, RtmReport } from '../types.js'
 
@@ -108,15 +108,10 @@ export function TraceMatrixPage({ project }: { project: Project }) {
                 const wanted = screenExternalId.trim()
                 if (projectDetail.error !== null) throw new Error('화면 목록을 읽지 못했습니다 — 새로고침 후 다시 누르세요')
                 if (projectDetail.data === null || projectDetail.data === undefined) throw new Error('화면 목록을 아직 읽지 못했습니다 — 잠시 뒤 다시 누르세요')
-                const screens = projectDetail.data.screens
-                const screen = screens.find((s) => s.external_id === wanted)
-                if (screen === undefined) {
-                  const known = screens.map((s) => s.external_id).join(', ')
-                  throw new Error(`${wanted} 라는 화면이 이 프로젝트에 없습니다. 화면 외부 ID 를 넣으세요${known.length === 0 ? '' : ` (있는 화면: ${known})`}`)
-                }
+                // 사람에게는 외부 ID, API 에는 내부 id — 변환은 한 곳(rtm-view)에서만 하고 테스트가 직접 확인한다.
+                const screenPlanId = resolveScreenPlanId(wanted, projectDetail.data.screens)
                 const revision = await currentRevision(p.ia_node_id)
-                // 사람에게는 외부 ID, API 에는 내부 id — 섞으면 연결이 조용히 어긋난다.
-                const res = await api.patchIaNode(p.ia_node_id, { revision, by, reason, screen_plan_id: screen.id })
+                const res = await api.patchIaNode(p.ia_node_id, { revision, by, reason, screen_plan_id: screenPlanId })
                 const nodeName = rtm.data?.rows.flatMap((r) => r.ia).find((ia) => ia.id === p.ia_node_id)?.name
                 return withStorageWarning(`${nodeName === undefined ? '메뉴' : `「${nodeName}」`} 에 화면 ${wanted} 를 연결했습니다`, res)
               })
@@ -342,27 +337,13 @@ function GapItem({
   const submit = () => {
     const v = value.trim()
     const r = reason.trim()
-    switch (proposal.kind) {
-      case 'issue_ia_id':
-      case 'issue_fn_id':
-        onIssue(proposal, v, r)
-        return
-      case 'link_requirement':
-        onLink(proposal, v, r)
-        return
-      case 'link_screen':
-        onLinkScreen(proposal, v, r)
-        return
-      case 'define_function':
-        onDefineFunction(proposal, v, r)
-        return
-      default: {
-        // 새 제안 종류가 생기면 **여기서 컴파일이 막는다.** 고친 버그가 「다른 쓰기로 샌다」였으니,
-        // 그게 「조용히 아무 쓰기도 안 한다」로 바뀌지 않게 한다.
-        const never: never = proposal.kind
-        throw new Error(`처리할 수 없는 제안 종류입니다: ${String(never)}`)
-      }
-    }
+    // 종류 → 쓰기 매핑은 `proposalAction` 하나에만 있다 (테스트가 종류별로 직접 확인한다).
+    // 예전에는 여기 `else` 폴백이 있어 「화면 연결」이 「기능 추가」로 샜다.
+    const action = proposalAction(proposal.kind)
+    if (action === 'issue') onIssue(proposal, v, r)
+    else if (action === 'link_requirement') onLink(proposal, v, r)
+    else if (action === 'link_screen') onLinkScreen(proposal, v, r)
+    else onDefineFunction(proposal, v, r)
   }
 
   return (
