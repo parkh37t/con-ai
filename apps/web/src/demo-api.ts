@@ -444,6 +444,9 @@ async function browserApprovalResponse(state: DemoState, screenId: string, revis
   }
 }
 
+/** 모델로 초안을 만들 때의 제한 시간. 이걸 넘기면 요청을 중단하고 분석을 실패로 끝낸다. */
+export const ASIS_DRAFT_TIMEOUT_MS = 120_000
+
 /**
  * 초안 실패를 사람이 읽을 문구로. 모델 오류는 원인(인증·한도·거부…)을 그대로 밝힌다.
  * `BrowserModelError` 는 자격 증명 값을 이미 가려서 담는다 — 여기서 값을 다시 꺼내지 않는다.
@@ -495,17 +498,37 @@ function createAsisAnalysis(state: DemoState, projectId: string, body: unknown):
     const base = { url: sample.url, structure: sample.structure, ...(doc.note === undefined ? {} : { note: doc.note }) }
     // 자격 증명이 있으면 내 토큰으로 api.anthropic.com 을 직접 호출하고, 없으면 더미 어댑터 규칙을 돌린다.
     // 실패하면 그대로 실패로 끝낸다 — 더미 결과로 조용히 갈아끼우지 않는다 (CLAUDE.md).
-    const drafting =
-      credential === null
-        ? new FixtureAdapter().draftPainPoints(base)
-        : draftPainPointsInBrowser({ credential, model: browserRuntime.model, ...base }, { fetch: browserRuntime.fetch })
-    void drafting
-      .then((draft) => {
-        run.draft = draft
-      })
-      .catch((e: unknown) => {
-        run.draft_error = asisDraftError(e)
-      })
+    if (credential === null) {
+      void new FixtureAdapter()
+        .draftPainPoints(base)
+        .then((draft) => {
+          run.draft = draft
+        })
+        .catch((e: unknown) => {
+          run.draft_error = asisDraftError(e)
+        })
+    } else {
+      // **제한 시간이 있어야 한다.** advanceAsis 는 draft·draft_error 가 둘 다 없으면 무조건 running 이므로,
+      // 모델 호출이 매달리면 「분석 중」이 영원히 남는다. 더미 어댑터는 동기라 이 문제가 없다 —
+      // 토큰 경로에서만 생긴다. 끊을 때 요청도 실제로 중단해 토큰을 더 쓰지 않는다.
+      const controller = new AbortController()
+      const timer = setTimeout(() => controller.abort(), ASIS_DRAFT_TIMEOUT_MS)
+      void draftPainPointsInBrowser(
+        { credential, model: browserRuntime.model, signal: controller.signal, ...base },
+        { fetch: browserRuntime.fetch },
+      )
+        .then((draft) => {
+          run.draft = draft
+        })
+        .catch((e: unknown) => {
+          run.draft_error = controller.signal.aborted
+            ? `페인포인트 초안이 제한 시간(${Math.round(ASIS_DRAFT_TIMEOUT_MS / 1000)}초) 안에 끝나지 않아 중단했습니다. 다시 실행하세요.`
+            : asisDraftError(e)
+        })
+        .finally(() => {
+          clearTimeout(timer)
+        })
+    }
   }
   return { status: 202, data: { analysis_id: id } }
 }

@@ -256,10 +256,16 @@ export function v3RequiredFor(spec: ScreenSpecShapeType): Record<string, boolean
   }
 }
 
-export const V3_NOT_RUN_MESSAGE = '브라우저 모드에서는 실행 검사(V3)를 돌릴 수 없습니다 — 미실행은 통과가 아닙니다.'
+/*
+ * 이 문구는 주석이 아니라 **데이터**다 — `CheckResult.message`·`evidence` 에 담겨 `validation.json` 으로
+ * 내보내진다(`export-bundle.ts`). 그래서 사실이 아니면 산출물 파일에 틀린 사유가 박힌다.
+ * 예전 문구는 「정적 페이지 안에서는 실행기를 띄울 수 없다」였는데, 지금 브라우저는 격리 iframe 에서
+ * V3 를 **실제로 돌린다**(`v3-browser.ts`). 이 경로는 실행기가 주입되지 않은 경우에만 남는다.
+ */
+export const V3_NOT_RUN_MESSAGE = '실행 검사(V3)를 돌리지 못했습니다 — 미실행은 통과가 아닙니다.'
 export const V3_NOT_RUN_EVIDENCE = [
-  'V3 는 Playwright 로 실제 브라우저를 띄워 콘솔 오류·CASE 전환·검색·다운로드를 확인한다. 정적 페이지 안에서는 그 실행기를 띄울 수 없다.',
-  '서버 실행(`pnpm serve`, MODEL_ADAPTER=anthropic)에서 같은 명세를 다시 생성하면 V3 가 실행된다.',
+  '이 환경에서는 V3 실행기가 주입되지 않았다. 브라우저 모드는 보통 격리 iframe(sandbox="allow-scripts")에서 CASE 전환·검색·다운로드를 실제로 눌러 보고 서버 v3.ts 와 같은 규칙으로 판정한다.',
+  '서버 실행(`pnpm serve`)에서는 Playwright 로 같은 검사를 돌린다. 어느 쪽도 돌지 않았으므로 이 결과는 미실행이며 통과로 세지 않는다.',
 ]
 
 /** V3 결과를 not_run 으로 기록한다 (통과로 위장하지 않는다). */
@@ -368,9 +374,14 @@ async function generateOutput(args: {
       { credential, system: prompt.system, user: prompt.user, schema: SCREEN_OUTPUT_JSON_SCHEMA, model: engine.model },
       { fetch: deps.fetch },
     )
+    // 상한에서 끊긴 출력은 믿을 수 없다 — 부분 객체를 통과시키면 뒤의 schema_invalid 가 «모델 품질 문제» 로 읽힌다.
+    if (call.truncated) {
+      throw new BrowserPipelineError('model_error', `모델 출력이 상한(max_tokens)에서 잘렸습니다 (${engine.model}) — 범위를 줄여 다시 실행하세요 (CASE 를 줄이거나 요구사항을 나눕니다).`, { stage })
+    }
     // 구조화 출력은 «없음» 을 null 로 보낸다 (선택 파라미터 상한 때문). 스키마가 아는 모양으로 되돌린다.
     return { output: stripNulls(call.output), usage: call.usage }
   } catch (e) {
+    if (e instanceof BrowserPipelineError) throw e
     const details = e instanceof BrowserModelError ? e.details : []
     throw new BrowserPipelineError('model_error', `모델 호출에 실패했습니다 (${engine.model}): ${messageOf(e)}`, { stage, details })
   }

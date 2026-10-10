@@ -2,8 +2,8 @@
  * 브라우저 모드 통합 — 인메모리 API(demo-api)가 자격 증명 상태에 따라 어떻게 달라지는지.
  * 자격 증명이 없으면 스냅샷 동작 그대로, 있으면 실제 파이프라인(주입한 fetch)으로 새 revision 을 만든다.
  */
-import { afterEach, describe, expect, it } from 'vitest'
-import { applyBrowserOverlay, createDemoState, handleAsyncWith, handleWith, metaOf, type DemoFiles, type DemoState } from '../demo-api.js'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { ASIS_DRAFT_TIMEOUT_MS, applyBrowserOverlay, createDemoState, handleAsyncWith, handleWith, metaOf, type DemoFiles, type DemoState } from '../demo-api.js'
 import type { AsisAnalysis, Job, Meta, ProjectDetail, PromptPreviewResponse, RevisionDetail, RevisionPromptDraft, ScreenDetail, SliceGenerationRequest } from '../types.js'
 import { browserRuntime, setBrowserRuntime } from './runtime.js'
 import { BrowserStore } from './store.js'
@@ -446,5 +446,62 @@ describe('AS-IS 초안 — 자격 증명이 있으면 내 토큰으로, 없으�
     expect(doc.summary).toBeUndefined()
     // 자격 증명 값이 실패 문구에 섞이지 않는다
     expect(JSON.stringify(doc)).not.toContain(TOKEN.value)
+  })
+})
+
+/**
+ * AS-IS 초안의 제한 시간.
+ *
+ * `advanceAsis` 는 draft·draft_error 가 **둘 다 없으면 무조건 running** 이다. 그래서 모델 호출이
+ * 매달리면 「분석 중」이 영원히 남는다. 더미 어댑터는 동기라 이 문제가 없다 — **토큰 경로에서만 생긴다.**
+ */
+describe('AS-IS 초안 제한 시간 — 「분석 중」이 영원히 남지 않는다', () => {
+  const SAMPLE_URL = 'https://sample.example/hang'
+  const SAMPLE: AsisSampleTarget = {
+    id: 'hang',
+    label: '매달리는 대상',
+    description: '응답이 오지 않는 경우',
+    url: SAMPLE_URL,
+    captured_at: '2026-09-01T00:00:00.000Z',
+    structure: { title: 'x', headings: [], nav_links: [], forms: [], buttons: [], counts: { links: 0, images: 0, images_without_alt: 0, tables: 0, fields_without_label: 0, iframes: 0 } },
+    screenshots: { desktop: 'd.png', mobile: 'm.png' },
+  }
+
+  it('응답이 오지 않으면 제한 시간에 요청을 중단하고 실패로 끝낸다', async () => {
+    vi.useFakeTimers()
+    try {
+      let aborts = 0
+      // signal 을 실제로 지키는 fetch — 중단되면 거부한다.
+      const hanging = ((_url: string, init: RequestInit) =>
+        new Promise<Response>((_resolve, reject) => {
+          init.signal?.addEventListener('abort', () => {
+            aborts += 1
+            reject(new DOMException('aborted', 'AbortError'))
+          })
+        })) as Parameters<typeof setBrowserRuntime>[0]['fetch']
+      const store = new BrowserStore(() => new MemoryStorage())
+      setBrowserRuntime({ credential: () => TOKEN, fetch: hanging, store, now: () => '2026-10-10T00:00:00.000Z' })
+      const clock = { ms: 0 }
+      const state = createDemoState({ ...files(), asis_samples: [SAMPLE] }, { now: () => clock.ms, store })
+
+      const created = handleWith(state, 'POST', `/api/projects/${PROJECT}/asis-analyses`, { url: SAMPLE_URL })
+      const id = (created.data as { analysis_id: string }).analysis_id
+      clock.ms = 10_000
+
+      // 제한 시간 전에는 아직 끝나지 않았다 (성공으로도, 실패로도 꾸미지 않는다).
+      expect((handleWith(state, 'GET', `/api/asis-analyses/${id}`).data as AsisAnalysis).status).toBe('running')
+
+      await vi.advanceTimersByTimeAsync(ASIS_DRAFT_TIMEOUT_MS + 50)
+      for (let i = 0; i < 20; i += 1) await Promise.resolve()
+
+      const doc = handleWith(state, 'GET', `/api/asis-analyses/${id}`).data as AsisAnalysis
+      expect(aborts, '요청을 실제로 중단해야 한다 (토큰을 더 쓰지 않게)').toBe(1)
+      expect(doc.status).toBe('failed')
+      expect(doc.failure?.code).toBe('draft')
+      expect(doc.failure?.message).toContain('제한 시간')
+      expect(doc.pain_points).toEqual([])
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })

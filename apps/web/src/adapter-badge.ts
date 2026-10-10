@@ -23,8 +23,11 @@ export const AUTH_LABELS: Readonly<Record<AuthKind, string>> = {
 
 export function adapterBadgeText(meta: Pick<Meta, 'adapter' | 'model' | 'auth'>, opts: { browser?: boolean } = {}): string {
   if (meta.adapter === 'fixture') return 'fixture 더미 어댑터(모델 호출 없음)'
-  // 브라우저 모드: 서버가 아니라 이 브라우저가 사용자의 토큰으로 직접 호출한다.
-  const parts = [opts.browser === true ? '내 토큰으로 실제 호출' : 'anthropic', meta.model]
+  // 브라우저 모드: 서버가 아니라 이 브라우저가 **사용자의 자격 증명으로** 직접 호출한다.
+  // 종류를 보지 않고 「내 토큰」이라 적으면 API 키를 넣은 사용자에게 한 줄 안에서 모순된 문구가 된다
+  // (예전에 «내 토큰으로 실제 호출 · … · API 키» 가 나왔고 테스트가 그 값을 고정하고 있었다).
+  const mine = meta.auth === 'api_key' ? '내 API 키로 실제 호출' : '내 토큰으로 실제 호출'
+  const parts = [opts.browser === true ? mine : 'anthropic', meta.model]
   if (meta.auth !== undefined && Object.prototype.hasOwnProperty.call(AUTH_LABELS, meta.auth)) parts.push(AUTH_LABELS[meta.auth])
   return parts.join(' · ')
 }

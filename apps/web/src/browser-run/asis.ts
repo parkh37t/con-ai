@@ -24,6 +24,8 @@ export interface BrowserPainPointInput {
   note?: string | undefined
   structure: AsisStructure
   model?: string | undefined
+  /** 제한 시간·중단용. 없으면 호출이 끝날 때까지 기다린다 (호출자가 반드시 넣어야 한다 — 아래 주석). */
+  signal?: AbortSignal | undefined
 }
 
 /**
@@ -39,6 +41,7 @@ export async function draftPainPointsInBrowser(input: BrowserPainPointInput, dep
       user: painPointDraftUser({ url: input.url, structure: input.structure, ...(input.note === undefined ? {} : { note: input.note }) }),
       schema: PAIN_POINT_DRAFT_JSON_SCHEMA,
       model: input.model ?? DEFAULT_BROWSER_MODEL,
+      ...(input.signal === undefined ? {} : { signal: input.signal }),
     },
     { fetch: deps.fetch },
   )

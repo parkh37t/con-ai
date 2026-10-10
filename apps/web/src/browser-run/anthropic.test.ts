@@ -195,3 +195,46 @@ describe('가리기(redact) — 짧은 값도 새지 않는다', () => {
     expect(err.details[0]).toBe('invalid token *** supplied')
   })
 })
+
+/**
+ * 원인을 원인대로 말하기.
+ *
+ * 예전에는 (1) 구조화 출력이 상한에서 끊겨도 stop_reason 을 보지 않아 뒤의 스키마 실패가
+ * «모델 품질 문제» 로 읽혔고, (2) 529·5xx 에 재시도 안내가 없어 사용자가 자기 토큰을 의심했고,
+ * (3) parse 실패 details 만 가리기를 거치지 않았다.
+ */
+describe('실패 원인 분류 — 토큰·요청 문제가 아닌 것을 그렇게 말하지 않는다', () => {
+  it('구조화 결과가 와도 max_tokens 에서 끊겼으면 truncated 로 올린다', () => {
+    const out = extractStructured<{ a: number }>({ parsed_output: { a: 1 }, stop_reason: 'max_tokens' })
+    expect(out.output).toEqual({ a: 1 })
+    expect(out.truncated).toBe(true)
+    expect(extractStructured<{ a: number }>({ parsed_output: { a: 1 }, stop_reason: 'end_turn' }).truncated).toBe(false)
+  })
+
+  it('529(과부하)·5xx 는 재시도를 안내하고 토큰 문제가 아니라고 밝힌다', async () => {
+    for (const status of [529, 503, 500]) {
+      const { fetch } = fakeFetch([{ status, body: { error: { message: 'overloaded' } } }])
+      const err = (await callAnthropic({ credential: TOKEN, system: 's', user: 'u', schema: SCREEN_OUTPUT_JSON_SCHEMA }, { fetch }).catch((e: unknown) => e)) as BrowserModelError
+      expect(err.message, `HTTP ${status}`).toContain('다시 실행하세요')
+      expect(err.message, `HTTP ${status}`).toContain('토큰·요청 문제가 아닙니다')
+    }
+  })
+
+  it('404 는 모델 권한 문제로 안내한다 (요청 형식 오류로 적지 않는다)', async () => {
+    const { fetch } = fakeFetch([{ status: 404, body: { error: { message: 'model not found' } } }])
+    const err = (await callAnthropic({ credential: TOKEN, system: 's', user: 'u', schema: SCREEN_OUTPUT_JSON_SCHEMA }, { fetch }).catch((e: unknown) => e)) as BrowserModelError
+    expect(err.message).toContain('모델을 찾을 수 없습니다')
+    expect(err.message).not.toContain('요청 형식')
+  })
+
+  it('JSON 으로 못 읽은 본문도 가리기를 거친다 — 입력칸에 붙여 넣은 토큰이 메아리로 돌아올 수 있다', async () => {
+    const echo = `모델이 그대로 되돌린 문장: ${TOKEN.value} 입니다`
+    const { fetch } = fakeFetch([
+      { status: 200, body: { id: 'm', model: 'claude-opus-5', content: [{ type: 'text', text: echo }], stop_reason: 'end_turn', usage: { input_tokens: 1, output_tokens: 1 } } },
+    ])
+    const err = (await callAnthropic({ credential: TOKEN, system: 's', user: 'u', schema: SCREEN_OUTPUT_JSON_SCHEMA }, { fetch }).catch((e: unknown) => e)) as BrowserModelError
+    expect(err.code).toBe('parse')
+    expect(err.details.join(' ')).not.toContain(TOKEN.value)
+    expect(err.details.join(' ')).toContain('***')
+  })
+})

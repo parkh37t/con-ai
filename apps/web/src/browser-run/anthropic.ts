@@ -51,6 +51,8 @@ export interface CallInput {
 export interface CallResult<T> {
   output: T
   raw_text: string
+  /** 응답이 max_tokens 에서 끊겼다. 스키마 실패의 원인을 모델 품질로 오해하지 않게 위로 올린다. */
+  truncated: boolean
   usage: { input_tokens: number; output_tokens: number }
   stop_reason: string | undefined
   model: string
@@ -109,6 +111,16 @@ function toHttpError(status: number, body: unknown, kind: CredentialKind, redact
   if (status === 400) {
     return new BrowserModelError('bad_request', '모델 API 가 요청을 거부했습니다 (HTTP 400 — 요청 형식·파라미터 오류).', { status, details: detail })
   }
+  // 529(overloaded)·5xx 는 일시적이다 — 재시도 안내가 없으면 사용자가 자기 토큰·요청을 의심한다.
+  if (status === 529) {
+    return new BrowserModelError('api_error', '모델이 지금 과부하입니다 (HTTP 529). 잠시 뒤 다시 실행하세요 — 토큰·요청 문제가 아닙니다.', { status, details: detail })
+  }
+  if (status >= 500) {
+    return new BrowserModelError('api_error', `모델 API 서버 오류입니다 (HTTP ${status}). 일시적일 수 있으니 잠시 뒤 다시 실행하세요 — 토큰·요청 문제가 아닙니다.`, { status, details: detail })
+  }
+  if (status === 404) {
+    return new BrowserModelError('bad_request', `모델을 찾을 수 없습니다 (HTTP 404). 이 자격 증명으로 ${'claude-opus-5'} 를 쓸 수 있는지 확인하세요.`, { status, details: detail })
+  }
   return new BrowserModelError('api_error', `모델 API 오류입니다 (HTTP ${status}).`, { status, details: detail })
 }
 
@@ -140,19 +152,23 @@ export function collectText(message: MessageLike): string {
 }
 
 /** 구조화 결과 꺼내기 — parsed_output 이 있으면 그대로, 없으면 text 블록을 JSON 으로 읽는다. */
-export function extractStructured<T>(message: MessageLike): { output: T; raw_text: string } {
+export function extractStructured<T>(message: MessageLike, redact: (text: string) => string = (t) => t): { output: T; raw_text: string; truncated: boolean } {
   const raw_text = collectText(message)
-  const parsed = message.parsed_output
-  if (typeof parsed === 'object' && parsed !== null) return { output: parsed as T, raw_text }
   const stop = typeof message.stop_reason === 'string' ? message.stop_reason : undefined
+  // 상한에서 끊긴 것을 **구조화 출력에서도 본다.** 예전에는 parsed_output 이 있으면 stop_reason 을 보지 않아,
+  // 잘려서 모자란 객체가 와도 「규격에 맞지 않습니다」(모델 품질 문제)로 읽혔다.
+  const truncated = stop === 'max_tokens'
+  const parsed = message.parsed_output
+  if (typeof parsed === 'object' && parsed !== null) return { output: parsed as T, raw_text, truncated }
   if (raw_text.trim().length === 0) {
     throw new BrowserModelError('empty_output', `모델 응답에서 구조화 결과를 얻지 못했습니다 (stop_reason: ${stop ?? '없음'}).`)
   }
   try {
-    return { output: JSON.parse(stripFence(raw_text)) as T, raw_text }
+    return { output: JSON.parse(stripFence(raw_text)) as T, raw_text, truncated }
   } catch {
-    const truncated = stop === 'max_tokens' ? ' 출력이 max_tokens 에서 잘렸습니다 — 더 짧은 범위로 나눠 실행하세요.' : ''
-    throw new BrowserModelError('parse', `모델 응답을 JSON 으로 읽지 못했습니다.${truncated}`, { details: [raw_text.slice(0, 300)] })
+    const note = truncated ? ' 출력이 max_tokens 에서 잘렸습니다 — 더 짧은 범위로 나눠 실행하세요.' : ''
+    // 모델이 되돌려준 본문이다. 사용자가 입력칸에 토큰을 붙여 넣으면 메아리로 돌아올 수 있어 **여기도 가린다.**
+    throw new BrowserModelError('parse', `모델 응답을 JSON 으로 읽지 못했습니다.${note}`, { details: [redact(raw_text.slice(0, 300))] })
   }
 }
 
@@ -207,11 +223,12 @@ export async function callAnthropic<T>(input: CallInput, opts: { fetch?: FetchLi
     throw new BrowserModelError('refusal', `모델이 요청을 거부했습니다 (분류: ${category}). 요청 내용을 바꿔 다시 시도하세요.`, { details: explanation ? [explanation] : [] })
   }
 
-  const { output, raw_text } = extractStructured<T>(message)
+  const { output, raw_text, truncated } = extractStructured<T>(message, redact)
   const usageRec = typeof message.usage === 'object' && message.usage !== null ? (message.usage as Record<string, unknown>) : {}
   return {
     output,
     raw_text,
+    truncated,
     usage: {
       input_tokens: typeof usageRec['input_tokens'] === 'number' ? usageRec['input_tokens'] : 0,
       output_tokens: typeof usageRec['output_tokens'] === 'number' ? usageRec['output_tokens'] : 0,
