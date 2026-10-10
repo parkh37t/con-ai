@@ -30,8 +30,7 @@ Claude Code 는 이 제품의 **개발 도구**다. 운영 중 사용자의 요�
 ```bash
 git clone https://github.com/parkh37t/con-ai.git && cd con-ai
 pnpm bootstrap            # Node 22·pnpm 확인 → 설치 → .env 생성(어댑터·인증 방식 선택) → 브라우저 확인 → 검사
-set -a; source .env; set +a
-pnpm dev                  # 웹 http://localhost:5173 , API http://localhost:8787
+pnpm dev                  # 웹 http://localhost:5173 , API http://localhost:8787 (.env 는 API 가 스스로 읽는다)
 ```
 
 - 비대화형: `bash scripts/setup.sh --yes` (fixture 더미 어댑터). 실제 모델: `--adapter anthropic --auth token` (기본) 또는 `--auth api_key`.
@@ -40,7 +39,7 @@ pnpm dev                  # 웹 http://localhost:5173 , API http://localhost:878
   ```bash
   claude setup-token                          # 토큰 발급 (구독 필요)
   # .env: MODEL_ADAPTER=anthropic / MODEL_AUTH=token / ANTHROPIC_AUTH_TOKEN=<받은 값>
-  set -a; source .env; set +a && pnpm dev
+  pnpm dev                                    # API 가 .env 를 스스로 읽는다 (source 불필요)
   ```
 
   API 키(`MODEL_AUTH=api_key` · `ANTHROPIC_API_KEY`, platform.claude.com)는 대안이고 사용한 만큼 과금된다.
@@ -118,7 +117,7 @@ pnpm check            # 위 둘을 순서대로
 데모·프로토타입은 더미 어댑터로 자격 증명 없이 끝까지 돈다. 아래는 **선택 사항**으로, 「실제 Claude 모델도 새 어휘를 쓰는가」를 볼 때만 쓴다 (비결정적이고 유료라 `pnpm check` 에 넣지 않는다):
 
 ```bash
-set -a; source .env; set +a                 # MODEL_AUTH=token + ANTHROPIC_AUTH_TOKEN (또는 api_key + ANTHROPIC_API_KEY)
+# .env 는 API 가 스스로 읽는다. 셸에 이미 있는 환경변수가 파일보다 우선한다
 MODEL_ADAPTER=anthropic pnpm probe:vocab    # 모델이 히어로·KPI 인포스트립·카드 그리드를 실제로 쓰는지
 ```
 

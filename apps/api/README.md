@@ -24,8 +24,14 @@ pnpm --filter @con-ai/api start
 | `EXPORT_DIR` | `<루트>/exports` | 완료(v1.0) 내보내기 폴더. `/exports/*` 로 정적 제공 |
 | `MODEL_ADAPTER` | `fixture` | `anthropic` \| `fixture` (model-adapter 가 해석) |
 | `MODEL_ID` | `claude-opus-5` | anthropic 모델 ID |
-| `ANTHROPIC_API_KEY` / `ANTHROPIC_AUTH_TOKEN` | | anthropic 어댑터 인증. 서버에서만 읽는다 |
+| `MODEL_AUTH` | `auto` | `token` \| `api_key` \| `auto`. **`auto` 는 API 키를 먼저 잡는다** — 토큰을 쓰려면 `token` 으로 고정한다 |
+| `ANTHROPIC_AUTH_TOKEN` | | **1순위 인증.** 내 Claude 구독 토큰 (발급 `claude setup-token`). 서버에서만 읽는다 |
+| `ANTHROPIC_API_KEY` | | 대안 인증(콘솔 API 키, 사용량 과금). 서버에서만 읽는다 |
 | `PLAYWRIGHT_CHROMIUM_PATH`, `PLAYWRIGHT_BROWSERS_PATH` | | `/api/meta` 의 `playwright` 판단(실행 파일 존재 여부)과 V3 실행 검사 |
+
+`.env` 는 **서버가 스스로 읽는다** (`tsx --env-file-if-exists=../../.env`) — `source .env` 는 필요 없다.
+자격 증명이 설정돼 있는데 `MODEL_ADAPTER` 가 `anthropic` 이 아니면 시작 로그가 **경고**한다(조용히 더미로 돌지 않는다).
+인증 방식의 상세(헤더·SDK 동작·만료)는 `packages/model-adapter/README.md` 한 곳에 있다.
 
 ## API (모두 JSON, `/api`)
 

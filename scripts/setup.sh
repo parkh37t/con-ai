@@ -51,6 +51,15 @@ pnpm install --reporter=append-only
 # 3) .env
 if [ -f .env ]; then
   say ".env 가 이미 있어 그대로 둡니다"
+  # 플래그를 줬는데 조용히 버리면 사용자는 토큰 세팅이 먹은 줄 안다 (SessionStart 훅이 매 세션 fixture .env 를 먼저 만든다).
+  if [ -n "$ADAPTER" ] || [ -n "$AUTH" ]; then
+    echo "  ⚠ --adapter/--auth 는 적용되지 않았습니다. 기존 .env 를 고치지 않습니다."
+    echo "    토큰으로 바꾸려면 .env 의 세 줄을 직접 고치세요:"
+    echo "      MODEL_ADAPTER=anthropic"
+    echo "      MODEL_AUTH=token"
+    echo "      ANTHROPIC_AUTH_TOKEN=<\`claude setup-token\` 으로 받은 값>"
+    echo "    (또는 .env 를 지우고 이 스크립트를 다시 실행하세요)"
+  fi
 else
   if [ -z "$ADAPTER" ]; then
     if [ "$YES" = 1 ]; then ADAPTER=fixture; else
@@ -75,14 +84,26 @@ else
       fi
     fi
   fi
+  # 자격 증명 없이 anthropic 으로 쓰면 API 가 부팅 중 죽는다 (pnpm dev 에서는 Vite 만 살아 브라우저가 연결 오류를 본다).
+  if [ "$ADAPTER" = anthropic ]; then
+    if { [ "$AUTH" = token ] && [ -z "$TOKEN" ]; } || { [ "$AUTH" = api_key ] && [ -z "$KEY" ]; }; then
+      ADAPTER=fixture
+      PENDING=1
+      echo "  ⚠ 자격 증명이 비어 있어 MODEL_ADAPTER=fixture 로 적습니다 (빈 값으로 anthropic 을 쓰면 API 가 부팅 중 죽습니다)."
+      echo "    값을 채운 뒤 .env 의 MODEL_ADAPTER 를 anthropic 으로 바꾸세요."
+    fi
+  fi
   say ".env 생성 (어댑터: $ADAPTER${AUTH:+, 인증: $AUTH})"
+  # 쓰는 동안에도 남이 읽지 못하게 먼저 권한을 준다 (전에는 다 쓴 뒤에 chmod 했다).
+  : > .env && chmod 600 .env
   {
     echo "# con-ai 실행 설정 — scripts/setup.sh 가 생성. 비밀값은 이 파일에만 둔다 (.gitignore)"
     echo "MODEL_ADAPTER=$ADAPTER"
     echo "MODEL_ID=claude-opus-5"
     echo "MODEL_AUTH=${AUTH:-auto}"
-    echo "ANTHROPIC_API_KEY=$KEY"
-    echo "ANTHROPIC_AUTH_TOKEN=$TOKEN"
+    # 단일 인용해 적는다 — 특수문자가 든 값이 `source .env` 에서 전개·명령 치환되지 않게.
+    printf "ANTHROPIC_API_KEY='%s'\n" "$(printf %s "$KEY" | sed "s/'/'\\\\''/g")"
+    printf "ANTHROPIC_AUTH_TOKEN='%s'\n" "$(printf %s "$TOKEN" | sed "s/'/'\\\\''/g")"
     if [ -x /opt/pw-browsers/chromium ]; then echo "PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium"; else echo "PLAYWRIGHT_CHROMIUM_PATH="; fi
     echo "PORT=8787"
     echo "CON_AI_DB=.local/con-ai.db"
@@ -112,7 +133,7 @@ fi
 
 say "준비 완료"
 cat <<'EOF'
-시작:  set -a; source .env; set +a; pnpm dev
+시작:  pnpm dev     (.env 는 API 가 스스로 읽습니다 — source 불필요)
        → 웹 http://localhost:5173 , API http://localhost:8787
 실제 모델 호출로 바꾸기: .env 에 MODEL_ADAPTER=anthropic, MODEL_AUTH=token, ANTHROPIC_AUTH_TOKEN=<`claude setup-token` 으로 받은 값> 을 채우고 API 를 재시작
        (API 키를 쓰려면 MODEL_AUTH=api_key 와 ANTHROPIC_API_KEY)

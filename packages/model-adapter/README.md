@@ -27,11 +27,16 @@ pnpm check                                 # 저장소 전체
 
 ### 인증 방식 두 가지 (+ 프로필)
 
+**1순위는 토큰이다.** `MODEL_AUTH=auto` 는 API 키를 먼저 잡으므로, 토큰을 쓰려면 `token` 으로 고정한다.
+
 | 방식 | 설정 | 요청 헤더 | 비고 |
 |---|---|---|---|
-| API 키 | `ANTHROPIC_API_KEY=<키>` (`MODEL_AUTH=api_key` 또는 auto) | `x-api-key: <키>` | `new Anthropic({ apiKey, authToken: null })` — 토큰 env 가 함께 있어도 두 헤더를 같이 보내지 않는다 (API 가 거부) |
-| 토큰 | `ANTHROPIC_AUTH_TOKEN=<토큰>` (`MODEL_AUTH=token` 또는 auto). `set -a; eval "$(ant auth print-credentials --env)"; set +a` 로 넣을 수 있다 | `Authorization: Bearer <토큰>` + `anthropic-beta: oauth-2025-04-20` | SDK 는 `authToken` 을 직접 넘길 때 oauth beta 헤더를 붙이지 않는다(프로필 체인에서만 붙임 — `client.js` `prepareRequest` 확인). `/v1/messages` 는 이 헤더가 필요하므로 `defaultHeaders` 로 넣는다. 토큰은 짧게 살고 env 로 넘기면 자동 갱신되지 않는다 |
-| 프로필 | `ant auth login` 후 두 변수 없이 실행 (auto 전용) | SDK 가 프로필 토큰 + oauth beta 헤더를 스스로 붙임 | zero-arg `new Anthropic()`. 프로필 존재는 `ANTHROPIC_PROFILE` 또는 설정 디렉터리의 `configs/` 로 판정하며, 실제 해석 실패는 첫 호출 때 `AdapterError('auth')` 로 나온다 |
+| **토큰 (권장)** | `MODEL_AUTH=token` + `ANTHROPIC_AUTH_TOKEN=<토큰>`. 발급은 **`claude setup-token`** (Claude Code CLI, Claude 구독 필요 · **장수명**) | `Authorization: Bearer <토큰>` + `anthropic-beta: oauth-2025-04-20` | SDK 는 `authToken` 을 직접 넘길 때 oauth beta 헤더를 붙이지 않는다(프로필 체인에서만 붙임 — `client.js` `prepareRequest` 확인). `/v1/messages` 는 이 헤더가 필요하므로 `defaultHeaders` 로 넣는다. env 로 넘긴 값은 자동 갱신되지 않으므로 만료되면 다시 발급해 넣는다(만료는 `AdapterError('auth')`) |
+| API 키 (대안) | `MODEL_AUTH=api_key` + `ANTHROPIC_API_KEY=<키>` (platform.claude.com 발급, 사용량 과금) | `x-api-key: <키>` | `new Anthropic({ apiKey, authToken: null })` — 토큰 env 가 함께 있어도 두 헤더를 같이 보내지 않는다 (API 가 거부) |
+| 프로필 (내부 CLI 전용) | `ant auth login` 후 두 변수 없이 `MODEL_AUTH=auto`. `ant` 는 **Anthropic 내부 CLI** 로 일반 사용자 환경에는 없다 | SDK 가 프로필 토큰 + oauth beta 헤더를 스스로 붙임 | zero-arg `new Anthropic()`. 프로필 존재는 `ANTHROPIC_PROFILE` 또는 설정 디렉터리의 `configs/` 로 판정하며, 실제 해석 실패는 첫 호출 때 `AdapterError('auth')` 로 나온다. `ant auth print-credentials --env` 로 값을 꺼내 쓸 수도 있지만 **그 경로를 자동화하는 코드는 이 저장소에 없다** |
+
+`.env` 는 API 가 **스스로 읽는다** (`tsx --env-file-if-exists`). 셸에 이미 있는 환경변수가 파일보다 우선한다.
+값에 특수문자가 있으면 단일 인용해 적는다(`setup.sh` 가 그렇게 쓴다) — `--env-file` 과 `source` 가 모두 인용을 벗긴다.
 
 테스트(`index.test.ts`)는 fake fetch 로 각 방식에서 실제로 보내는 헤더(`x-api-key` vs `Authorization: Bearer` + beta)를 확인한다.
 

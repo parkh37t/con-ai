@@ -67,7 +67,14 @@ function main(): void {
     console.log(`[con-ai api] DB ${config.db_path}  exports ${config.export_dir}`)
     console.log(`[con-ai api] 어댑터 ${adapter.kind}(${adapter.model}) 인증 ${adapterAuthOf(adapter)}  Playwright ${detectPlaywright(env) ? '있음' : '없음'}`)
     if (adapter.kind === 'fixture') {
-      console.log('[con-ai api] 어댑터 fixture(더미) — 실제 모델은 .env 의 MODEL_ADAPTER=anthropic 과 ANTHROPIC_API_KEY 또는 ANTHROPIC_AUTH_TOKEN 설정')
+      // 자격 증명을 채워 두고 MODEL_ADAPTER 를 안 바꾼 경우를 **조용히 넘기지 않는다.**
+      // 예전에는 토큰이 완벽히 들어 있어도 아무 말 없이 더미로 돌았다.
+      const hasCredential = (env.ANTHROPIC_AUTH_TOKEN ?? '').trim().length > 0 || (env.ANTHROPIC_API_KEY ?? '').trim().length > 0
+      if (hasCredential) {
+        console.log('[con-ai api] ⚠ 자격 증명이 설정돼 있는데 MODEL_ADAPTER 가 anthropic 이 아니라 **더미 어댑터로 돌고 있다.** .env 의 MODEL_ADAPTER=anthropic 으로 바꾸고 재시작한다')
+      } else {
+        console.log('[con-ai api] 어댑터 fixture(더미) — 실제 모델은 .env 에 MODEL_ADAPTER=anthropic · MODEL_AUTH=token · ANTHROPIC_AUTH_TOKEN(발급 `claude setup-token`) 설정')
+      }
     }
     if (seed.seeded) console.log(`[con-ai api] 샘플 프로젝트를 시드했다 (project ${seed.project_id})`)
     if (recovered_job_ids.length > 0) console.log(`[con-ai api] 서버 재시작으로 중단된 작업 ${recovered_job_ids.length}건을 failed 로 정리했다`)
