@@ -250,11 +250,22 @@ function RevisionWorkbench({ screen, detail, route, onChanged }: { screen: Scree
                 </span>
               </div>
               {foreign > 0 && <div className="notice notice-amber">검증 결과 {foreign}건은 다른 artifact hash 의 것이라 요약에서 제외했습니다.</div>}
-              {validation_results.some((r) => r.stage === 'V3' && r.status === 'not_run') && (
-                <div className="notice" data-testid="v3-not-run-note">
-                  V3(실행 검사)가 <strong>미실행(not_run)</strong> 인 것은 정상입니다 — 브라우저에서는 Playwright 로 화면을 실제로 띄워 볼 수 없습니다. 미실행은 통과가 아니므로 완료(v1.0) 승인은 막히며, 실행 검사는 서버 실행(<code>pnpm serve</code>)에서 동작합니다.
+              {/*
+                V3 미실행 안내는 **필수 여부로 갈린다.** 예전에는 모든 not_run 에 「승인이 막힌다」고 적어,
+                검색·다운로드가 없는 화면의 선택 검사 미실행에도 겁을 주고, 브라우저에서 V3 를 돌릴 수 없다는
+                지금은 틀린 이유를 댔다(격리 iframe 에서 실제로 돈다 — browser-run/v3-browser.ts).
+              */}
+              {validation_results.some((r) => r.stage === 'V3' && r.status === 'not_run' && r.required) && (
+                <div className="notice notice-amber" data-testid="v3-not-run-note">
+                  <strong>필수</strong> 실행 검사(V3)가 <strong>미실행(not_run)</strong> 입니다. 미실행은 통과가 아니므로 <strong>완료(v1.0) 승인이 막힙니다</strong> — 승인 화면이 어느 검사인지 그대로 보여줍니다.
                 </div>
               )}
+              {validation_results.some((r) => r.stage === 'V3' && r.status === 'not_run' && !r.required) &&
+                !validation_results.some((r) => r.stage === 'V3' && r.status === 'not_run' && r.required) && (
+                  <div className="notice" data-testid="v3-optional-not-run-note">
+                    선택 실행 검사(V3) 일부가 <strong>미실행(not_run)</strong> 입니다 — 이 화면에 해당 동작(검색·다운로드 등)이 없어 돌릴 것이 없다는 뜻입니다. <strong>완료(v1.0) 승인을 막지 않습니다.</strong>
+                  </div>
+                )}
               <ValidationTable results={validation_results} artifactHash={artifact.content_hash} />
             </section>
           )}
