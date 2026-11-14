@@ -2,6 +2,7 @@
 
 > 이 저장소는 **S2B AI 생산 방법론(7계층 OS)**을 코어로 두고, **여러 프로젝트의 화면설계 방법론을 테스트·프로토타이핑하고 S2B처럼 GitHub Pages로 배포**하는 **워크벤치**다.
 > 방법론 원리: `방법론/s2b-methodology-study.md`. 멀티입력→프로토타입 환경: `방법론/와일리-OS/00_OVERVIEW.md`.
+> **새 세션 단일 진입점(통합 핸드북)**: `방법론/와일리-OS/10_WYLIE-OS-HANDBOOK.md` (문서 뷰어 `handbook.html`) — 모든 대화·스킬·노하우·화면·검증·에이전트·재개발 가이드를 한 문서에.
 
 ---
 
@@ -23,7 +24,7 @@ con-ai/
 │   ├── s2b-methodology-study.md      7계층 OS 학습 보고서
 │   ├── templates/template_screen.html  골든 2단 템플릿
 │   ├── 표준/입력필드_정책.md          공용 입력 표준
-│   ├── 와일리-OS/                    ★ 멀티입력→프로토타입 환경 (00~09 + screenspec.schema.json)
+│   ├── 와일리-OS/                    ★ 멀티입력→프로토타입 환경 (00~10 + handbook.html + screenspec.schema.json)
 │   └── s2b-원전/                     S2B 생산 메커니즘 원전(SKILL·규칙·작업가이드·IA·glossary·더미·입력필드)
 ├── .claude/skills/                  ★ 커스텀 스킬 (공용)
 │   ├── screen-spec/                  화면 생산(2단 도식화)
@@ -107,6 +108,7 @@ con-ai/
 - **S2B 생산 메커니즘 내재화**: `07_s2b-production-mechanism.md`(SSOT 4계층·8단 디스크립션·마커 5종금지(p1b~p5)/부여 5기법·검색 2-A·골든 복제→개조·콘텐츠 5원칙·도구 인벤토리·입력필드 정책) · 원전 보관 `방법론/s2b-원전/`. `screen-spec` 스킬이 이를 규범으로 삼는다.
 - **에이전트 팀 6종**: `08_agent-team.md` + `.claude/agents/wylie-*.md` (intake·extract·screen·diagram·verify·render). 파이프라인 단계별 롤 분업. `Agent(subagent_type)`·`Workflow(agentType)`로 호출.
 - **세션 회고(방법론 자산)**: `09_session-retrospective.md` — "와일리 OS는 어떤 AI 방법론인가"를 5관점(과정·원리·AI 인사이트·거버넌스·메타)으로 종합. 핵심: **AI는 내용은 맞히나 표준 양식·분량·일관성에서 무너진다 → 골든+SSOT+검증으로 "AI를 표준 위에 올린다"**. 다음 세션 계승용 1문서.
+- **통합 핸드북(이식·재개발용)**: `10_WYLIE-OS-HANDBOOK.md` + 뷰어 `handbook.html`(MD를 그대로 렌더 — MD가 원본). 세션 연대기·파이프라인·생산 규범·스킬 4종·검증 15검사·에이전트 6종·실증 카탈로그·함정·**재개발 가이드(이식 체크리스트·스킬 후보·기능 백로그 F1~F9·불일치 결정사항 D1~D6)**. 새 노하우는 원문(00~09·스킬·훅)을 먼저 고치고 핸드북 해당 절을 갱신.
 
 ---
 
