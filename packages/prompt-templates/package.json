@@ -1,0 +1,10 @@
+{
+  "name": "@con-ai/prompt-templates",
+  "version": "0.0.0",
+  "private": true,
+  "description": "버전 관리된 프롬프트 템플릿과 문맥 조립 규칙",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  }
+}

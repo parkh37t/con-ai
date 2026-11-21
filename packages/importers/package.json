@@ -1,0 +1,10 @@
+{
+  "name": "@con-ai/importers",
+  "version": "0.0.0",
+  "private": true,
+  "description": "XLSX·MD·INDEX·CSV 읽기 (원문 위치 보존, 중복·충돌은 검토 대상으로 보존)",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  }
+}

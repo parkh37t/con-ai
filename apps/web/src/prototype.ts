@@ -1,0 +1,321 @@
+/**
+ * 프로토타입 둘러보기 — 4단계(① AS-IS → ② 생성 → ③ 검토·수정 → ④ 완료·이관)를 처음부터 끝까지 한 번 돌린다.
+ *
+ * 이 파일은 **순수 규칙**만 갖는다(단계 정의·진행 상태·다음 할 일). 실행은 화면(PrototypePage)이
+ * 다른 화면과 **똑같은 API** 로 한다 — 프로토타입 전용 뒷문을 만들지 않는다. 그래야 여기서 통과한 것이
+ * 실제 화면에서도 통과한다.
+ *
+ * 정직 표기 규칙 (CLAUDE.md)
+ * - 단계마다 «지금 실제로 도는 것» 과 «미리 기록해 둔 것» 을 나눠 적는다. 둘을 뭉뚱그리지 않는다.
+ * - 샘플 문장·코멘트는 이 파일에 있는 **가상 데이터**다. 실제 고객 요구사항이 아니다.
+ */
+
+import { guessScreenKind } from './browser-run/deps.js'
+import type { AdapterKind, CommentRole } from './types.js'
+
+export type PrototypeStepId = 'asis' | 'generate' | 'review' | 'approve'
+
+export interface PrototypeStepSpec {
+  id: PrototypeStepId
+  /** 화면에 찍는 단계 번호 (제품의 4단계와 같은 번호). */
+  no: 1 | 2 | 3 | 4
+  title: string
+  goal: string
+  /** 이 단계에서 **지금 실제로 도는 것**. */
+  runs: string
+  /** 이 단계에서 **미리 기록해 둔 것**(또는 샘플). 없으면 빈 문자열. */
+  sampled: string
+  action: string
+}
+
+export const PROTOTYPE_STEPS: readonly PrototypeStepSpec[] = [
+  {
+    id: 'asis',
+    no: 1,
+    title: 'AS-IS 분석',
+    goal: '현행 화면의 페인포인트를 찾는다.',
+    runs: '페인포인트 규칙(서버와 같은 더미 어댑터)을 이 브라우저에서 돌린다.',
+    sampled: '대상 페이지의 구조·스크린샷은 서버 분석기(Playwright)가 합성 페이지를 분석해 남긴 기록이다.',
+    action: '샘플 대상 분석',
+  },
+  {
+    id: 'generate',
+    no: 2,
+    title: '화면 생성',
+    goal: '요구사항·참고 화면을 붙여 화면명세와 HTML 목업을 만든다.',
+    runs: '문맥 조립 → 명세 → 스키마·참조 검사 → 목업 렌더 → V1·V2·V3 검사 → 저장. 전부 이 브라우저에서 실제로 실행된다.',
+    sampled: '명세를 쓰는 모델만 더미다(자격 증명을 넣으면 실제 모델이 쓴다). 한 줄 요청 문장은 아래 샘플 문장이다.',
+    action: '샘플 문장으로 만들기',
+  },
+  {
+    id: 'review',
+    no: 3,
+    title: '검토 · 수정',
+    goal: '팀이 코멘트를 달고, 그 코멘트로 다시 만든다.',
+    runs: '코멘트 저장 → 수정 프롬프트 초안 → 단건 수정 → 새 revision → 코멘트 해결까지 실제로 실행된다.',
+    sampled: '코멘트 2건(디자이너 차단 1 · 퍼블리셔 비차단 1)은 아래 샘플 문장이다.',
+    action: '샘플 코멘트로 수정',
+  },
+  {
+    id: 'approve',
+    no: 4,
+    title: '완료 · 이관',
+    goal: '승인 게이트를 통과하면 v1.0 과 산출물 6개 파일을 만든다.',
+    runs: '승인 판정(필수 검사 전부 pass · 차단 코멘트 0 · hash 일치)과 산출물 6개 파일 생성이 실제로 실행된다.',
+    sampled: '',
+    action: '완료(v1.0) 처리',
+  },
+]
+
+/**
+ * 단계 카드의 「지금 실제로 도는 것 / 미리 기록해 둔 것」 문구 — **어댑터에 따라 달라진다.**
+ *
+ * 고정 문자열로 두면 자격 증명을 넣어 내 토큰으로 도는데도 «더미 어댑터» 라고 적는다.
+ * CLAUDE.md 가 요구하는 「더미와 실제를 사용자에게 구분해 보여준다」를 카드 단위로 지킨다.
+ *
+ * ①·② 는 모델을 쓰므로 어댑터에 따라 갈리고, ③ 는 모델을 쓰지만 문구에 더미 언급이 없어 그대로,
+ * ④ 는 모델을 쓰지 않아 그대로다.
+ */
+export function prototypeStepText(spec: PrototypeStepSpec, adapter: AdapterKind | null): { runs: string; sampled: string } {
+  // claude_code 도 «실제 호출» 이다 (내 기계의 Claude Code 가 부른다).
+  const real = adapter === 'anthropic' || adapter === 'claude_code'
+  if (spec.id === 'asis') {
+    return {
+      runs: real
+        ? '페인포인트 초안을 내 자격 증명으로 실제 모델이 쓴다 (이 브라우저가 api.anthropic.com 을 직접 호출한다).'
+        : spec.runs,
+      sampled: spec.sampled,
+    }
+  }
+  if (spec.id === 'generate') {
+    return {
+      runs: spec.runs,
+      sampled: real
+        ? '명세도 내 자격 증명으로 실제 모델이 쓴다 — 이 단계에 더미는 없다. 한 줄 요청 문장은 아래 샘플 문장이다.'
+        : spec.sampled,
+    }
+  }
+  return { runs: spec.runs, sampled: spec.sampled }
+}
+
+// ---------------------------------------------------------------- 샘플 데이터 (가상)
+
+/**
+ * ② 생성에 쓰는 한 줄 요청 — **그 프로젝트의 요구사항에서 만든다.**
+ * 도메인마다 다른 문장을 손으로 적어 두면 프로젝트를 늘릴 때마다 어긋난다.
+ * 요구사항 본문이 이미 «누가 무엇을 한다» 한 문장이라 그대로 쓰기 좋다.
+ */
+export function prototypeSentence(requirements: ReadonlyArray<{ title: string; body: string }>): string {
+  const first = requirements[0]
+  if (first === undefined) return PROTOTYPE_SENTENCE_FALLBACK
+  // 목록 화면 하나에 담기 좋은 두 번째 요구사항(내려받기·다운로드)이 있으면 함께 넣는다.
+  const extra = requirements.slice(1).find((r) => /내려받|다운로드/.test(`${r.title} ${r.body}`))
+  return extra === undefined ? first.body : `${first.body} ${extra.body}`
+}
+
+/** 요구사항을 아직 읽지 못했을 때만 쓰는 문장. */
+export const PROTOTYPE_SENTENCE_FALLBACK = '사용자가 목록을 조회하고 조건으로 검색한다. 목록에서 상세로 이동하고, 다운로드 버튼으로 목록을 내려받는다.'
+
+/** 둘러보기가 만들 화면의 종류. 메인은 목록과 어휘가 달라(히어로·KPI·카드) 문장·코멘트도 달라야 한다. */
+export type PrototypeTargetKind = 'main' | 'list'
+
+export interface PrototypeTarget {
+  kind: PrototypeTargetKind
+  /** 만들 화면 제목의 꼬리표 ("<프로젝트> <suffix>"). */
+  title_suffix: string
+  sentence: string
+}
+
+/**
+ * ② 생성이 만들 화면 — **그 프로젝트가 가진 것으로 정한다.**
+ * 메인 골든 레퍼런스가 있고 그에 맞는 요구사항이 있으면 메인 화면을, 없으면 목록 화면을 만든다.
+ * 도메인마다 문장을 손으로 적어 두지 않는다 (프로젝트를 늘릴 때마다 어긋난다).
+ */
+export function prototypeTarget(
+  requirements: ReadonlyArray<{ title: string; body: string }>,
+  references: ReadonlyArray<{ category: string }>,
+): PrototypeTarget {
+  if (references.some((r) => r.category === 'main')) {
+    const mainReq = requirements.find((r) => guessScreenKind(`${r.title} ${r.body}`).kind === 'main')
+    if (mainReq !== undefined) return { kind: 'main', title_suffix: '메인 (프로토타입)', sentence: `${mainReq.title} — ${mainReq.body}` }
+  }
+  return { kind: 'list', title_suffix: '목록 (프로토타입)', sentence: prototypeSentence(requirements) }
+}
+
+interface PrototypeComment {
+  author: string
+  role: CommentRole
+  text: string
+  blocking: boolean
+}
+
+/**
+ * ③ 검토에 쓰는 코멘트 2건. **차단 1건**이 있어야 승인 게이트가 실제로 막힌다.
+ * 화면 종류마다 다른 것을 보므로 문장도 갈린다 — 메인 화면에 「표의 금액 열」 같은 말을 붙이면 검토가 연극이 된다.
+ * 특정 요소의 라벨을 박아 두지는 않는다 (도메인이 달라도 그대로 맞아야 한다).
+ */
+export function prototypeComments(kind: PrototypeTargetKind): ReadonlyArray<PrototypeComment> {
+  if (kind === 'main') {
+    return [
+      {
+        author: '샘플 디자이너',
+        role: 'designer',
+        text: '히어로 카피가 두 줄로 끊기는 위치를 규격대로 맞춰 주세요. 지금은 읽는 흐름이 끊깁니다.',
+        blocking: true,
+      },
+      {
+        author: '샘플 퍼블리셔',
+        role: 'publisher',
+        text: 'KPI 숫자는 자릿수를 맞춰 오른쪽으로 붙여 주세요. 값 비교가 어렵습니다.',
+        blocking: false,
+      },
+    ]
+  }
+  return [
+    {
+      author: '샘플 디자이너',
+      role: 'designer',
+      text: '검색 영역 라벨의 띄어쓰기를 규격대로 맞춰 주세요. 지금은 붙어 있어 읽기 어렵습니다.',
+      blocking: true,
+    },
+    {
+      author: '샘플 퍼블리셔',
+      role: 'publisher',
+      text: '표의 금액 열은 오른쪽 정렬이 필요합니다. 자릿수 비교가 어렵습니다.',
+      blocking: false,
+    },
+  ]
+}
+
+/** ④ 완료에 쓰는 승인자 이름 (사람이 바꿀 수 있다). */
+export const PROTOTYPE_APPROVER = '프로토타입 기획자'
+
+// ---------------------------------------------------------------- 진행 상태
+
+/** 이 브라우저에 남는 진행 기록. 실제 실행이 만든 id 만 담는다 (지어낸 값 없음). */
+export interface PrototypeRun {
+  analysis_id?: string
+  pain_point_count?: number
+  screen_id?: string
+  screen_external_id?: string
+  revision1_id?: string
+  comment_ids?: string[]
+  revision2_id?: string
+  approved_version?: string
+  export_file_count?: number
+}
+
+export const PROTOTYPE_STORE_KEY = 'con-ai:prototype'
+
+/** 진행 기록은 **프로젝트마다 따로** 남긴다 — 도메인을 바꿔 돌릴 때 섞이지 않게 한다. */
+export function runKey(projectId: string): string {
+  return `${PROTOTYPE_STORE_KEY}:${projectId}`
+}
+
+export function emptyRun(): PrototypeRun {
+  return {}
+}
+
+/** 이 단계가 끝났는가 — 실행 결과가 실제로 남아 있어야 «끝남» 이다. */
+export function isStepDone(run: PrototypeRun, id: PrototypeStepId): boolean {
+  switch (id) {
+    case 'asis':
+      return typeof run.pain_point_count === 'number'
+    case 'generate':
+      return typeof run.revision1_id === 'string'
+    case 'review':
+      return typeof run.revision2_id === 'string'
+    case 'approve':
+      return typeof run.approved_version === 'string'
+  }
+}
+
+export type PrototypeStepStatus = 'done' | 'ready' | 'blocked'
+
+/** 앞 단계가 끝나야 다음 단계를 누를 수 있다 (순서를 건너뛰지 않는다). */
+export function stepStatus(run: PrototypeRun, id: PrototypeStepId): PrototypeStepStatus {
+  if (isStepDone(run, id)) return 'done'
+  const index = PROTOTYPE_STEPS.findIndex((s) => s.id === id)
+  const previous = PROTOTYPE_STEPS.slice(0, index)
+  return previous.every((s) => isStepDone(run, s.id)) ? 'ready' : 'blocked'
+}
+
+/** 지금 해야 할 단계. 다 끝났으면 null. */
+export function nextStep(run: PrototypeRun): PrototypeStepId | null {
+  return PROTOTYPE_STEPS.find((s) => !isStepDone(run, s.id))?.id ?? null
+}
+
+export function doneCount(run: PrototypeRun): number {
+  return PROTOTYPE_STEPS.filter((s) => isStepDone(run, s.id)).length
+}
+
+export function isComplete(run: PrototypeRun): boolean {
+  return doneCount(run) === PROTOTYPE_STEPS.length
+}
+
+/** 진행 문구 — 끝난 뒤에도 「몇 단계 중 몇」 을 그대로 적는다. */
+export function progressText(run: PrototypeRun): string {
+  const done = doneCount(run)
+  return isComplete(run) ? `${PROTOTYPE_STEPS.length}단계 모두 끝났습니다` : `${PROTOTYPE_STEPS.length}단계 중 ${done}단계 완료`
+}
+
+// ---------------------------------------------------------------- 저장 (이 브라우저에만)
+
+interface StorageLike {
+  getItem(key: string): string | null
+  setItem(key: string, value: string): void
+  removeItem(key: string): void
+}
+
+function localStorageOrNull(): StorageLike | null {
+  try {
+    const s = (globalThis as { localStorage?: unknown }).localStorage
+    return s === undefined || s === null ? null : (s as StorageLike)
+  } catch {
+    return null
+  }
+}
+
+/** 저장소 주입 지점 (테스트가 갈아끼운다). 기본은 이 브라우저의 localStorage. */
+let storage: () => StorageLike | null = localStorageOrNull
+
+export function setPrototypeStorage(get: (() => StorageLike | null) | null): void {
+  storage = get ?? localStorageOrNull
+}
+
+/** 저장된 진행 기록. 모양이 깨졌으면 빈 상태로 시작한다 (예전 값을 새 결과처럼 쓰지 않는다). */
+export function loadRun(projectId: string): PrototypeRun {
+  const s = storage()
+  if (!s) return emptyRun()
+  try {
+    const raw = s.getItem(runKey(projectId))
+    if (raw === null || raw === '') return emptyRun()
+    const parsed: unknown = JSON.parse(raw)
+    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) return emptyRun()
+    return parsed as PrototypeRun
+  } catch {
+    return emptyRun()
+  }
+}
+
+/** 저장한다. 실패해도 화면은 계속 동작한다 (false 를 돌려 화면이 알린다). */
+export function saveRun(projectId: string, run: PrototypeRun): boolean {
+  const s = storage()
+  if (!s) return false
+  try {
+    s.setItem(runKey(projectId), JSON.stringify(run))
+    return true
+  } catch {
+    return false
+  }
+}
+
+export function clearRun(projectId: string): void {
+  const s = storage()
+  if (!s) return
+  try {
+    s.removeItem(runKey(projectId))
+  } catch {
+    /* 무시 */
+  }
+}

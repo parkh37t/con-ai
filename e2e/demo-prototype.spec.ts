@@ -1,0 +1,166 @@
+/**
+ * 정적 데모(배포 주소)의 프로토타입 4단계 — `#/prototype` 에서 ① AS-IS → ② 생성 → ③ 검토·수정 → ④ 완료 가
+ * **서버 없이 실제로** 끝까지 도는지 확인한다. API 서버는 띄우지 않는다 (playwright.demo.config.ts).
+ *
+ * 이 검사가 지키는 것
+ * - 각 단계는 화면의 버튼으로 실행한다 (프로토타입 전용 뒷문을 쓰지 않는다).
+ * - ④ 완료는 **필수 검사(V3 포함)가 실제로 통과해야** 넘어간다 — 통과를 흉내내지 않는다.
+ * - 새로고침해도 진행 기록이 남는다.
+ */
+import { expect, test, type Locator, type Page } from '@playwright/test'
+
+const STEP_TIMEOUT_MS = 120_000
+
+async function runStep(page: Page, id: string): Promise<Locator> {
+  const card = page.locator(`[data-testid="proto-step"][data-step="${id}"]`)
+  await expect(card).toHaveAttribute('data-status', 'ready')
+  await card.getByTestId('proto-run').click()
+  // 실패하면 그 자리에서 이유를 보이고 끝낸다 (조용히 기다리지 않는다).
+  await expect
+    .poll(
+      async () => {
+        if ((await page.getByTestId('proto-error').count()) > 0) return `error: ${await page.getByTestId('proto-error').innerText()}`
+        return await card.getAttribute('data-status')
+      },
+      { timeout: STEP_TIMEOUT_MS, message: `단계 ${id} 가 끝나지 않았다` },
+    )
+    .toBe('done')
+  return card
+}
+
+test('정적 데모 프로토타입: 4단계를 끝까지 실행하고 새로고침해도 남는다', async ({ page }) => {
+  test.setTimeout(300_000)
+  const consoleErrors: string[] = []
+  page.on('console', (m) => {
+    if (m.type() === 'error') consoleErrors.push(m.text())
+  })
+  page.on('pageerror', (e) => consoleErrors.push(`pageerror: ${e.message}`))
+
+  await page.goto('#/')
+  await page.evaluate(() => localStorage.clear())
+  await page.goto('#/prototype')
+  await expect(page.getByTestId('proto-status')).toBeVisible({ timeout: 30_000 })
+
+  await test.step('처음에는 첫 단계만 누를 수 있다', async () => {
+    await expect(page.getByTestId('proto-progress')).toContainText('0단계')
+    // 더미 어댑터라는 사실을 숨기지 않는다.
+    await expect(page.getByTestId('proto-adapter')).toContainText('더미 어댑터')
+    await expect(page.locator('[data-testid="proto-step"]')).toHaveCount(4)
+    await expect(page.locator('[data-testid="proto-step"][data-step="generate"]')).toHaveAttribute('data-status', 'blocked')
+  })
+
+  await test.step('① AS-IS — 샘플 대상에서 페인포인트를 실제로 만든다', async () => {
+    const card = await runStep(page, 'asis')
+    await expect(card.getByTestId('proto-result')).toContainText('페인포인트')
+    await expect(page.getByTestId('proto-note')).toContainText('페인포인트')
+  })
+
+  await test.step('② 생성 — 새 화면과 revision 1 을 만든다', async () => {
+    const card = await runStep(page, 'generate')
+    await expect(card.getByTestId('proto-result')).toContainText('설계서 열기')
+    await expect(page.getByTestId('proto-note')).toContainText('revision 1')
+  })
+
+  await test.step('③ 검토·수정 — 코멘트를 반영해 revision 2 를 만든다', async () => {
+    const card = await runStep(page, 'review')
+    await expect(card.getByTestId('proto-result')).toContainText('검토 화면')
+    await expect(page.getByTestId('proto-note')).toContainText('코멘트 2건')
+  })
+
+  await test.step('④ 완료 — 필수 검사가 실제로 통과해야 v1.0 이 된다', async () => {
+    const card = await runStep(page, 'approve')
+    await expect(card.getByTestId('proto-result')).toContainText('v1.0')
+    await expect(card.getByTestId('proto-result')).toContainText('산출물 6개')
+    await expect(page.getByTestId('proto-complete')).toBeVisible()
+    await expect(page.getByTestId('proto-progress')).toContainText('모두 끝났습니다')
+  })
+
+  await test.step('완료 화면이 스스로와 모순되지 않는다 — 완료됨 표시 · 완료 폼 없음 · 승인 산출물 안내', async () => {
+    await page.locator('[data-testid="proto-step"][data-step="approve"]').getByTestId('proto-result').click()
+    await expect(page.getByTestId('precheck')).toContainText('완료됨')
+    await expect(page.getByTestId('precheck')).toContainText('v1.0')
+    // 이미 완료된 화면에 완료 버튼을 남겨 두지 않는다.
+    await expect(page.getByTestId('approve-button')).toHaveCount(0)
+    // 승인된 산출물을 「아직 승인이 아니다」 라고 적지 않는다.
+    await expect(page.getByTestId('browser-export-note')).toContainText('승인(v1.0) 산출물')
+  })
+
+  await test.step('새로고침해도 진행 기록이 남는다', async () => {
+    await page.goto('#/prototype')
+    await expect(page.getByTestId('proto-progress')).toContainText('모두 끝났습니다', { timeout: 30_000 })
+    await expect(page.locator('[data-testid="proto-step"][data-step="approve"]')).toHaveAttribute('data-status', 'done')
+  })
+
+  await test.step('가로로 넘치지 않고 콘솔 오류가 없다', async () => {
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)
+    expect(overflow, '가로 스크롤이 생겼다').toBe(false)
+    expect(consoleErrors, `콘솔 오류: ${consoleErrors.join(' | ')}`).toEqual([])
+  })
+})
+
+/**
+ * 도메인 3종을 모두 돌린다 — 「견적 포털에서만 되는 것」이 아님을 실제로 확인한다.
+ * (기획자가 「뱅킹 앱에서 조회 화면이다」 를 넣었을 때 막혔던 것이 이 검사가 없어서였다.)
+ */
+test('정적 데모 프로토타입: 샘플 도메인 3종(견적·뱅킹·커머스)이 모두 4단계를 통과한다', async ({ page }) => {
+  test.setTimeout(600_000)
+  const consoleErrors: string[] = []
+  page.on('console', (m) => {
+    if (m.type() === 'error') consoleErrors.push(m.text())
+  })
+  page.on('pageerror', (e) => consoleErrors.push(`pageerror: ${e.message}`))
+
+  await page.goto('#/')
+  await page.evaluate(() => localStorage.clear())
+  await page.goto('#/prototype')
+  await expect(page.getByTestId('proto-status')).toBeVisible({ timeout: 30_000 })
+
+  const tabs = page.locator('[data-testid="proto-project"]')
+  await expect(tabs).toHaveCount(3)
+  const names = await tabs.allInnerTexts()
+  expect(names.join(' ')).toContain('뱅킹')
+  expect(names.join(' ')).toContain('커머스')
+
+  // 메인 어휘를 밟은 도메인이 몇 개인지 센다 — 조건 분기가 조용히 건너뛰면 이 검사가 헛돌기 때문이다.
+  let mainRuns = 0
+  for (let i = 0; i < 3; i++) {
+    const label = names[i] ?? `${i}`
+    await test.step(`${label} — 4단계를 끝까지 돌린다`, async () => {
+      await page.locator('[data-testid="proto-project"]').nth(i).click()
+      await expect(page.getByTestId('proto-progress')).toContainText('0단계')
+      // 요청 문장은 그 도메인의 요구사항에서 나온다 — 다른 도메인의 말이 섞이지 않는다.
+      const sentence = await page.locator('[data-testid="proto-step"][data-step="generate"]').getByTestId('proto-sentence').innerText()
+      expect(sentence.length).toBeGreaterThan(20)
+
+      for (const id of ['asis', 'generate', 'review', 'approve']) await runStep(page, id)
+      await expect(page.getByTestId('proto-complete')).toBeVisible()
+      await expect(page.locator('[data-testid="proto-step"][data-step="approve"]').getByTestId('proto-result')).toContainText('v1.0')
+
+      // 메인 골든이 있는 도메인(뱅킹)은 목록이 아니라 **메인 화면**을 만든다 — 넓힌 어휘가 둘러보기에서도 돈다.
+      if (sentence.includes('메인')) {
+        mainRuns += 1
+        await page.locator('[data-testid="proto-step"][data-step="generate"]').getByTestId('proto-result').click()
+        const screen = page.frameLocator('[data-testid="design-iframe"]').locator('[data-region="screen"]')
+        await expect(screen.locator('.hero .hero-headline')).toBeVisible({ timeout: 30_000 })
+        await expect(screen.locator('.stat-strip .stat-value').first()).toBeVisible()
+        await expect(screen.locator('.card-grid .card-title').first()).toBeVisible()
+        await page.goBack()
+        await expect(page.getByTestId('proto-status')).toBeVisible({ timeout: 30_000 })
+      }
+    })
+  }
+
+  // 메인 골든을 가진 도메인이 실제로 한 곳은 있어야 한다 (없으면 위 단언이 한 번도 돌지 않은 것이다).
+  expect(mainRuns, '메인 화면을 만드는 도메인이 하나도 없었다 — 넓힌 어휘가 둘러보기에서 검사되지 않았다').toBeGreaterThanOrEqual(1)
+
+  await test.step('도메인별 진행 기록이 서로 섞이지 않는다', async () => {
+    await page.reload()
+    await expect(page.getByTestId('proto-status')).toBeVisible({ timeout: 30_000 })
+    for (let i = 0; i < 3; i++) {
+      await page.locator('[data-testid="proto-project"]').nth(i).click()
+      await expect(page.getByTestId('proto-progress')).toContainText('모두 끝났습니다')
+    }
+  })
+
+  expect(consoleErrors, `콘솔 오류: ${consoleErrors.join(' | ')}`).toEqual([])
+})

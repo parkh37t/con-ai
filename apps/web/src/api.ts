@@ -1,0 +1,222 @@
+/**
+ * API 클라이언트 — 세로 조각 계약 §7 의 엔드포인트를 타입이 있는 함수로 감싼다.
+ * 오류는 ApiError({status, reasons}) 로 던지고 화면이 그대로 보여준다. 모델 키·인증정보는 여기 없다 (호출은 서버 어댑터만).
+ */
+import type {
+  ApprovalResponse,
+  AsisAnalysis,
+  AsisAnalysisSummary,
+  Comment,
+  CommentInput,
+  CommentStatus,
+  ExportManifest,
+  IANode,
+  IdIssueResponse,
+  Job,
+  Meta,
+  PainPointStatus,
+  Project,
+  ProjectDetail,
+  PromptPreviewResponse,
+  ReasonLike,
+  Reference,
+  RevisionDetail,
+  RevisionPromptDraft,
+  RfpAnalysis,
+  RfpAnalysisSummary,
+  RtmReport,
+  Screen,
+  ScreenCreateInput,
+  ScreenCreateResponse,
+  ScreenDetail,
+  SliceGenerationRequest,
+  ValidationResult
+} from './types.js'
+import { browserArtifactUrl } from './browser-run/artifact-urls.js'
+import { DEMO_BASE, IS_DEMO } from './demo-mode.js'
+import { exportFileUrl } from './export-paths.js'
+
+export class ApiError extends Error {
+  override readonly name = 'ApiError'
+  readonly status: number
+  readonly reasons: string[]
+  readonly path: string
+
+  constructor(path: string, status: number, message: string, reasons: string[] = []) {
+    super(message)
+    this.path = path
+    this.status = status
+    this.reasons = reasons
+  }
+}
+
+/** domain RuleReason[] / 문자열[] / 단일 문자열을 표시용 문자열 목록으로 통일한다. */
+export function normalizeReasons(raw: unknown): string[] {
+  if (raw === undefined || raw === null) return []
+  const list: unknown[] = Array.isArray(raw) ? raw : [raw]
+  const out: string[] = []
+  for (const item of list) {
+    if (typeof item === 'string') {
+      if (item.trim()) out.push(item)
+    } else if (typeof item === 'object' && item !== null) {
+      const r = item as Partial<Exclude<ReasonLike, string>> & { path?: unknown }
+      const msg = typeof r.message === 'string' ? r.message : ''
+      const code = typeof r.code === 'string' ? r.code : ''
+      const path = Array.isArray(r.path) ? r.path.map(String).join('.') : ''
+      const text = [code ? `[${code}]` : '', path ? `${path}:` : '', msg].filter(Boolean).join(' ')
+      if (text) out.push(text)
+    }
+  }
+  return out
+}
+
+/** 오류 본문에서 메시지·이유를 뽑는다 (`{error}`, `{message}`, `{reasons}`, `{issues}`, `{details}` 어느 형태든). */
+export function extractError(status: number, body: unknown, fallback: string): { message: string; reasons: string[] } {
+  const withStatus = (m: string) => (status === 0 ? m : `${m} (HTTP ${status})`)
+  if (typeof body === 'string' && body.trim()) return { message: body.slice(0, 500), reasons: [] }
+  if (typeof body !== 'object' || body === null) return { message: withStatus(fallback), reasons: [] }
+  const b = body as Record<string, unknown>
+  // **사람이 읽을 문구를 먼저 집는다.** `error` 는 보통 기계 코드(`screen_link_rejected`·`stale_proposal`)이고
+  // 한국어 설명은 `message` 에 온다. 순서가 거꾸로였을 때는 공들여 쓴 거부 사유가 화면에 닿지 않고
+  // 영문 코드 한 줄만 보였다. `error` 하나만 오는 응답(그때는 그게 사람 문구다)은 그대로 쓴다.
+  const message = [b['message'], b['title'], b['error']].find((v): v is string => typeof v === 'string' && v.trim().length > 0) ?? fallback
+  const reasons = [...normalizeReasons(b['reasons']), ...normalizeReasons(b['issues']), ...normalizeReasons(b['details']), ...normalizeReasons(b['errors'])]
+  return { message: withStatus(message), reasons }
+}
+
+async function readBody(res: Response): Promise<unknown> {
+  const text = await res.text()
+  if (!text) return undefined
+  try {
+    return JSON.parse(text) as unknown
+  } catch {
+    return text
+  }
+}
+
+async function request<T>(method: 'GET' | 'POST' | 'PATCH', path: string, body?: unknown): Promise<T> {
+  // 정적 데모 빌드(VITE_DEMO=1)에서는 서버 대신 스냅샷 기반 인메모리 핸들러가 응답한다.
+  // 오류 형태·ApiError 는 아래 실제 호출 경로와 똑같이 유지한다. 일반 빌드에서는 이 분기가 통째로 제거된다.
+  if (IS_DEMO) {
+    let result: { status: number; data: unknown }
+    try {
+      // 동적 import — 일반 빌드(서버 모드)에는 데모·브라우저 모드 코드가 들어가지 않는다.
+      const { handle: demoHandle } = await import('./demo-api.js')
+      result = await demoHandle(method, path, body)
+    } catch (e) {
+      throw new ApiError(path, 0, `정적 데모 데이터를 읽을 수 없습니다 (${path}). ${e instanceof Error ? e.message : ''}`.trim())
+    }
+    if (result.status < 200 || result.status >= 300) {
+      const { message, reasons } = extractError(result.status, result.data, `${method} ${path} 요청이 실패했습니다`)
+      throw new ApiError(path, result.status, message, reasons)
+    }
+    return result.data as T
+  }
+  const init: RequestInit = { method, headers: { Accept: 'application/json' } }
+  if (body !== undefined) {
+    init.headers = { Accept: 'application/json', 'Content-Type': 'application/json' }
+    init.body = JSON.stringify(body)
+  }
+  let res: Response
+  try {
+    res = await fetch(path, init)
+  } catch (e) {
+    throw new ApiError(path, 0, `API 에 연결할 수 없습니다 (${path}). API 서버(8787)가 실행 중인지 확인하세요. ${e instanceof Error ? e.message : ''}`.trim())
+  }
+  const data = await readBody(res)
+  if (!res.ok) {
+    const { message, reasons } = extractError(res.status, data, `${method} ${path} 요청이 실패했습니다`)
+    throw new ApiError(path, res.status, message, reasons)
+  }
+  return data as T
+}
+
+export const api = {
+  meta: () => request<Meta>('GET', '/api/meta'),
+  projects: () => request<Project[]>('GET', '/api/projects'),
+  project: (id: string) => request<ProjectDetail>('GET', `/api/projects/${encodeURIComponent(id)}`),
+  references: (projectId: string) => request<Reference[]>('GET', `/api/projects/${encodeURIComponent(projectId)}/references`),
+
+  // -------------------------------------------------------------- 추적 체인 RTM (산출물 P1-05)
+  /** REQ → IA → FN → SCR 집계·행·갭 제안. 저장하지 않고 서버가 매번 계산한다. */
+  rtm: (projectId: string) => request<RtmReport>('GET', `/api/projects/${encodeURIComponent(projectId)}/rtm`),
+  /** IA 노드 한 건 — 저장 직전에 현재 revision 을 읽는다. */
+  iaNode: (id: string) => request<{ ia_node: IANode; revision: number }>('GET', `/api/ia-nodes/${encodeURIComponent(id)}`),
+  /**
+   * IA 노드 연결·기능 추가. 번호는 붙지 않는다 — 발번은 따로 사람이 누른다.
+   * `screen_plan_id` 는 화면의 **내부 UUID** 다 (사람이 보는 외부 ID 는 화면 쪽에서 옮겨 보낸다).
+   */
+  patchIaNode: (
+    id: string,
+    body: { revision: number; by: string; reason: string; requirement_ids?: string[]; add_function?: { name: string; kind?: 'normal' | 'exception'; base_function_id?: string }; screen_plan_id?: string },
+  ) =>
+    request<{ ia_node: IANode; revision: number }>('PATCH', `/api/ia-nodes/${encodeURIComponent(id)}`, body),
+  /** ID 발번 — 사람이 사유와 함께 누른 것만 온다. 서버가 번호를 다시 계산해 응답에 싣는다. */
+  issueId: (id: string, body: { external_id: string; by: string; reason: string; revision: number; function_id?: string; expected_proposal_hash?: string }) =>
+    request<IdIssueResponse>('POST', `/api/ia-nodes/${encodeURIComponent(id)}/id-issuances`, body),
+  /** ID 개명 — 옛 값은 별칭으로 남는다. */
+  relabelId: (id: string, body: { external_id: string; by: string; reason: string; revision: number; function_id?: string }) =>
+    request<{ ia_node: IANode; revision: number }>('POST', `/api/ia-nodes/${encodeURIComponent(id)}/id-relabels`, body),
+  promptPreview: (screenId: string, req: SliceGenerationRequest) => request<PromptPreviewResponse>('POST', `/api/screens/${encodeURIComponent(screenId)}/prompt-preview`, req),
+  createJob: (screenId: string, req: SliceGenerationRequest) => request<{ job_id: string }>('POST', `/api/screens/${encodeURIComponent(screenId)}/generation-jobs`, req),
+  job: (id: string) => request<Job>('GET', `/api/jobs/${encodeURIComponent(id)}`),
+  screen: (id: string) => request<ScreenDetail>('GET', `/api/screens/${encodeURIComponent(id)}`),
+  /** 화면 만들기 (한 줄 입력 흐름). 외부 ID 는 서버가 자동 부여한다. */
+  createScreen: (projectId: string, body: ScreenCreateInput) => request<ScreenCreateResponse>('POST', `/api/projects/${encodeURIComponent(projectId)}/screens`, body),
+  /** 화면 제목만 수정 (외부 ID·별칭은 그대로). */
+  renameScreen: (id: string, title: string) => request<Screen>('PATCH', `/api/screens/${encodeURIComponent(id)}`, { title }),
+  revision: (id: string) => request<RevisionDetail>('GET', `/api/revisions/${encodeURIComponent(id)}`),
+  /**
+   * 격리 iframe 이 읽는 산출물 HTML.
+   * 브라우저 모드에서 방금 만든 산출물은 서버 파일이 없어 Blob URL 을 쓰고, 그 밖의 데모 산출물은 스냅샷 정적 파일(`<base>demo/artifacts/…`)을 가리킨다.
+   */
+  artifactHtmlUrl: (artifactId: string) => {
+    if (!IS_DEMO) return `/api/artifacts/${encodeURIComponent(artifactId)}/html`
+    return browserArtifactUrl(artifactId) ?? `${DEMO_BASE}artifacts/${encodeURIComponent(artifactId)}.html`
+  },
+  revalidate: (artifactId: string) => request<ValidationResult[] | { validation_results: ValidationResult[] }>('POST', `/api/artifacts/${encodeURIComponent(artifactId)}/validations`),
+  createComment: (revisionId: string, input: CommentInput) => request<Comment>('POST', `/api/revisions/${encodeURIComponent(revisionId)}/comments`, input),
+  patchComment: (id: string, body: { status: CommentStatus; revision: number }) => request<Comment>('PATCH', `/api/comments/${encodeURIComponent(id)}`, body),
+  revisionPrompt: (revisionId: string, commentIds: string[]) => request<RevisionPromptDraft>('POST', `/api/revisions/${encodeURIComponent(revisionId)}/revision-prompt`, { comment_ids: commentIds }),
+  approve: (screenId: string, body: { revision_id: string; approver: string }) => request<ApprovalResponse>('POST', `/api/screens/${encodeURIComponent(screenId)}/approvals`, body),
+  /** 내보낸 manifest.json — 승인 응답에 manifest 가 없을 때 읽는다. */
+  exportManifest: (exportPath: string) => request<ExportManifest>('GET', exportFileUrl(exportPath, 'manifest.json')),
+
+  // -------------------------------------------------------------- AS-IS 분석 (계약 §12)
+  /** 분석 실행 — 202 `{analysis_id}`. http/https URL 만 (서버가 다시 검사한다). */
+  createAsisAnalysis: (projectId: string, body: { url: string; note?: string }) =>
+    request<{ analysis_id: string }>('POST', `/api/projects/${encodeURIComponent(projectId)}/asis-analyses`, body),
+  /** 프로젝트의 분석 목록 요약 (id, url, status, 페인포인트 수, created_at). */
+  asisAnalyses: (projectId: string) => request<AsisAnalysisSummary[]>('GET', `/api/projects/${encodeURIComponent(projectId)}/asis-analyses`),
+  /** 분석 문서 전체 (structure·screenshots·summary·pain_points·failure). */
+  asisAnalysis: (id: string) => request<AsisAnalysis>('GET', `/api/asis-analyses/${encodeURIComponent(id)}`),
+  /** 페인포인트 채택/거부 — 갱신된 문서를 돌려받는다. revision 은 낙관적 잠금. */
+  patchAsisPainPoint: (analysisId: string, painPointId: string, body: { status: PainPointStatus; revision: number }) =>
+    request<AsisAnalysis>('PATCH', `/api/asis-analyses/${encodeURIComponent(analysisId)}/pain-points/${encodeURIComponent(painPointId)}`, body),
+  /** 스크린샷 PNG URL (image/png). 데모에서는 스냅샷이 떠 둔 정적 파일(`<base>demo/asis/…`)을 가리킨다. */
+  asisAssetUrl: (assetId: string) => (IS_DEMO ? `${DEMO_BASE}asis/${encodeURIComponent(assetId)}.png` : `/api/asis-assets/${encodeURIComponent(assetId)}`),
+
+  // -------------------------------------------------------------- RFP 분석 (사내 BA 표준)
+  /** 분석 접수 — 202 `{analysis_id}`. 입력은 **원문 텍스트**다 (PDF·HWP 파싱은 아직 없다). */
+  createRfpAnalysis: (projectId: string, body: { source_name: string; project_code: string; text: string; note?: string }) =>
+    request<{ analysis_id: string }>('POST', `/api/projects/${encodeURIComponent(projectId)}/rfp-analyses`, body),
+  rfpAnalyses: (projectId: string) => request<RfpAnalysisSummary[]>('GET', `/api/projects/${encodeURIComponent(projectId)}/rfp-analyses`),
+  rfpAnalysis: (id: string) => request<RfpAnalysis>('GET', `/api/rfp-analyses/${encodeURIComponent(id)}`),
+  /**
+   * **채택** — 고른 초안을 요구사항으로 만든다. 그때부터 RTM 분모에 들어간다.
+   * 행위자·사유가 필수이고 revision 으로 오래된 저장을 막는다.
+   */
+  adoptRfpRequirements: (analysisId: string, body: { by: string; reason: string; external_ids: string[]; revision: number }) =>
+    request<RfpAnalysis & { adopted: string[] }>('POST', `/api/rfp-analyses/${encodeURIComponent(analysisId)}/adoptions`, body),
+}
+
+/** 화면 표시용 오류 문자열. */
+export function errorMessage(e: unknown): string {
+  if (e instanceof ApiError) return e.message
+  if (e instanceof Error) return e.message
+  return String(e)
+}
+
+export function errorReasons(e: unknown): string[] {
+  return e instanceof ApiError ? e.reasons : []
+}

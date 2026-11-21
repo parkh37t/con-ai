@@ -1,0 +1,15 @@
+{
+  "requirements": 444,
+  "unique_requirements": 444,
+  "index_rows": 1428,
+  "unique_index_ids": 1385,
+  "unique_paths": 1410,
+  "duplicate_id_groups": 43,
+  "duplicate_id_distinct_paths": 32,
+  "missing_paths": 52,
+  "missing_with_basename_candidates": 43,
+  "html_files": 1603,
+  "html_req_token_files": 937,
+  "candidate_edges": 1212,
+  "md_files": 129
+}

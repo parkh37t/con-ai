@@ -13,7 +13,7 @@ S2B에서 검증된 **AI 화면설계 생산 방법론(7계층 OS)**의 재사�
 ## 7계층 OS 요약
 
 ```
-L7 프롬프트 규율   "언급 외 코드 보존" 가드레일      → CLAUDE.md §3
+L7 프롬프트 규율   "언급 외 코드 보존" 가드레일      → 방법론/CLAUDE.md §3
 L6 협업 파이프라인  기획자↔오퍼레이터, 폴더 큐
 L5 자동 검증       html-lint 훅 + verify/audit 스크립트 → .claude/hooks · scripts/
 L4 커스텀 스킬     골든 복제→개조 메커니즘            → .claude/skills/screen-spec

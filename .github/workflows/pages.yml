@@ -1,7 +1,7 @@
-name: Deploy to GitHub Pages
-
-# con-ai 워크벤치를 GitHub Pages로 배포한다 (S2B 프로토타입 방식).
-# 저장소 Settings → Pages → Source 를 "GitHub Actions" 로 설정해야 동작한다.
+# GitHub Pages 배포 — main 에 push 하면 정적 데모를 빌드해 올린다.
+# 데모는 서버 없이 동작한다: apps/web/public/demo/ 의 스냅샷(실제 실행 결과)을 읽어 UI 를 그대로 보여준다.
+# 스냅샷 갱신은 로컬에서 `pnpm demo:snapshot` 으로 하고 커밋한다(브라우저·서버가 필요해 CI 에서는 돌리지 않는다).
+name: Deploy demo to GitHub Pages
 
 on:
   push:
@@ -13,23 +13,74 @@ permissions:
   pages: write
   id-token: write
 
+# 진행 중인 배포를 취소하지 않고 순서대로 처리한다.
 concurrency:
   group: pages
   cancel-in-progress: false
 
 jobs:
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/configure-pages@v5
-      - name: Upload site artifact
-        uses: actions/upload-pages-artifact@v3
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
         with:
-          # 저장소 루트 전체를 정적 사이트로 업로드 (index.html + projects/*)
-          path: .
+          node-version: 22
+          cache: pnpm
+
+      - name: 의존성 설치
+        run: pnpm install --frozen-lockfile
+
+      # V3 실행 검사와 postMessage 테스트는 실제 브라우저를 띄운다.
+      # 브라우저가 없으면 결과가 error 로 기록되고(통과로 위장하지 않는다) 검사가 실패한다.
+      - name: Playwright 브라우저 설치
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: 타입 검사·테스트
+        run: pnpm check
+
+      - name: 데모 빌드
+        run: pnpm demo:build
+
+      # 화면설계 워크벤치(정적 HTML·MD)를 데모 옆 /workbench/ 로 함께 올린다. 빌드 단계가 없다.
+      - name: 화면설계 워크벤치 포함 (/workbench/)
+        run: |
+          mkdir -p apps/web/dist/workbench
+          cp -R index.html 방법론 projects apps/web/dist/workbench/
+          test -f apps/web/dist/workbench/index.html || { echo "워크벤치 index.html 이 없다"; exit 1; }
+
+      - name: 스냅샷 포함 확인
+        run: |
+          test -f apps/web/dist/index.html || { echo "index.html 이 없다"; exit 1; }
+          test -f apps/web/dist/demo/snapshot.json || { echo "demo/snapshot.json 이 없다 — pnpm demo:snapshot 결과를 커밋했는지 확인"; exit 1; }
+          du -sh apps/web/dist
+
+      # Pages 가 꺼져 있으면 켜기를 시도한다. 사이트 생성은 저장소 관리자 권한이 필요해
+      # Actions 토큰으로는 거부될 수 있다 — 그때는 아래 안내대로 설정에서 한 번 켜면 된다.
+      - id: pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - name: Pages 설정 안내
+        if: failure() && steps.pages.outcome == 'failure'
+        run: |
+          echo "::error title=GitHub Pages 를 먼저 켜야 합니다::저장소 Settings → Pages → Build and deployment → Source 를 'GitHub Actions' 로 바꾼 뒤 이 워크플로를 다시 실행하세요 (Actions → Deploy demo to GitHub Pages → Re-run jobs)."
+          exit 1
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: apps/web/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
       - id: deployment
         uses: actions/deploy-pages@v4

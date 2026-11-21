@@ -1,0 +1,40 @@
+{
+  "fixture_file_version": "1",
+  "note": "합성 더미데이터. 실제 거래·개인정보가 아니며 업무 API 와 연결하지 않는다 (설계 §9). fixture_id 는 화면명세 states[].fixture_id 와 1:1 로 맞춘다. orders-searched / orders-empty 는 렌더러가 orders-normal 을 filter-fixture 로 걸러 재현할 수 있는 결과이며 여기서는 기대 결과로 고정한다.",
+  "screen_id": "EXAMPLE-order-list",
+  "table_element_id": "order-table",
+  "columns": ["order_no", "ordered_at", "supplier_name", "amount", "status"],
+  "fixtures": [
+    {
+      "fixture_id": "orders-normal",
+      "case_kind": "normal",
+      "rows": [
+        { "order_no": "EX-2026-0003", "ordered_at": "2026-09-03", "supplier_name": "예시공급업체C", "amount": 1250000, "status": "EX_ORDERED" },
+        { "order_no": "EX-2026-0002", "ordered_at": "2026-09-02", "supplier_name": "예시공급업체B", "amount": 380000, "status": "EX_SHIPPED" },
+        { "order_no": "EX-2026-0001", "ordered_at": "2026-09-01", "supplier_name": "예시공급업체A", "amount": 99000, "status": "EX_DONE" }
+      ]
+    },
+    {
+      "fixture_id": "orders-searched",
+      "case_kind": "normal",
+      "derived_from": "orders-normal",
+      "filter": { "element_id": "query", "column": "order_no", "value": "EX-2026-0002" },
+      "rows": [
+        { "order_no": "EX-2026-0002", "ordered_at": "2026-09-02", "supplier_name": "예시공급업체B", "amount": 380000, "status": "EX_SHIPPED" }
+      ]
+    },
+    {
+      "fixture_id": "orders-empty",
+      "case_kind": "empty",
+      "derived_from": "orders-normal",
+      "filter": { "element_id": "query", "column": "order_no", "value": "EX-9999-0000" },
+      "rows": []
+    },
+    {
+      "fixture_id": "orders-error",
+      "case_kind": "error",
+      "error": { "message_id": "msg-error", "simulated": true },
+      "rows": []
+    }
+  ]
+}

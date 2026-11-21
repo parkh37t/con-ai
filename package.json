@@ -1,0 +1,51 @@
+{
+  "name": "con-ai",
+  "private": true,
+  "description": "UIUX AI 기획 에이전트 — 요구사항·IA·정책을 기준으로 화면명세와 HTML 목업을 생성·검증·승인하는 기획자 워크스페이스",
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "type": "module",
+  "scripts": {
+    "bootstrap": "bash scripts/setup.sh",
+    "bridge": "tsx --env-file-if-exists=.env apps/api/src/bridge-cli.ts",
+    "build:web": "pnpm --filter @con-ai/web build",
+    "check": "pnpm typecheck && pnpm test",
+    "bundle:knowledge": "node scripts/bundle-knowledge.mjs",
+    "demo:build": "VITE_DEMO=1 VITE_BASE=/con-ai/ pnpm --filter @con-ai/web build",
+    "demo:serve": "node scripts/serve-demo.mjs",
+    "demo:snapshot": "node scripts/build-demo-snapshot.mjs",
+    "dev": "pnpm -r --parallel --filter @con-ai/api --filter @con-ai/web run dev",
+    "e2e": "playwright test",
+    "e2e:demo": "playwright test -c playwright.demo.config.ts",
+    "gen:schema": "tsx packages/model-adapter/scripts/gen-structured-schema.mts",
+    "probe:vocab": "tsx --env-file-if-exists=.env scripts/probe-vocab.mts",
+    "probe:claude-code": "tsx --env-file-if-exists=.env scripts/probe-claude-code.mts",
+    "probe:rfp": "tsx --env-file-if-exists=.env scripts/probe-rfp.mts",
+    "serve": "pnpm build:web && pnpm start",
+    "start": "tsx --env-file-if-exists=.env apps/api/src/server.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "@con-ai/domain": "workspace:*",
+    "@con-ai/model-adapter": "workspace:*",
+    "@con-ai/prompt-templates": "workspace:*",
+    "@con-ai/renderer": "workspace:*",
+    "@con-ai/schemas": "workspace:*",
+    "@con-ai/validators": "workspace:*",
+    "@con-ai/worker-generation": "workspace:*",
+    "@playwright/test": "1.63.0",
+    "@types/node": "22.19.11",
+    "tsx": "4.23.13",
+    "typescript": "5.9.3",
+    "vitest": "4.1.11"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  }
+}

@@ -1,0 +1,219 @@
+{
+  "fixture_id": "non-ui-split.req-sfr-038-001",
+  "note": "REQ-SFR-038-001(이용수수료 세금계산서 자동발행 관리; 원장 SFR 행 183) 의 수용조건을 화면 책임(설정·조회)과 배치 책임(NonUIScreenWork)으로 나눈 예시 (설계 §7, 보고서 §4). 조건 문장은 설계 문서가 요약한 수준(정해진 날짜의 발행, 대상 기간, 기발행 제외)만 쓴다. 원장 본문은 싣지 않는다. 화면(EXAMPLE-fee-invoice-schedule)은 합성이며 현재 IA 의 연결은 원문 기반 후보로만 보존한다.",
+  "records": [
+    {
+      "schema": "SourceDocument",
+      "data": {
+        "id": "2a000000-0000-4000-8000-000000000001",
+        "project_id": "10000000-0000-4000-8000-000000000001",
+        "file_name": "S2B_BA_A02_요구사항정의서_20260115_V1.0.xlsx",
+        "source_type": "xlsx",
+        "created_at": "2026-09-05T09:00:00+09:00",
+        "note": "요구사항 원장 (보고서 §3). SFR 시트 A열 기준 수입"
+      }
+    },
+    {
+      "schema": "SourceAnchor",
+      "data": {
+        "id": "11380000-0000-4000-8000-000000000001",
+        "source_version_id": "2a000000-0000-4000-8000-000000000101",
+        "locator": { "kind": "sheet", "sheet": "SFR", "row": 183 },
+        "excerpt": "REQ-SFR-038-001 | 이용수수료 세금계산서 자동발행 관리"
+      }
+    },
+    {
+      "schema": "Requirement",
+      "data": {
+        "id": "30380000-0000-4000-8000-000000000001",
+        "project_id": "10000000-0000-4000-8000-000000000001",
+        "external_id": "REQ-SFR-038-001",
+        "current_revision": 1,
+        "created_at": "2026-09-05T09:00:00+09:00"
+      }
+    },
+    {
+      "schema": "RequirementRevision",
+      "data": {
+        "id": "31380000-0000-4000-8000-000000000001",
+        "requirement_id": "30380000-0000-4000-8000-000000000001",
+        "revision": 1,
+        "external_id": "REQ-SFR-038-001",
+        "title": "이용수수료 세금계산서 자동발행 관리",
+        "body": "(원장 SFR 행 183 의 본문은 공개 저장소 fixture 에 싣지 않는다. 설계 §7 요약: 정해진 날짜의 발행, 대상 기간, 기발행 제외 조건을 포함한다)",
+        "evidence": [{ "anchor_id": "11380000-0000-4000-8000-000000000001", "note": "원장 SFR 행 183" }],
+        "status": "source_extracted_unapproved",
+        "created_at": "2026-09-05T09:00:00+09:00",
+        "created_by": "importer-example"
+      }
+    },
+    {
+      "schema": "AcceptanceCriterion",
+      "data": {
+        "id": "32380000-0000-4000-8000-000000000001",
+        "requirement_revision_id": "31380000-0000-4000-8000-000000000001",
+        "external_id": "REQ-SFR-038-001-AC-01",
+        "order": 1,
+        "text": "세금계산서 발행 일정(정해진 날짜)과 대상 기간을 화면에서 설정한다",
+        "kind": "ui",
+        "verification_method": "ui_acceptance_test",
+        "evidence": [{ "anchor_id": "11380000-0000-4000-8000-000000000001" }]
+      }
+    },
+    {
+      "schema": "AcceptanceCriterion",
+      "data": {
+        "id": "32380000-0000-4000-8000-000000000002",
+        "requirement_revision_id": "31380000-0000-4000-8000-000000000001",
+        "external_id": "REQ-SFR-038-001-AC-02",
+        "order": 2,
+        "text": "설정한 발행 일정·대상 기간과 발행 결과를 화면에서 조회한다",
+        "kind": "ui",
+        "verification_method": "ui_acceptance_test",
+        "evidence": [{ "anchor_id": "11380000-0000-4000-8000-000000000001" }]
+      }
+    },
+    {
+      "schema": "AcceptanceCriterion",
+      "data": {
+        "id": "32380000-0000-4000-8000-000000000003",
+        "requirement_revision_id": "31380000-0000-4000-8000-000000000001",
+        "external_id": "REQ-SFR-038-001-AC-03",
+        "order": 3,
+        "text": "정해진 날짜에 대상 기간의 이용수수료 세금계산서를 배치로 발행한다",
+        "kind": "non_ui",
+        "verification_method": "non_ui_evidence",
+        "evidence": [{ "anchor_id": "11380000-0000-4000-8000-000000000001" }]
+      }
+    },
+    {
+      "schema": "AcceptanceCriterion",
+      "data": {
+        "id": "32380000-0000-4000-8000-000000000004",
+        "requirement_revision_id": "31380000-0000-4000-8000-000000000001",
+        "external_id": "REQ-SFR-038-001-AC-04",
+        "order": 4,
+        "text": "이미 발행된(기발행) 건은 배치 발행 대상에서 제외한다",
+        "kind": "non_ui",
+        "verification_method": "non_ui_evidence",
+        "evidence": [{ "anchor_id": "11380000-0000-4000-8000-000000000001" }]
+      }
+    },
+    {
+      "schema": "NonUIScreenWork",
+      "data": {
+        "id": "43380000-0000-4000-8000-000000000001",
+        "project_id": "10000000-0000-4000-8000-000000000001",
+        "kind": "batch",
+        "title": "이용수수료 세금계산서 자동발행 배치",
+        "description": "정해진 날짜에 대상 기간의 이용수수료를 합산해 발행하고 기발행 건을 제외하는 배치 책임. 화면 명세만으로 완료 처리하지 않는다 (보고서 §4)",
+        "criterion_ids": ["32380000-0000-4000-8000-000000000003", "32380000-0000-4000-8000-000000000004"],
+        "owner": "batch-owner-example",
+        "evidence": [{ "anchor_id": "11380000-0000-4000-8000-000000000001", "note": "원장 SFR 행 183" }],
+        "verification_note": "배치 실행 기록과 발행 결과 대조로 검증한다. 아직 실행하지 않았으므로 not_run"
+      }
+    },
+    {
+      "schema": "ScreenPlan",
+      "data": {
+        "id": "40380000-0000-4000-8000-000000000001",
+        "project_id": "10000000-0000-4000-8000-000000000001",
+        "external_id": "EXAMPLE-fee-invoice-schedule",
+        "portal": "관리자",
+        "aliases": [],
+        "registry_status": "registered",
+        "current_revision": 1,
+        "created_at": "2026-09-05T09:00:00+09:00"
+      }
+    },
+    {
+      "schema": "ScreenRevision",
+      "data": {
+        "id": "41380000-0000-4000-8000-000000000001",
+        "screen_plan_id": "40380000-0000-4000-8000-000000000001",
+        "revision": 1,
+        "external_id": "EXAMPLE-fee-invoice-schedule",
+        "purpose": "이용수수료 세금계산서 발행 일정 설정·조회 — 합성 화면. 정확한 화면 책임은 담당 기획자가 확인한다 (설계 §7)",
+        "shell": "admin-page",
+        "device": "desktop",
+        "roles": ["admin"],
+        "baseline_id": "example-baseline-1",
+        "created_at": "2026-09-05T09:00:00+09:00"
+      }
+    },
+    {
+      "schema": "TraceLink",
+      "data": {
+        "id": "50380000-0000-4000-8000-000000000001",
+        "revision": 1,
+        "baseline_id": "example-baseline-1",
+        "requirement_revision_id": "31380000-0000-4000-8000-000000000001",
+        "criterion_id": "32380000-0000-4000-8000-000000000001",
+        "screen_revision_id": "41380000-0000-4000-8000-000000000001",
+        "evidence": [{ "anchor_id": "11380000-0000-4000-8000-000000000001" }],
+        "origin": "ia",
+        "status": "candidate"
+      }
+    },
+    {
+      "schema": "TraceLink",
+      "data": {
+        "id": "50380000-0000-4000-8000-000000000002",
+        "revision": 1,
+        "baseline_id": "example-baseline-1",
+        "requirement_revision_id": "31380000-0000-4000-8000-000000000001",
+        "criterion_id": "32380000-0000-4000-8000-000000000002",
+        "screen_revision_id": "41380000-0000-4000-8000-000000000001",
+        "evidence": [{ "anchor_id": "11380000-0000-4000-8000-000000000001" }],
+        "origin": "ia",
+        "status": "candidate"
+      }
+    },
+    {
+      "schema": "TraceLink",
+      "data": {
+        "id": "50380000-0000-4000-8000-000000000003",
+        "revision": 1,
+        "baseline_id": "example-baseline-1",
+        "requirement_revision_id": "31380000-0000-4000-8000-000000000001",
+        "criterion_id": "32380000-0000-4000-8000-000000000003",
+        "non_ui_work_id": "43380000-0000-4000-8000-000000000001",
+        "evidence": [{ "anchor_id": "11380000-0000-4000-8000-000000000001" }],
+        "origin": "manual",
+        "status": "non_ui",
+        "decided_by": "planner-example",
+        "decided_at": "2026-09-05T09:30:00+09:00",
+        "reason": "정해진 날짜의 배치 발행은 화면 책임이 아니다. 배치 작업의 실행 기록으로 별도 검증한다 (설계 §7 제외·비UI)"
+      }
+    },
+    {
+      "schema": "TraceLink",
+      "data": {
+        "id": "50380000-0000-4000-8000-000000000004",
+        "revision": 1,
+        "baseline_id": "example-baseline-1",
+        "requirement_revision_id": "31380000-0000-4000-8000-000000000001",
+        "criterion_id": "32380000-0000-4000-8000-000000000004",
+        "non_ui_work_id": "43380000-0000-4000-8000-000000000001",
+        "evidence": [{ "anchor_id": "11380000-0000-4000-8000-000000000001" }],
+        "origin": "manual",
+        "status": "non_ui",
+        "decided_by": "planner-example",
+        "decided_at": "2026-09-05T09:30:00+09:00",
+        "reason": "기발행 제외는 배치의 대상 선정 규칙이다. 화면에서는 결과 조회만 한다 (설계 §7 제외·비UI)"
+      }
+    },
+    {
+      "schema": "TraceCoverage",
+      "data": {
+        "baseline_id": "example-baseline-1",
+        "criteria_in_scope": 4,
+        "approved_links": 0,
+        "tests_passed": 0,
+        "non_ui": 2,
+        "excluded": 0,
+        "conflicts": 0
+      }
+    }
+  ]
+}

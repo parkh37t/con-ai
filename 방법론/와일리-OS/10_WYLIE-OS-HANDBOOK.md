@@ -806,7 +806,7 @@ AI(Claude/Gemini)로 SB·TC를 생성한 PoC 6과제. 과제마다 AS-IS + 요�
 
 ### 17-1. 이식 체크리스트 (새 저장소에서 재구성 순서)
 
-1. `CLAUDE.md` — §2 절대 규칙 + 저장소 구조 + 검증 명령
+1. `CLAUDE.md`(루트, 호칭·언어) + `방법론/CLAUDE.md` — §2 절대 규칙 + 저장소 구조 + 검증 명령
 2. `방법론/templates/template_screen.html` — §6-2 골격 + §6-3 정본 8단
 3. `.claude/hooks/html-lint.py` — §9-2 15검사, PostToolUse 등록(`/update-config`)
 4. `scripts/` 4종 — §9-3·§9-4 로직

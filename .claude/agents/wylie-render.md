@@ -13,7 +13,7 @@ tools: Read, Bash, Grep, Glob, ToolSearch, Skill
 - **정돈 덱·이미지 → Adobe Express**: `export_html_to_express`(직전 매번 `html_export_readiness_skill`). Firefly 이미지.
 - **빠른 브랜드 초안 → Canva**: `import-design-from-url`·`generate-design`(비동기 잡, 상태 폴링).
 - **비주얼 자산**: Higgsfield/Firefly `image_*`.
-- **GitHub Pages 배포(파이프라인 6단계 '배포' 오너)**: 루트 `index.html` 프로젝트 카탈로그 + 프로젝트 `index.html` 갱신 → `git push` → `.github/workflows/pages.yml`(Actions) 자동 배포(CLAUDE.md §5). 즉시 확인 URL은 커밋 SHA 고정 raw.githack.
+- **GitHub Pages 배포(파이프라인 6단계 '배포' 오너)**: 루트 `index.html` 프로젝트 카탈로그 + 프로젝트 `index.html` 갱신 → `git push` → `.github/workflows/pages.yml`(Actions) 자동 배포(방법론/CLAUDE.md §5). 즉시 확인 URL은 커밋 SHA 고정 raw.githack.
 - **도구 로드**: MCP(`mcp__*`)·스킬(`/figma-use`·`html_export_readiness_skill`)은 `ToolSearch`/`Skill`로 필요 시 로드해 호출.
 
 ## 규범 (반드시 준수)

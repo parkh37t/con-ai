@@ -1,0 +1,17 @@
+{
+  "name": "@con-ai/worker-generation",
+  "version": "0.0.0",
+  "private": true,
+  "description": "생성 파이프라인: context_build → spec_generate → schema_check → render → validate → persist",
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "dependencies": {
+    "@con-ai/domain": "workspace:*",
+    "@con-ai/model-adapter": "workspace:*",
+    "@con-ai/prompt-templates": "workspace:*",
+    "@con-ai/renderer": "workspace:*",
+    "@con-ai/schemas": "workspace:*",
+    "@con-ai/validators": "workspace:*",
+    "zod": "4.5.4"
+  }
+}

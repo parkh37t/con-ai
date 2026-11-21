@@ -1,0 +1,76 @@
+/**
+ * 메모리 Store — apps/api 의 SQLite Store 와 같은 인터페이스. 파이프라인 테스트와 가벼운 도구용.
+ * revision 비교 규칙은 SQLite 구현과 같다: 새 문서는 expectedRevision 0, 불일치면 StoreConflictError.
+ */
+import { StoreConflictError } from './errors.js'
+import type { DocumentKind, Store, StoredDocument } from './types.js'
+
+export class MemoryStore implements Store {
+  private readonly docs = new Map<string, StoredDocument>()
+  private readonly html = new Map<string, string>()
+  private seq = 0
+  private readonly order = new Map<string, number>()
+  private readonly now: () => string
+
+  constructor(now: () => string = () => new Date().toISOString()) {
+    this.now = now
+  }
+
+  private key(kind: DocumentKind, id: string): string {
+    return `${kind}\u0000${id}`
+  }
+
+  get<T = unknown>(kind: DocumentKind, id: string): StoredDocument<T> | undefined {
+    const doc = this.docs.get(this.key(kind, id))
+    return doc ? (clone(doc) as StoredDocument<T>) : undefined
+  }
+
+  list<T = unknown>(kind: DocumentKind, filter?: (doc: StoredDocument<T>) => boolean): StoredDocument<T>[] {
+    const out: StoredDocument<T>[] = []
+    for (const [key, doc] of this.docs) {
+      if (doc.kind !== kind) continue
+      const copy = clone(doc) as StoredDocument<T>
+      if (!filter || filter(copy)) out.push(copy)
+      void key
+    }
+    // 삽입 순서(=created_at 순)로 돌려준다 — SQLite 구현의 ORDER BY created_at, rowid 와 같은 순서.
+    return out.sort((a, b) => (this.order.get(this.key(kind, a.id)) ?? 0) - (this.order.get(this.key(kind, b.id)) ?? 0))
+  }
+
+  put<T = unknown>(kind: DocumentKind, id: string, data: T, expectedRevision: number): StoredDocument<T> {
+    const key = this.key(kind, id)
+    const current = this.docs.get(key)
+    const currentRevision = current?.revision ?? 0
+    if (currentRevision !== expectedRevision) throw new StoreConflictError(kind, id, expectedRevision, currentRevision)
+    const at = this.now()
+    const next: StoredDocument<T> = {
+      kind,
+      id,
+      revision: currentRevision + 1,
+      data: clone(data),
+      created_at: current?.created_at ?? at,
+      updated_at: at,
+    }
+    if (!current) this.order.set(key, ++this.seq)
+    this.docs.set(key, next as StoredDocument)
+    return clone(next)
+  }
+
+  delete(kind: DocumentKind, id: string): void {
+    const key = this.key(kind, id)
+    this.docs.delete(key)
+    this.order.delete(key)
+  }
+
+  getHtml(artifactId: string): string | undefined {
+    return this.html.get(artifactId)
+  }
+
+  putHtml(artifactId: string, html: string): void {
+    this.html.set(artifactId, html)
+  }
+}
+
+function clone<T>(value: T): T {
+  return structuredClone(value)
+}

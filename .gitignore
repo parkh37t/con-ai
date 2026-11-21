@@ -1,14 +1,34 @@
-# 생성물 / 검증 결과
+node_modules/
+dist/
+coverage/
+*.log
+.DS_Store
+.env
+.env.*
+!.env.example
+# 로컬 실행 산출물(생성 HTML·검증 결과)은 DB/파일 저장소로 관리하며 저장소에 두지 않는다
+.local/
+
+# 검토 데이터(고객 요구사항 원문·INDEX·추적후보·원본 인벤토리)는 공개 저장소에 커밋하지 않는다.
+# 로컬에서 data/review/ 에 배치해 사용한다. 배치 방법과 기대 해시는 data/review/README.md 참고.
+data/review/*.csv
+data/review/원본파일_인벤토리.json
+# 완료(v1.0) 내보내기 산출물과 e2e 결과는 실행 시 생성된다
+# 루트의 내보내기 산출물만 제외한다(apps/web/public/demo/exports 는 데모 배포에 필요해 커밋한다).
+/exports/
+test-results/
+playwright-report/
+
+# 학습 문서·skill 묶음(scripts/bundle-knowledge.mjs 로 다시 뜬다)
+/.bundle/
+
+# 컨테이너 볼륨(운영 DB·내보내기 산출물). 저장소의 data/(검토 자료)와 섞이지 않게 분리한다.
+/var/
+
+# 화면설계 워크벤치 — 검증 결과 생성물
 scripts/verify_all.json
 scripts/*.out.json
-
-# python
 __pycache__/
 *.pyc
-
-# OS / editor
-.DS_Store
 *.swp
-
-# 로컬 설정(개인)
 .claude/settings.local.json

@@ -1,0 +1,60 @@
+# Render 배포 청사진 (Blueprint). 저장소를 연결하면 이 파일대로 서비스가 만들어진다.
+#
+# 사용법
+#   1. https://dashboard.render.com/blueprints 에서 New Blueprint Instance → 이 저장소 선택
+#   2. 아래 sync:false 환경변수(모델 자격 증명)를 대시보드에서 입력
+#   3. 배포 후 주소는 https://<서비스이름>.onrender.com
+#
+# 주의
+# - 인증이 없다. Render 주소는 공개이므로 테스트가 끝나면 반드시 접근 제어를 붙인다
+#   (docs/decisions/0014 1단계, 또는 Render 앞단의 인증 프록시).
+# - disk 는 유료 플랜에서만 제공된다. 무료 플랜은 재시작하면 DB·내보내기 산출물이 사라진다.
+# - Chromium 을 띄우므로 메모리 여유가 필요하다. starter(512MB)로는 분석 중 실패할 수 있어 standard 를 권한다.
+services:
+  - type: web
+    name: con-ai
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: standard
+    region: singapore
+    branch: main
+    healthCheckPath: /healthz
+    autoDeploy: true
+    disk:
+      name: con-ai-data
+      mountPath: /data
+      sizeGB: 5
+    envVars:
+      # --- 실행 경로 (디스크 마운트 기준) ---
+      - key: PORT
+        value: 8787
+      - key: HOST
+        value: 0.0.0.0
+      - key: CON_AI_DB
+        value: /data/con-ai.db
+      - key: EXPORT_DIR
+        value: /data/exports
+      - key: WEB_DIST
+        value: /app/apps/web/dist
+
+      # --- 모델 어댑터 ---
+      # anthropic = 실제 호출. fixture 로 두면 모델 없이 더미로 동작한다.
+      - key: MODEL_ADAPTER
+        value: anthropic
+      - key: MODEL_ID
+        value: claude-opus-5
+      # api_key | token | auto. 개인 토큰을 쓰면 token.
+      - key: MODEL_AUTH
+        value: token
+      # 값은 대시보드에서 입력한다(저장소에 남기지 않는다). 둘 중 쓰는 쪽만 채운다.
+      - key: ANTHROPIC_AUTH_TOKEN
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+
+      # --- AS-IS 분석 SSRF 정책 ---
+      # 기본은 사설·내부 주소 차단. 사내 스테이징을 분석하려면 대상 호스트만 열어 준다.
+      #   ASIS_ALLOWED_HOSTS=staging.example.com,.internal.example.com
+      # ASIS_ALLOW_PRIVATE=1 은 사설 대역을 통째로 여는 탈출구이므로 공개 주소에서는 쓰지 않는다.
+      - key: ASIS_ALLOWED_HOSTS
+        sync: false

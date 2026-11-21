@@ -1,0 +1,22 @@
+{
+  "name": "@con-ai/web",
+  "version": "0.0.0",
+  "private": true,
+  "description": "브라우저 작업대 (React + Vite): 프로젝트 홈·포트폴리오·생성 작업대·화면 검토·수정·완료",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 5173 --strictPort",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.7",
+    "@vitejs/plugin-react": "6.1.1",
+    "vite": "8.2.2"
+  }
+}
