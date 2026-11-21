@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<!-- SECTION-CARD: .section-box 표준 (린트 마커) · 롯데 SB 골든 템플릿 -->
+<!-- ═══════════════════════════════════════════════════════════════════════
+     롯데면세점 SB(스토리보드) 골든 템플릿  — 복제 → 개조 (백지 생성 금지)
+     이 골든은 롯데 표준 SB 양식을 우리 2단 화면설계서에 흡수한 정규 양식이다.
+     ▸ 매핑 규범: projects/lotte-dutyfree/docs/02_SSOT/롯데SB양식_매핑.md
+     ▸ 8단 디스크립션(공용 불변식) + 롯데 전용 2종(개정이력·End)
+        ① 화면ID  ② info-table(+표지 메타: 작성자·버전·JIRA)  [개정이력]
+        ③ CASE  ④ proc  ⑤ policy  ⑥ 데이터매핑·번역표  ⑦ spec  ⑧ 메시지·알림표  [End]
+     ▸ 마커 1:1 미러: 좌 num-badge(1·2)·num-badge-sm(a·b·c) == 우 spec
+     ▸ 더미데이터는 더미데이터_사전.md 고정 캐스트만 (창작 금지)
+     ═══════════════════════════════════════════════════════════════════════ -->
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>[화면ID] [화면명] — 롯데면세점 화면설계서(SB 골든)</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="lotte-front.css">
+</head>
+<!-- data-portal: front|admin · data-page: 화면ID(=파일명=개발목록 ID, 3대 키 일치) -->
+<body data-portal="front" data-section="[영역]" data-page="[화면ID]"
+      data-page-title="[화면명]" data-page-hint="[한 줄 목적 — 요건 ID 포함]">
+<div class="root-shell">
+
+  <!-- ════════ 좌: 실제 화면 ════════ -->
+  <div class="screen-wrap" style="flex:11.5;">
+    <div class="gnb-shop">
+      <span class="logo">LOTTE DUTY FREE<small>면세</small></span>
+      <span class="catmenu"><a class="on">[카테고리]</a><a>[카테고리]</a></span>
+      <span class="util"><span><i class="fa-solid fa-mobile-screen"></i> [채널]</span></span>
+    </div>
+    <div class="page-body">
+      <div class="cat-lnb">
+        <div class="h">[LNB 그룹]</div>
+        <a class="on">[현재 화면]</a>
+        <a>[형제 화면]</a>
+        <div class="h" style="margin-top:14px">기준 문서</div>
+        <a>요건정의([요건ID])</a><a>번역표</a>
+      </div>
+      <div class="main-col">
+        <div class="crumb">[상위] <i class="fa-solid fa-chevron-right" style="font-size:8px"></i> <span class="here">[현재 화면]</span></div>
+        <div class="main-row">
+          <div id="left-panel" class="left-panel" style="flex:11.5;">
+            <div class="body-area">
+              <h1 class="page-h1">[화면명] <span class="badge b-blue" style="margin-left:4px">[요건ID]</span></h1>
+              <p class="page-sub">[화면 한 줄 설명 — AS-IS/TO-BE 등 전환은 우측 Case 칩].</p>
+
+              <!-- 영역 1 -->
+              <div class="section-box">
+                <div class="ui-marker"><span class="num-badge">1</span></div>
+                <h2 class="section-title-2">[영역 1 제목]</h2>
+                <p style="font-size:11px;color:var(--c-muted);margin:0">
+                  <span class="field-label"><span class="num-badge-sm">a</span>[필드a]</span> ·
+                  <span class="field-label"><span class="num-badge-sm">b</span>[필드b]</span> ·
+                  <span class="field-label"><span class="num-badge-sm">c</span>[필드c]</span>
+                </p>
+                <!-- 실제 화면 목업/표/그리드는 여기에 (lotte-front.css 컴포넌트 사용) -->
+              </div>
+
+              <!-- 영역 2 -->
+              <div class="section-box">
+                <div class="ui-marker"><span class="num-badge">2</span></div>
+                <h2 class="section-title-2">[영역 2 제목]</h2>
+                <p style="font-size:11px;color:var(--c-muted);margin:0">
+                  <span class="field-label"><span class="num-badge-sm">a</span>[필드a]</span> ·
+                  <span class="field-label"><span class="num-badge-sm">b</span>[필드b]</span>
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════ 우: 디스크립션 (8단 + 롯데 양식) ════════ -->
+  <div id="right-panel" class="right-panel" style="flex:4.8;">
+
+    <!-- ① 화면ID -->
+    <h2 class="rp-h2">[화면ID]</h2>
+
+    <!-- ② info-table (+ 롯데 표지 메타: 작성자·작성일·버전·JIRA) -->
+    <table class="info-table">
+      <tr><th>화면명</th><td>[화면명]</td></tr>
+      <tr><th>화면목적</th><td>[이 화면이 해결하는 목적 — 1~2문장]</td></tr>
+      <tr><th class="acc-th" onclick="toggleReq()">요구사항 <span id="req-ch" style="font-size:10px;color:#6b7280">▼</span></th>
+          <td><div id="req-ac"><span class="req-badge">[요건ID]</span> <span class="tag">[영역 · 채널]</span>
+            <div class="req-title">[요건 제목]</div>
+            <div class="req-desc">[요건 요약 — 변경값/조건].</div></div></td></tr>
+      <tr><th class="cover">JIRA</th><td>[JIRA 키] · [에픽/스프린트]</td></tr>
+      <tr><th class="cover">작성자</th><td>와일리(Wylie) · 검수 [기획자]</td></tr>
+      <tr><th class="cover">버전</th><td>v1.0 · [작성일]</td></tr>
+    </table>
+
+    <!-- [롯데 전용] 개정이력 -->
+    <h3 class="rp-h3">🗒 개정 이력</h3>
+    <table class="rev-tbl">
+      <thead><tr><th>일자</th><th class="ver">버전</th><th>변경 내용</th><th>작성</th></tr></thead>
+      <tbody>
+        <tr><td>[작성일]</td><td class="ver">v1.0</td><td>최초 작성([요건ID])</td><td>Wylie</td></tr>
+      </tbody>
+    </table>
+
+    <!-- ③ CASE 전환 (좌측 화면 실제 변경) -->
+    <h3 class="rp-h3">⚙ Case 전환 <span style="font-size:9px;font-weight:400;color:#9ca3af">(칩 클릭 → 좌측 변경)</span></h3>
+    <div class="case-grp"><div class="case-grp-title">[그룹명]</div>
+      <span class="case-chip active" onclick="setCase('view','a',this)">[케이스 A]</span><span class="case-chip" onclick="setCase('view','b',this)">[케이스 B]</span></div>
+
+    <!-- ④ 처리 흐름 (proc) — 도식 우선(Mermaid), 단순하면 proc-table -->
+    <h3 class="rp-h3">🔀 처리 흐름 · 영향</h3>
+    <div class="diagram"><pre class="mermaid">
+flowchart TD
+  R["[요건/트리거]"] --> A["[처리 1]"]
+  R --> B["[처리 2]"]
+  A --> G["[결과]"]:::ok
+  B --> G
+  classDef ok fill:#dcfce7,stroke:#16a34a,color:#166534;
+</pre></div>
+    <p class="diagram-cap">[흐름 한 줄 설명 — 능동 제기 사항 포함].</p>
+
+    <!-- ⑤ 정책 / 비즈니스 룰 -->
+    <h3 class="rp-h3">📜 정책 / 비즈니스 룰</h3>
+    <div class="policy-box"><ul class="policy-list">
+      <li><b>[정책1]</b>: [내용]</li>
+      <li><b>적용 범위</b>: [채널/포털 한정 범위]</li>
+    </ul></div>
+
+    <!-- ⑥ 데이터 매핑 · 번역표 (롯데 SB 양식 계승) -->
+    <h3 class="rp-h3">🗂 데이터 매핑 · 번역표</h3>
+    <table class="info-table">
+      <thead><tr><th>국문</th><th>간체</th><th>영문</th><th>일문</th></tr></thead>
+      <tbody>
+        <tr><td>[국문]</td><td>[简]</td><td>[EN]</td><td>[日]</td></tr>
+      </tbody>
+    </table>
+    <p style="font-size:9px;color:#9ca3af;margin:4px 0 0">롯데 표준 SB '번역표' 계승 · 🟡 실제 번역은 원본 SB 번역표 확정값 적용</p>
+
+    <!-- ⑦ 필드 사양 매트릭스 (좌측 마커와 1:1) -->
+    <h3 class="rp-h3">📋 필드 사양 매트릭스</h3>
+    <p class="diagram-legend">좌측 화면 마커(배지 ↔ 행 No)와 1:1.</p>
+    <div class="fs-grp"><span class="num-badge">1</span>[영역 1 제목]</div>
+    <table class="fs-matrix">
+      <colgroup><col style="width:20px"><col style="width:64px"><col style="width:44px"><col><col></colgroup>
+      <thead><tr><th>No</th><th>필드</th><th>타입</th><th>값/규칙</th><th>비고</th></tr></thead>
+      <tbody>
+        <tr><td class="c"><span class="num-badge-sm">a</span></td><td>[필드a]</td><td class="c">[타입]</td><td>[값/규칙]</td><td>[비고]</td></tr>
+        <tr><td class="c"><span class="num-badge-sm">b</span></td><td>[필드b]</td><td class="c">[타입]</td><td>[값/규칙]</td><td>[비고]</td></tr>
+        <tr><td class="c"><span class="num-badge-sm">c</span></td><td>[필드c]</td><td class="c">[타입]</td><td>[값/규칙]</td><td>[비고]</td></tr>
+      </tbody>
+    </table>
+    <div class="fs-grp"><span class="num-badge">2</span>[영역 2 제목]</div>
+    <table class="fs-matrix">
+      <colgroup><col style="width:20px"><col style="width:64px"><col style="width:44px"><col><col></colgroup>
+      <tbody>
+        <tr><td class="c"><span class="num-badge-sm">a</span></td><td>[필드a]</td><td class="c">[타입]</td><td>[값/규칙]</td><td>[비고]</td></tr>
+        <tr><td class="c"><span class="num-badge-sm">b</span></td><td>[필드b]</td><td class="c">[타입]</td><td>[값/규칙]</td><td>[비고]</td></tr>
+      </tbody>
+    </table>
+
+    <!-- ⑧ 메시지 · 알림 정의 (right-panel 내부 마지막 표) -->
+    <h3 class="rp-h3">🔔 메시지 · 알림 정의</h3>
+    <table class="msg-tbl">
+      <thead><tr><th style="width:46px">유형</th><th>메시지</th><th style="width:96px">발생 조건</th></tr></thead>
+      <tbody>
+        <tr><td class="mtype m-info">[유형]</td><td>[메시지 문구]</td><td>[조건] <span class="src">[원천]</span></td></tr>
+      </tbody>
+    </table>
+
+    <!-- [롯데 전용] End 마커 -->
+    <div class="doc-end">— END OF SB · [화면ID] —</div>
+  </div>
+
+  <div class="panel-toggle-wrap"><button class="panel-toggle-btn" onclick="togglePanel()"><i class="fa-solid fa-chevron-right" id="toggle-icon"></i></button></div>
+</div>
+
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11.6.0/dist/mermaid.esm.min.mjs';
+  mermaid.initialize({ startOnLoad:true, securityLevel:'loose', theme:'base',
+    themeVariables:{ fontSize:'11px', fontFamily:"'Noto Sans KR',sans-serif", primaryColor:'#fff0f2', primaryBorderColor:'#d4002a', lineColor:'#9ca3af' },
+    flowchart:{ htmlLabels:true, curve:'basis', nodeSpacing:24, rankSpacing:28 } });
+</script>
+<script>
+function togglePanel(){var r=document.getElementById('right-panel'),s=document.querySelector('.screen-wrap'),i=document.getElementById('toggle-icon');r.classList.toggle('collapsed');s.classList.toggle('expanded');i.classList.toggle('fa-chevron-right');i.classList.toggle('fa-chevron-left');}
+function setCase(group,value,el){
+  if(el&&el.classList.contains('case-chip')){el.parentElement.querySelectorAll('.case-chip').forEach(function(c){c.classList.remove('active');});el.classList.add('active');}
+  /* 개조 시: group==='view'면 좌측 목업 클래스 토글(예: gnb-bar.classList.toggle('tobe')) */
+}
+function toggleReq(){var c=document.getElementById('req-ac'),h=document.getElementById('req-ch');var open=c.style.display!=='none';c.style.display=open?'none':'';h.textContent=open?'▶':'▼';}
+</script>
+</body>
+</html>

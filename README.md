@@ -137,3 +137,17 @@ MODEL_ADAPTER=anthropic pnpm probe:vocab    # 모델이 히어로·KPI 인포스
 자격 증명이 없으면 전 항목을 `not_run` 으로 적고 끝난다 — 돌지 않은 검사를 통과로 표시하지 않는다.
 
 검사 결과는 `pass / fail / error / not_run` 을 구분한다. 실행되지 않은 검사(예: 검토 데이터가 없어 건너뛴 테스트)는 통과로 표시하지 않는다.
+
+## 화면설계 방법론 워크벤치
+
+S2B 전자조달 재구축에서 검증된 **AI 화면설계 생산 방법론(7계층 운영체계, 와일리 OS)**을 코어로 여러 프로젝트의 화면설계를 테스트·프로토타이핑하는 정적 워크벤치가 같은 저장소에 있다. 제품 코드와 의존 관계가 없다.
+
+- 온라인: **https://parkh37t.github.io/con-ai/workbench/** (제품 데모와 같은 워크플로가 함께 배포)
+- 시작점: [통합 핸드북](방법론/와일리-OS/10_WYLIE-OS-HANDBOOK.md) · [작업 지침](방법론/CLAUDE.md) · [7계층 OS 학습 보고서](방법론/s2b-methodology-study.md)
+
+| 영역 | 위치 |
+|------|------|
+| 방법론 코어 | `방법론/` (와일리 OS 00~10·골든 템플릿·표준·S2B 원전) |
+| 스킬·에이전트·훅 | `.claude/skills/{screen-spec,ia-from-url,screen-inventory,benchmark-painpoint}` · `.claude/agents/wylie-*.md` · `.claude/hooks/html-lint.py` |
+| 일괄 검증 | `scripts/verify_all_pages.py` · `audit_mirror_lr.py` · `audit_markers.py` · `patch_markers.py` |
+| 프로젝트 | [`lotte-dutyfree`](projects/lotte-dutyfree/) · [`shinsegae-simon-bo`](projects/shinsegae-simon-bo/) · [`ambassador-hotel`](projects/ambassador-hotel/) |

@@ -1,0 +1,103 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ScreenSpec",
+  "description": "와일리 OS 정규 화면 명세 — 모든 입력(PPTX/PDF/Figma/이미지/HTML)이 수렴하는 중간 스펙",
+  "type": "object",
+  "required": ["screenId", "screenName", "menuPath", "purpose", "sections"],
+  "additionalProperties": false,
+  "properties": {
+    "screenId": { "type": "string", "description": "화면ID = HTML 파일명 = 개발목록 ID" },
+    "screenName": { "type": "string" },
+    "purpose": { "type": "string" },
+    "menuPath": { "type": "string" },
+    "portal": {
+      "type": "object",
+      "properties": {
+        "portal": { "type": "string", "enum": ["admin", "front", "mobile"] },
+        "section": { "type": "string" }
+      }
+    },
+    "sourceRef": { "type": "string", "description": "원본 산출물 식별(예: SSTM-BO.pptx)" },
+    "cases": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["group", "options"],
+        "properties": {
+          "group": { "type": "string" },
+          "options": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "proc": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["step", "flow"],
+        "properties": { "step": { "type": "integer" }, "flow": { "type": "string" } }
+      }
+    },
+    "policy": { "type": "array", "items": { "type": "string" } },
+    "sections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["no", "title", "kind", "fields"],
+        "additionalProperties": false,
+        "properties": {
+          "no": { "type": "integer", "description": "섹션 번호 = 좌 num-badge = 우 spec-header-2" },
+          "title": { "type": "string" },
+          "kind": { "type": "string", "enum": ["search", "list", "form", "detail", "popup"] },
+          "fields": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["marker", "label", "type", "sourceId"],
+              "additionalProperties": false,
+              "properties": {
+                "marker": { "type": "string", "description": "a,b,c… = 좌 num-badge-sm = 우 spec-field" },
+                "label": { "type": "string" },
+                "type": {
+                  "type": "string",
+                  "enum": ["text", "number", "date", "select", "radio", "checkbox", "popup", "readonly", "textarea", "daterange", "pricerange", "category"]
+                },
+                "required": { "type": "boolean" },
+                "dummyRef": { "type": "string", "description": "더미데이터_사전 id 참조(값 창작 금지)" },
+                "sourceId": { "type": "string", "description": "원본 추적 id(없으면 폐기)" },
+                "note": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "tables": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["title", "columns", "sourceId"],
+        "properties": {
+          "title": { "type": "string" },
+          "columns": { "type": "array", "items": { "type": "string" } },
+          "dummyRowsRef": { "type": "string" },
+          "sourceId": { "type": "string" }
+        }
+      }
+    },
+    "messages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["type", "text", "condition", "sourceId"],
+        "additionalProperties": false,
+        "properties": {
+          "type": { "type": "string", "enum": ["확인", "경고", "안내", "완료", "오류"] },
+          "text": { "type": "string" },
+          "condition": { "type": "string" },
+          "sourceId": { "type": "string" }
+        }
+      }
+    },
+    "dummyCastRef": { "type": "string" }
+  }
+}

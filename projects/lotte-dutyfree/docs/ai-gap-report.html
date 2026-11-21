@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>롯데면세점 AI 활용 테스트 — SB·TC 생성 갭 분석</title>
+<link rel="stylesheet" href="../_assets/research.css">
+<style>
+.tt{font-weight:800;font-size:13px}
+.bar{display:inline-block;height:12px;border-radius:3px;vertical-align:middle}
+.ba{background:#94a3b8}.bb{background:#d4002a}
+.win{color:#16a34a;font-weight:700}.lose{color:#dc2626;font-weight:700}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <a href="../index.html" class="back" style="color:#e3c878;font-size:12px;text-decoration:none">← 롯데면세점</a>
+    <h1 style="margin-top:8px">롯데면세점 AI 활용 테스트 — SB·TC 생성 갭 분석</h1>
+    <p><span class="tag">benchmark-painpoint</span> AI(Claude/Gemini) 산출물 vs 기획자 작성(정답) · 6과제 · 와일리 OS 시사점</p>
+  </header>
+
+  <div class="warn">
+    ⚠ <b>분석 방법·한계</b>: 산출물 패키지(SB=PPTX, TC=xlsx/html)의 <b>구조 메타(슬라이드 수·시트/케이스 수)와 핵심 텍스트</b> 기반 비교입니다.
+    전 슬라이드 정독은 대표 과제(PD-4247) 표본이며, 정성 평가는 양식·분량·상세도 관점의 구조적 진단입니다.
+  </div>
+
+  <!-- 1. 개요 -->
+  <div class="card">
+    <h2>1. 패키지 개요</h2>
+    <p class="sub">AI로 스토리보드(SB)·테스트케이스(TC)를 생성하는 PoC. 과제마다 AS-IS 화면 + 요건정의 + <b>기획자 작성(정답)</b> + <b>AI 산출물</b>이 짝.</p>
+    <table>
+      <thead><tr><th>구분</th><th>과제</th><th>주제</th><th>AI 도구</th></tr></thead>
+      <tbody>
+        <tr><td rowspan="3"><b>SB 생성</b></td><td>PD-4247</td><td>MC GNB 개선(폰트·컬러·여백)</td><td>Claude</td></tr>
+        <tr><td>PD-4964</td><td>모바일 GNB N표기 색상 변경</td><td>Claude</td></tr>
+        <tr><td>PD-4656</td><td>홈 오늘의특가 2영역</td><td>Claude</td></tr>
+        <tr><td rowspan="3"><b>TC 생성</b></td><td>PD-4189</td><td>상품상세 롤링 배너</td><td>Claude</td></tr>
+        <tr><td>CM-4296</td><td>영문 푸터 주소 수정</td><td>Claude + Gemini</td></tr>
+        <tr><td>LP25-815</td><td>브랜드관 템플릿 개선</td><td>Claude</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 2. SB 생성 비교 -->
+  <div class="card">
+    <h2>2. SB(스토리보드) 생성 비교 — 분량·양식</h2>
+    <p class="sub">SB는 PPTX. 같은 요건에 AI와 기획자가 각각 작성. 슬라이드 수 = 상세도·커버리지의 1차 지표.</p>
+    <table>
+      <thead><tr><th>과제</th><th>Claude SB</th><th>기획자 SB(정답)</th><th>분량비</th><th>판정</th></tr></thead>
+      <tbody>
+        <tr><td><b>PD-4247</b> GNB 개선</td><td>5장 <span class="bar ba" style="width:50px"></span></td><td>6장 <span class="bar bb" style="width:60px"></span></td><td>0.83×</td><td>요건 정확·비교표 우수, 단 롯데 양식 미준수</td></tr>
+        <tr><td><b>PD-4964</b> N표기 색상</td><td class="lose">2장 <span class="bar ba" style="width:18px"></span></td><td>11장 <span class="bar bb" style="width:110px"></span></td><td class="lose">0.18×</td><td>현저히 빈약(화면ID·1~2화면만)</td></tr>
+        <tr><td><b>PD-4656</b> 오늘의특가</td><td class="lose">2장 <span class="bar ba" style="width:18px"></span></td><td>15장 <span class="bar bb" style="width:150px"></span></td><td class="lose">0.13×</td><td>현저히 빈약</td></tr>
+      </tbody>
+    </table>
+    <p class="wnote"><b>발견</b>: Claude SB는 단순 변경(PD-4247)엔 비교적 충실하나, 화면·케이스가 많은 과제(PD-4964·4656)에서 <b>2장으로 급격히 빈약</b>해진다(기획자 11~15장). 또 Claude SB가 화면ID(<code>MFPD1</code>)·작성자(<code>기획AI</code>)를 <b>임의 부여</b> — 롯데 명명규칙·정답 양식과 불일치.</p>
+  </div>
+
+  <!-- 3. TC 생성 비교 -->
+  <div class="card">
+    <h2>3. TC(테스트케이스) 생성 비교 — 케이스 수·구조</h2>
+    <p class="sub">TC는 xlsx/html. 케이스 수·시트 구조 비교. CM-4296은 Claude·Gemini·기획자 3자 비교.</p>
+    <table>
+      <thead><tr><th>과제</th><th>Claude TC</th><th>Gemini TC</th><th>기획자 TC(정답)</th><th>관찰</th></tr></thead>
+      <tbody>
+        <tr><td><b>PD-4189</b> 롤링배너</td><td>1시트 19케이스</td><td>—</td><td>13시트 구조</td><td>Claude=단일시트 다수 케이스 / 기획자=업무 단위 다중시트</td></tr>
+        <tr><td><b>CM-4296</b> 영문푸터</td><td>HTML 표(8행)</td><td>HTML 표(7행)</td><td>9시트 구조</td><td>AI 2종 모두 단일 HTML 표 / 기획자는 다중시트 표준 양식</td></tr>
+        <tr><td><b>LP25-815</b> 브랜드관</td><td class="win">1시트 90케이스</td><td>—</td><td>19시트 구조</td><td>SB 140슬라이드 대작 → Claude가 90케이스로 폭넓게 커버(분량은 강점)</td></tr>
+      </tbody>
+    </table>
+    <p class="wnote"><b>발견</b>: TC 생성에서 AI는 <b>케이스 양산</b>에 강하다(LP25-815 90개). 다만 기획자 정답은 <b>업무/시트 단위 분류 체계</b>를 갖춘 다중시트 구조라, AI의 단일시트 평면 나열과 <b>구조·분류 체계가 다르다</b>. Claude와 Gemini도 산출 형식(표 행수·구성)이 서로 달라 <b>일관 양식 부재</b>.</p>
+  </div>
+
+  <!-- 4. 갭 패턴 -->
+  <div class="card">
+    <h2>4. AI 갭 패턴 (4종)</h2>
+    <div class="pp h"><div class="top"><span class="pid">GAP-1 · 표준 양식 미준수</span><span class="sev s-h">High</span></div>
+      <dl><dt>현상</dt><dd>AI 산출물이 롯데 표준 SB 양식(표지·개정이력·JIRA 메타·번역표·Description·End)을 따르지 않음. TC도 다중시트 분류 체계 대신 평면 나열.</dd>
+      <dt>근거</dt><dd>Claude SB(PD-4247)는 변경개요·비교·확인 4섹션 구성 — 기획자 양식과 상이.</dd></dl></div>
+    <div class="pp h"><div class="top"><span class="pid">GAP-2 · 분량·상세도 빈약(복잡 과제)</span><span class="sev s-h">High</span></div>
+      <dl><dt>현상</dt><dd>화면·케이스가 많은 과제에서 AI SB가 2장으로 급감(PD-4964·4656). 픽셀 사양·케이스 분기·다국어 상세가 누락.</dd>
+      <dt>근거</dt><dd>Claude 2장 vs 기획자 11~15장(0.13~0.18×).</dd></dl></div>
+    <div class="pp m"><div class="top"><span class="pid">GAP-3 · 메타 임의 부여</span><span class="sev s-m">Med</span></div>
+      <dl><dt>현상</dt><dd>AI가 화면ID(<code>MFPD1</code>)·작성자(<code>기획AI</code>)를 자체 생성 → 롯데 명명규칙·채번 체계와 충돌(3대 키 불일치).</dd></dl></div>
+    <div class="pp m"><div class="top"><span class="pid">GAP-4 · 도구 간 일관성 부재</span><span class="sev s-m">Med</span></div>
+      <dl><dt>현상</dt><dd>Claude·Gemini가 같은 과제(CM-4296)에 서로 다른 형식·케이스 수 산출 → 양식 표준이 없으면 재현·비교 불가.</dd></dl></div>
+  </div>
+
+  <!-- 5. 와일리 OS 해법 -->
+  <div class="card">
+    <h2>5. 와일리 OS 해법 매핑</h2>
+    <p class="sub">각 갭은 우리 내재화 메커니즘이 직접 해소한다.</p>
+    <table>
+      <thead><tr><th>갭</th><th>와일리 OS 해법</th><th>근거</th></tr></thead>
+      <tbody>
+        <tr><td>GAP-1 양식 미준수</td><td><b>골든 복제→개조</b> + <b>8단 디스크립션 고정</b></td><td>07§B·E · screen-spec</td></tr>
+        <tr><td>GAP-2 분량 빈약</td><td><b>SSOT(작업가이드·요건) 충실 로드</b> + <b>콘텐츠 5원칙</b>(화면 실재 전수)</td><td>07§A·F</td></tr>
+        <tr><td>GAP-3 메타 임의</td><td><b>명명규칙 3대 키 일치</b>(화면ID=파일명=개발목록)</td><td>명명규칙 · CLAUDE §3</td></tr>
+        <tr><td>GAP-4 일관성 부재</td><td><b>html-lint·마커 audit·verify</b> 표준 검증 게이트</td><td>07§G·H · scripts</td></tr>
+      </tbody>
+    </table>
+    <p class="wnote"><b>핵심</b>: 롯데 AI 실험이 보여준 건 <b>"AI는 내용은 맞히지만 표준 양식·분량·일관성에서 무너진다"</b>는 것. 와일리 OS는 <b>골든 양식 + SSOT + 검증</b>으로 정확히 이 셋을 강제해, AI 산출물을 <b>롯데 표준 SB 양식 그대로</b> 양산 가능하게 한다.</p>
+  </div>
+
+  <!-- 6. 결론·실증 -->
+  <div class="card">
+    <h2>6. 결론 · 실증</h2>
+    <ul>
+      <li><b>SB 생성</b>: AI는 변경 요약·리스크 제기에 강하나, 표준 양식·분량·다국어에서 갭(특히 복잡 과제 2장).</li>
+      <li><b>TC 생성</b>: AI는 케이스 양산에 강하나(90개), 다중시트 분류 체계·도구 간 일관성 부재.</li>
+      <li><b>처방</b>: 와일리 OS의 골든·SSOT·검증으로 양식·분량·일관성을 강제 → AI 장점(속도·커버리지) + 표준 준수.</li>
+    </ul>
+    <p style="margin-top:10px"><b>실증</b>: 동일 PD-4247 요건을 와일리 OS로 만든 2단 화면설계서 →
+      <a href="../화면설계/프론트/front-home-main.html" style="color:#d4002a;font-weight:700">front-home-main</a>
+      (AS-IS↔TO-BE 인터랙티브 전환 · 번역표 데이터매핑 · lint·마커 검증 통과). Claude SB의 정적 비교보다 표준·검증이 강함.</p>
+  </div>
+</div>
+</body>
+</html>

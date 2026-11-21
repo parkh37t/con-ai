@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>롯데면세점 화면설계 — 골든 템플릿</title>
+<!-- 디자인시스템: Tailwind CDN + Font Awesome. 프로젝트 공통 CSS는 화면설계/_공통/프로토타입_템플릿/ 에서 로드 -->
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+/* ===== SECTION-CARD : 섹션 박스 표준 (린트가 이 주석으로 적용 여부 검사 — 삭제 금지) ===== */
+.section-box{border:1px solid #e5e7eb;background:#fff;border-radius:6px;padding:14px;margin-bottom:14px;box-shadow:0 1px 2px rgba(0,0,0,.04);position:relative}
+.section-box:has(table){border:0;background:transparent;padding:0;box-shadow:none;border-radius:0}
+.section-title-2{font-size:13px;font-weight:700;margin-bottom:10px;color:#111827}
+/* ===== 마커 ===== */
+.ui-marker{position:absolute;top:-10px;left:-10px}
+.num-badge{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:9999px;background:#111;color:#fff;font-size:11px;font-weight:700;margin-right:4px}
+.num-badge-sm{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:9999px;background:#dc2626;color:#fff;font-size:10px;font-weight:700;margin-right:3px}
+/* ===== 2단 셸 ===== */
+.root-shell{display:flex;width:100vw;height:100vh;overflow:hidden}
+.screen-wrap{display:flex;flex-direction:column;min-width:0}
+.page-body{display:flex;flex:1;min-height:0}
+.main-col{display:flex;flex-direction:column;flex:1;min-width:0}
+.main-row{display:flex;flex:1;min-height:0}
+.left-panel{display:flex;flex-direction:column;min-width:0}
+.scroll-area{overflow-y:auto;flex:1;padding:16px}
+.right-panel{border-left:2px solid #000;background:#fff;padding:16px;overflow-y:auto}
+.right-panel.collapsed{display:none}
+.screen-wrap.expanded{flex:1 1 100% !important}
+.panel-toggle-wrap{display:flex;align-items:center}
+.panel-toggle-btn{width:22px;height:48px;background:#111;color:#fff;border:0;cursor:pointer;border-radius:4px 0 0 4px}
+/* ===== 디스크립션 요소 ===== */
+.info-table{width:100%;border-collapse:collapse;margin-bottom:14px;font-size:12px}
+.info-table th,.info-table td{border:1px solid #e5e7eb;padding:6px 8px;text-align:left}
+.info-table th{background:#f9fafb;width:90px;white-space:nowrap}
+.case-group{margin-bottom:8px}
+.case-group-title{font-size:11px;color:#6b7280;margin-bottom:4px}
+.case-chip{display:inline-block;padding:3px 8px;border:1px solid #d1d5db;border-radius:9999px;font-size:11px;cursor:pointer;margin:2px}
+.case-chip.active{background:#111;color:#fff;border-color:#111}
+.proc-table,.msg-tbl{width:100%;border-collapse:collapse;margin-bottom:14px;font-size:11px}
+.proc-table th,.proc-table td,.msg-tbl th,.msg-tbl td{border:1px solid #e5e7eb;padding:5px 6px;text-align:left;vertical-align:top}
+.policy-box{background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:10px;font-size:11px;margin-bottom:14px}
+.spec-header-2{font-size:12px;font-weight:700;margin:14px 0 6px}
+.spec-field{font-size:12px;margin:4px 0}
+.spec-bullets{font-size:11px;color:#4b5563;margin:0 0 8px 16px;list-style:disc}
+.msg-tbl .t-type{font-weight:700;white-space:nowrap}
+.t-warn{color:#dc2626}.t-confirm{color:#2563eb}.t-done{color:#16a34a}
+</style>
+</head>
+<!-- data-portal: front|admin / data-section: 영역키 / data-page: 화면ID / data-page-title: 화면명 -->
+<body data-portal="front" data-section="product" data-page="front-product-detail"
+      data-page-title="상품 상세" data-page-hint="골든 템플릿 — 복제 후 개조하세요.">
+<div class="root-shell">
+
+  <!-- ===== 좌: 실제 화면 ===== -->
+  <div class="screen-wrap" style="flex:11.5;">
+    <div id="gnb" class="has-marker h-12 bg-gray-900 text-white flex items-center px-4 text-sm">GNB (nav.js 자동 렌더)</div>
+    <div class="page-body">
+      <div id="lnb" class="overflow-y-auto flex-shrink-0 border-r border-gray-200 p-3 text-xs text-gray-600" style="min-width:200px;max-width:240px;">LNB</div>
+      <div class="main-col">
+        <div id="breadcrumb" class="h-10 border-b border-gray-200 flex items-center px-5 text-xs text-gray-500">홈 &gt; 카테고리 &gt; 상품 상세</div>
+        <div class="main-row">
+          <div id="left-panel" class="left-panel" style="flex:11.5;">
+            <div class="scroll-area">
+              <h1 class="text-lg font-bold mb-1">상품 상세</h1>
+              <p class="text-xs text-gray-500 mb-4">화면 부제 — 더미데이터는 더미데이터_사전.md 고정 캐스트만 사용</p>
+
+              <!-- 섹션 1 -->
+              <div class="section-box">
+                <div class="ui-marker"><span class="num-badge">1</span></div>
+                <h2 class="section-title-2">상품 기본 정보</h2>
+                <p class="text-xs"><span class="num-badge-sm">a</span>상품명 · <span class="num-badge-sm">b</span>면세가 · <span class="num-badge-sm">c</span>브랜드</p>
+              </div>
+
+              <!-- 섹션 2 -->
+              <div class="section-box">
+                <div class="ui-marker"><span class="num-badge">2</span></div>
+                <h2 class="section-title-2">구매 영역</h2>
+                <p class="text-xs"><span class="num-badge-sm">a</span>수량 · <span class="num-badge-sm">b</span>장바구니/구매 버튼</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 우: 디스크립션(사양서) — screen-wrap의 형제 ===== -->
+  <div id="right-panel" class="right-panel scroll-area" style="flex:4.5;">
+    <h2 class="text-sm font-bold mb-2">front-product-detail</h2>
+    <table class="info-table">
+      <tr><th>화면명</th><td>상품 상세</td></tr>
+      <tr><th>화면목적</th><td>고객이 면세 상품을 확인하고 장바구니/구매로 진입</td></tr>
+      <tr><th>요구사항 ID</th><td>REQ-FPR-001</td></tr>
+    </table>
+
+    <!-- CASE 전환 -->
+    <div class="border-t-2 border-black pt-3 mb-4">
+      <h3 class="text-xs font-bold mb-2"><i class="fa-solid fa-sliders mr-1"></i>CASE 전환</h3>
+      <div class="case-group">
+        <div class="case-group-title">회원상태</div>
+        <div class="flex gap-1 flex-wrap">
+          <a class="case-chip active" onclick="setCase('auth','member',this)">회원</a>
+          <a class="case-chip" onclick="setCase('auth','guest',this)">비회원</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- 프로세스 -->
+    <table class="proc-table"><thead><tr><th>단계</th><th>설명</th></tr></thead>
+      <tbody><tr><td>1</td><td>상품 확인 → 수량 선택 → 장바구니/구매</td></tr></tbody></table>
+
+    <!-- 정책 -->
+    <div class="policy-box">면세 한도·구매 자격 등 정책 요약 (작업가이드 SSOT 참조)</div>
+
+    <!-- 영역별 사양 (좌측 num-badge=N과 1:1) -->
+    <h3 class="spec-header-2"><span class="num-badge">1</span>상품 기본 정보</h3>
+    <p class="spec-field"><span class="num-badge-sm">a</span>상품명</p>
+    <ul class="spec-bullets"><li>면세가/정상가 병기 규칙 적용</li></ul>
+    <p class="spec-field"><span class="num-badge-sm">b</span>면세가</p>
+    <p class="spec-field"><span class="num-badge-sm">c</span>브랜드</p>
+
+    <h3 class="spec-header-2"><span class="num-badge">2</span>구매 영역</h3>
+    <p class="spec-field"><span class="num-badge-sm">a</span>수량</p>
+    <p class="spec-field"><span class="num-badge-sm">b</span>장바구니/구매 버튼</p>
+
+    <!-- 메시지 · 알림 정의 (right-panel 내부 마지막 element) -->
+    <h3 class="text-xs font-bold mb-1 mt-5"><i class="fa-solid fa-bell mr-1 text-gray-500"></i>메시지 · 알림 정의</h3>
+    <table class="msg-tbl"><thead><tr><th style="width:54px;">유형</th><th>메시지</th><th style="width:140px;">발생 시점·조건</th></tr></thead>
+      <tbody>
+        <tr><td class="t-type t-warn">검증</td><td>수량은 1 이상이어야 합니다.</td><td>수량 0 이하 입력</td></tr>
+        <tr><td class="t-type t-confirm">확인</td><td>장바구니에 담으시겠습니까?</td><td>장바구니 버튼 클릭</td></tr>
+      </tbody></table>
+  </div>
+
+  <!-- 패널 토글 -->
+  <div class="panel-toggle-wrap"><button class="panel-toggle-btn" onclick="togglePanel()"><i class="fa-solid fa-chevron-right" id="toggle-icon"></i></button></div>
+</div><!-- /root-shell -->
+
+<script>
+// CASE 스위처: case-{group}-{value} 클래스 표시/숨김 토글
+function setCase(group, value, el){
+  document.querySelectorAll('.case-chip').forEach(c=>{ if(c.parentElement===el.parentElement) c.classList.remove('active'); });
+  el.classList.add('active');
+  document.querySelectorAll('[class*="case-'+group+'-"]').forEach(node=>{
+    node.style.display = node.classList.contains('case-'+group+'-'+value) ? '' : 'none';
+  });
+}
+// 우측 디스크립션 패널 접기/펼치기
+function togglePanel(){
+  var rp=document.getElementById('right-panel'), sw=document.querySelector('.screen-wrap'), ic=document.getElementById('toggle-icon');
+  rp.classList.toggle('collapsed'); sw.classList.toggle('expanded');
+  ic.classList.toggle('fa-chevron-right'); ic.classList.toggle('fa-chevron-left');
+}
+</script>
+</body>
+</html>
