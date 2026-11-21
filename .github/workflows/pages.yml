@@ -45,6 +45,13 @@ jobs:
       - name: 데모 빌드
         run: pnpm demo:build
 
+      # 화면설계 워크벤치(정적 HTML·MD)를 데모 옆 /workbench/ 로 함께 올린다. 빌드 단계가 없다.
+      - name: 화면설계 워크벤치 포함 (/workbench/)
+        run: |
+          mkdir -p apps/web/dist/workbench
+          cp -R index.html 방법론 projects apps/web/dist/workbench/
+          test -f apps/web/dist/workbench/index.html || { echo "워크벤치 index.html 이 없다"; exit 1; }
+
       - name: 스냅샷 포함 확인
         run: |
           test -f apps/web/dist/index.html || { echo "index.html 이 없다"; exit 1; }

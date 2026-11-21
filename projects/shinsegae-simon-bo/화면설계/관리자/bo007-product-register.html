@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<!-- SECTION-CARD: .section-box 표준 (린트 마커) · 와일리 DS v2 · 도식화 · 폼형 -->
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BO007 상품등록 — 신세계사이먼 BO 화면설계서</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="../_공통/bo-screen.css">
+</head>
+<body data-portal="admin" data-section="product" data-page="BO007"
+      data-page-title="상품등록" data-page-hint="상품관리 > 상품등록 — 상품 기본정보·할인·상세 입력/저장">
+<div class="root-shell">
+
+  <!-- ════════ 좌: 실제 화면 ════════ -->
+  <div class="screen-wrap" style="flex:11.5;">
+    <div class="gnb">
+      <span class="brand">PREMIUM OUTLETS</span><span>SHINSEGAE SIMON · BO</span>
+      <span class="util"><span class="sys">사이먼 운영자</span><span><i class="fa-solid fa-circle-user"></i> admin02</span></span>
+    </div>
+    <div class="page-body">
+      <div class="lnb">
+        <div class="grp">기준정보</div>
+        <a href="bo316-color-history.html">컬러 변경이력 조회</a><a>테넌트 조견표 관리</a>
+        <div class="grp">상품관리</div>
+        <a href="bo006-product-list.html">상품목록</a><a class="on">상품등록</a><a>개인결제상품등록</a><a>상품정보이행</a>
+        <div class="grp">주문관리</div><a>주문상세</a>
+        <div class="grp">프로모션</div><a>프로모션 목록</a>
+      </div>
+      <div class="main-col">
+        <div class="crumb">상품관리 <i class="fa-solid fa-chevron-right" style="font-size:8px"></i> <span class="here">상품등록</span></div>
+        <div class="main-row">
+          <div id="left-panel" class="left-panel" style="flex:11.5;">
+            <div class="lhead">
+              <span style="font-size:12px;color:#6b7280"><i class="fa-solid fa-pen-to-square" style="margin-right:5px"></i>BO007 · <span style="color:var(--c-primary)" id="mode-label">신규</span></span>
+              <span class="user" id="header-user">
+                <span><i class="fa-solid fa-building" style="margin-right:4px"></i>사이먼 운영자 · admin02</span>
+                <span class="bell"><i class="fa-solid fa-bell"></i><span class="dot">3</span></span>
+                <button class="btn btn-sm"><i class="fa-solid fa-right-from-bracket"></i>로그아웃</button>
+              </span>
+            </div>
+            <div id="logout-banner" class="warn-banner" style="display:none;margin:0;border-radius:0">
+              <i class="fa-solid fa-lock"></i><strong>로그인이 필요합니다.</strong> 상품등록은 로그인한 운영자만 사용할 수 있습니다.
+            </div>
+            <div class="body-area">
+              <h1 class="page-h1">상품등록</h1>
+              <p class="page-sub">상품관리 &gt; 상품등록 — 상품 기본정보·할인·상세를 입력해 저장합니다. <span class="badge b-blue" style="margin-left:4px">상품ID: 신규</span></p>
+
+              <!-- 영역 1 : 기본정보 -->
+              <div class="section-box">
+                <div class="ui-marker"><span class="num-badge">1</span></div>
+                <h2 class="section-title-2">▒ 기본정보</h2>
+                <table class="detail-table">
+                  <colgroup><col style="width:120px"><col><col style="width:120px"><col></colgroup>
+                  <tr>
+                    <th>상품 ID</th><td><span class="badge b-gray">신규 (저장 시 자동발번)</span></td>
+                    <th><span class="field-label"><span class="num-badge-sm">a</span>상점 ID<span class="req-star">*</span></span></th>
+                    <td><input class="input-field" style="width:120px" value="036014"> 럭스보이</td>
+                  </tr>
+                  <tr>
+                    <th><span class="field-label"><span class="num-badge-sm">b</span>브랜드<span class="req-star">*</span></span></th>
+                    <td><input class="input-field" style="width:60%" value="까날리"><button class="btn btn-sm" onclick="alert('브랜드 조회 팝업')"><i class="fa-solid fa-magnifying-glass"></i></button></td>
+                    <th><span class="field-label"><span class="num-badge-sm">c</span>상품명<span class="req-star">*</span></span></th>
+                    <td><input class="input-field" style="width:96%" value="까날리 클래식 셔츠"></td>
+                  </tr>
+                  <tr>
+                    <th><span class="field-label"><span class="num-badge-sm">d</span>판매기간<span class="req-star">*</span></span></th>
+                    <td><input type="date" class="input-field"> ~ <input type="date" class="input-field"> <label class="chk"><input type="checkbox">기한없음</label></td>
+                    <th><span class="field-label"><span class="num-badge-sm">g</span>카테고리<span class="req-star">*</span></span></th>
+                    <td><select class="select-field"><option>대(전체)</option></select><select class="select-field"><option>중</option></select> <button class="btn btn-sm">조견표</button></td>
+                  </tr>
+                  <tr>
+                    <th><span class="field-label"><span class="num-badge-sm">e</span>가격<span class="req-star">*</span></span></th>
+                    <td>아울렛 <input class="input-field" style="width:90px" value="189,000">원 / 최초 <input class="input-field" style="width:90px" value="210,000">원</td>
+                    <th><span class="field-label"><span class="num-badge-sm">f</span>배송비<span class="req-star">*</span></span></th>
+                    <td>배송 <input class="input-field" style="width:70px" value="0">원 / 환불왕복 <input class="input-field" style="width:70px" value="6,000">원</td>
+                  </tr>
+                  <tr>
+                    <th><span class="field-label"><span class="num-badge-sm">h</span>옵션 플래그</span></th>
+                    <td colspan="3">
+                      <label class="chk">판매 <select class="select-field"><option>Y</option><option>N</option></select></label>
+                      <label class="chk">품절 <select class="select-field"><option>N</option><option>Y</option></select></label>
+                      <label class="chk"><input type="checkbox">시즌상품</label>
+                      <label class="chk">뱃지 <select class="select-field"><option>없음</option><option>NEW</option></select></label>
+                      <label class="chk"><input type="checkbox">개인결제상품</label>
+                    </td>
+                  </tr>
+                </table>
+              </div>
+
+              <!-- 영역 2 : 할인정보 -->
+              <div class="section-box" id="disc-area">
+                <div class="ui-marker"><span class="num-badge">2</span></div>
+                <h2 class="section-title-2">▒ 할인정보</h2>
+                <table class="detail-table">
+                  <colgroup><col style="width:120px"><col><col style="width:120px"><col></colgroup>
+                  <tr>
+                    <th><span class="field-label"><span class="num-badge-sm">i</span>할인기간</span></th>
+                    <td><input type="date" class="input-field"> ~ <input type="date" class="input-field"></td>
+                    <th><span class="field-label"><span class="num-badge-sm">j</span>할인적용</span></th>
+                    <td>구분 <select class="select-field"><option>선택</option><option>정률</option><option>정액</option></select> 할인율 <input class="input-field" style="width:50px" value="10">% 추가할인가 <input class="input-field" style="width:80px">원</td>
+                  </tr>
+                </table>
+              </div>
+
+              <!-- 영역 3 : 상품상세정보 -->
+              <div class="section-box">
+                <div class="ui-marker"><span class="num-badge">3</span></div>
+                <h2 class="section-title-2">▒ 상품상세정보</h2>
+                <div style="font-size:12px">
+                  <label class="chk"><span class="num-badge-sm">k</span><input type="checkbox" checked>상품정보제공고시 직접입력</label>
+                  <button class="btn btn-sm" style="margin-left:8px"><i class="fa-solid fa-table-cells"></i>템플릿</button>
+                  <button class="btn btn-sm"><i class="fa-solid fa-window-restore"></i>상품상세 팝업(BO308)</button>
+                  <div style="border:1px dashed var(--c-line);border-radius:6px;padding:18px;margin-top:8px;text-align:center;color:var(--c-muted);font-size:11px">미리보기 영역 — 상품상세 팝업에서 작성한 내용 표시</div>
+                </div>
+              </div>
+
+              <!-- 영역 4 : 액션 버튼 (CASE btn) -->
+              <div class="section-box">
+                <div class="ui-marker"><span class="num-badge">4</span></div>
+                <h2 class="section-title-2"><span class="field-label"><span class="num-badge-sm">l</span>액션</span></h2>
+                <div class="case-btn-active" style="display:flex;justify-content:center;gap:8px">
+                  <button class="btn btn-white"><i class="fa-solid fa-file"></i>신규</button>
+                  <button class="btn btn-white"><i class="fa-solid fa-rotate-right"></i>새로고침</button>
+                  <button class="btn btn-white"><i class="fa-solid fa-copy"></i>복사</button>
+                  <button class="btn btn-white"><i class="fa-solid fa-trash"></i>삭제</button>
+                  <button class="btn btn-blue" onclick="confirm('상품을 저장하시겠습니까?')"><i class="fa-solid fa-floppy-disk"></i>저장</button>
+                </div>
+                <div class="case-btn-waiting" style="display:none;justify-content:center;gap:8px">
+                  <button class="btn btn-disabled" disabled><i class="fa-solid fa-floppy-disk"></i>임시저장</button>
+                  <button class="btn btn-disabled" disabled>저장</button>
+                </div>
+                <div class="case-btn-done" style="display:none;justify-content:center;gap:8px">
+                  <button class="btn btn-disabled" disabled><i class="fa-solid fa-check"></i>저장 완료</button>
+                  <button class="btn btn-white"><i class="fa-solid fa-print"></i>인쇄</button>
+                </div>
+                <div class="warn-banner case-validate-error" style="display:none;margin-top:10px">
+                  <i class="fa-solid fa-triangle-exclamation"></i><strong>필수값 미입력:</strong> "상품명은(는) 필수값입니다."
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════ 우: 디스크립션 (도식 중심) ════════ -->
+  <div id="right-panel" class="right-panel" style="flex:4.8;">
+    <h2 class="rp-h2">BO007</h2>
+    <table class="info-table">
+      <tr><th>화면명</th><td>상품등록</td></tr>
+      <tr><th>화면목적</th><td>운영자가 상품의 기본정보·할인정보·상품상세를 입력하고 필수값/옵션 검증 후 저장(상품ID 자동발번)하기 위한 등록·수정 화면.</td></tr>
+      <tr><th class="acc-th" onclick="toggleReq()">요구사항 <span id="req-ch" style="font-size:10px;color:#6b7280">▼</span></th>
+          <td><div id="req-ac"><span class="req-badge">REQ-PRD-007-001</span> <span style="font-size:9px;color:#a16207" title="자동 매칭, 검토 권장">⚠ 검토</span>
+            <div class="req-title">상품 등록 및 할인·상세 입력</div>
+            <div class="req-desc">❍ 기본정보 필수값 검증, 할인정보(기간/구분/율/추가가) 입력 시 옵션 일괄 UPDATE, 색상·사이즈 외 텍스트 옵션 저장 시 경고.</div></div></td></tr>
+    </table>
+
+    <!-- ① 화면 전이도 -->
+    <h3 class="rp-h3">🗺️ 화면 전이도</h3>
+    <div class="diagram"><pre class="mermaid">
+flowchart TD
+  G["상품목록<br/>BO006"] --> R["상품등록<br/>BO007"]:::cur
+  R -->|"브랜드 돋보기"| BP["브랜드 조회 팝업"]
+  R -->|"상품상세 팝업"| DP["상품상세 정보입력<br/>BO308"]
+  R -->|"저장 완료"| G
+  classDef cur fill:#be123c,stroke:#be123c,color:#fff;
+</pre></div>
+    <p class="diagram-cap">상품목록에서 진입. 브랜드/상품상세는 팝업, 저장 완료 시 목록 복귀.</p>
+
+    <!-- ② 처리 흐름 (저장 검증 분기) -->
+    <h3 class="rp-h3">🔀 처리 흐름 · 저장 검증</h3>
+    <div class="diagram"><pre class="mermaid">
+flowchart TD
+  A["기본정보 입력"] --> B["저장"]
+  B --> C{"필수값 충족?"}
+  C -->|"미입력"| E["필수값 경고"]:::warn
+  C -->|"충족"| D{"텍스트 옵션 존재?"}
+  D -->|"있음"| W["경고: 색상·사이즈 권장"]:::warn
+  D -->|"없음"| S["저장 · 상품ID 발번"]:::ok
+  W --> S
+  E --> A
+  classDef warn fill:#fee2e2,stroke:#dc2626,color:#991b1b;
+  classDef ok fill:#dcfce7,stroke:#16a34a,color:#166534;
+</pre></div>
+    <p class="diagram-cap">저장 시 필수값→옵션 순으로 검증. 텍스트 옵션은 경고 후 저장 진행.</p>
+
+    <!-- ③ 등록 상태도 -->
+    <h3 class="rp-h3">🔄 등록 상태(버튼 연동)</h3>
+    <div class="diagram"><pre class="mermaid">
+stateDiagram-v2
+  [*] --> 신규
+  신규 --> 임시저장 : 임시저장
+  임시저장 --> 신규 : 이어작성
+  신규 --> 저장완료 : 저장(필수충족)
+  임시저장 --> 저장완료 : 저장
+  저장완료 --> 수정 : 항목변경
+  수정 --> 저장완료 : 재저장
+  저장완료 --> [*]
+</pre></div>
+    <p class="diagram-cap">우측 'btn' Case와 연동 — 신규(활성)·임시저장(대기)·저장완료(완료) 버튼 세트 전환.</p>
+
+    <!-- ④ 저장 시퀀스 -->
+    <h3 class="rp-h3">🔗 상호작용 시퀀스 · 저장</h3>
+    <div class="diagram"><pre class="mermaid">
+sequenceDiagram
+  autonumber
+  participant U as 운영자
+  participant S as 화면
+  participant A as 서버
+  U->>S: 기본정보 입력 + [저장]
+  S->>S: 필수값·옵션 검증
+  S->>U: 확인창
+  U->>S: 확인
+  S->>A: POST /goods
+  A-->>S: 상품ID 발번 · 할인 일괄 UPDATE
+  S-->>U: 저장 완료 · 목록 이동
+</pre></div>
+    <p class="diagram-cap">할인정보 변경 시 상품옵션 내 할인이 실시간 일괄 UPDATE.</p>
+
+    <!-- ⑤ CASE 전환 (인터랙티브) -->
+    <h3 class="rp-h3">⚙ Case 전환 <span style="font-size:9px;font-weight:400;color:#9ca3af">(칩 클릭 → 좌측 화면 전환)</span></h3>
+    <div class="case-grp"><div class="case-grp-title">btn — 버튼/등록 상태</div>
+      <span class="case-chip active" onclick="setCase('btn','active',this)">신규(활성)</span><span class="case-chip" onclick="setCase('btn','waiting',this)">임시저장(대기)</span><span class="case-chip" onclick="setCase('btn','done',this)">저장완료</span></div>
+    <div class="case-grp"><div class="case-grp-title">validate — 유효성</div>
+      <span class="case-chip active" onclick="setCase('validate','ok',this)">정상</span><span class="case-chip" onclick="setCase('validate','error',this)">필수값 경고</span></div>
+    <div class="case-grp"><div class="case-grp-title">disc — 할인정보</div>
+      <span class="case-chip active" onclick="setCase('disc','on',this)">있음</span><span class="case-chip" onclick="setCase('disc','off',this)">없음</span></div>
+    <div class="case-grp"><div class="case-grp-title">auth — 로그인 상태</div>
+      <span class="case-chip active" onclick="setCase('auth','login',this)">로그인</span><span class="case-chip" onclick="setCase('auth','logout',this)">로그아웃</span></div>
+
+    <!-- ⑥ 필드 사양 매트릭스 -->
+    <h3 class="rp-h3">📋 필드 사양 매트릭스</h3>
+    <p class="diagram-legend">좌측 화면 마커(배지 ↔ 행 No)와 1:1. <span class="fs-req">●</span> 필수 · <span class="fs-opt">○</span> 선택</p>
+
+    <div class="fs-grp"><span class="num-badge">1</span>기본정보</div>
+    <table class="fs-matrix">
+      <colgroup><col style="width:20px"><col style="width:62px"><col style="width:58px"><col><col></colgroup>
+      <thead><tr><th>No</th><th>필드</th><th>타입·필수</th><th>기본·검증</th><th>동작·예외</th></tr></thead>
+      <tbody>
+        <tr><td class="c"><span class="num-badge-sm">a</span></td><td>상점 ID</td><td class="c">text <span class="fs-req">●</span></td><td>관할 상점</td><td>상점명 자동 표시</td></tr>
+        <tr><td class="c"><span class="num-badge-sm">b</span></td><td>브랜드</td><td class="c">popup <span class="fs-req">●</span></td><td>—</td><td>돋보기→브랜드 조회 팝업 선택</td></tr>
+        <tr><td class="c"><span class="num-badge-sm">c</span></td><td>상품명</td><td class="c">text <span class="fs-req">●</span></td><td>—</td><td>미입력 시 "상품명은 필수값입니다."</td></tr>
+        <tr><td class="c"><span class="num-badge-sm">d</span></td><td>판매기간</td><td class="c">daterange <span class="fs-req">●</span></td><td>기한없음 옵션</td><td>시작≤종료(YYYYMMDD 8자리)</td></tr>
+        <tr><td class="c"><span class="num-badge-sm">e</span></td><td>가격(아울렛/최초)</td><td class="c">number <span class="fs-req">●</span></td><td>—</td><td>숫자 양수. 아울렛≤최초</td></tr>
+        <tr><td class="c"><span class="num-badge-sm">f</span></td><td>배송비(배송/환불)</td><td class="c">number <span class="fs-req">●</span></td><td>테넌트 기본배송비 자동</td><td>배송 10자리·환불 38자리. 무료배송 시 왕복으로 설정</td></tr>
+        <tr><td class="c"><span class="num-badge-sm">g</span></td><td>카테고리·조견표</td><td class="c">select <span class="fs-req">●</span></td><td>—</td><td>대&gt;중&gt;소&gt;세. 매핑된 조견표 이미지 표시</td></tr>
+        <tr><td class="c"><span class="num-badge-sm">h</span></td><td>옵션 플래그</td><td class="c">mixed <span class="fs-opt">○</span></td><td>판매Y·품절N</td><td>판매/품절/시즌/뱃지/개인결제여부</td></tr>
+      </tbody>
+    </table>
+
+    <div class="fs-grp"><span class="num-badge">2</span>할인정보</div>
+    <table class="fs-matrix">
+      <colgroup><col style="width:20px"><col style="width:62px"><col style="width:58px"><col><col></colgroup>
+      <tbody>
+        <tr><td class="c"><span class="num-badge-sm">i</span></td><td>할인기간</td><td class="c">daterange <span class="fs-opt">○</span></td><td>—</td><td>시작≤종료. 입력 시 나머지 할인정보도 입력 필수</td></tr>
+        <tr><td class="c"><span class="num-badge-sm">j</span></td><td>할인적용·율·추가가</td><td class="c">mixed <span class="fs-opt">○</span></td><td>할인율 0</td><td>할인율 ≥0 양수 10자리. 변경 시 옵션 내 할인 일괄 UPDATE</td></tr>
+      </tbody>
+    </table>
+
+    <div class="fs-grp"><span class="num-badge">3</span>상품상세정보</div>
+    <table class="fs-matrix">
+      <colgroup><col style="width:20px"><col style="width:62px"><col style="width:58px"><col><col></colgroup>
+      <tbody>
+        <tr><td class="c"><span class="num-badge-sm">k</span></td><td>상품정보제공고시</td><td class="c">check+팝업</td><td>직접입력 체크</td><td>템플릿 선택 또는 상품상세 팝업(BO308) 작성→미리보기 표시</td></tr>
+      </tbody>
+    </table>
+
+    <div class="fs-grp"><span class="num-badge">4</span>액션</div>
+    <table class="fs-matrix">
+      <colgroup><col style="width:20px"><col style="width:62px"><col style="width:58px"><col><col></colgroup>
+      <tbody>
+        <tr><td class="c"><span class="num-badge-sm">l</span></td><td>신규/저장/복사/삭제</td><td class="c">button</td><td>btn=active</td><td>저장 시 검증→확인창. 상태에 따라 버튼 세트 전환(활성/대기/완료)</td></tr>
+      </tbody>
+    </table>
+
+    <!-- 데이터 / API -->
+    <h3 class="rp-h3">🗂 데이터 / 입력값 (API)</h3>
+    <table class="info-table">
+      <tr><th>요청</th><td>storeId* · brandCode* · goodsName* · saleFrom/To* · outletPrice* · originPrice* · deliveryFee* · refundFee* · categoryCode* · personalPayYn · discFrom/To · discType · discRate · addDcPrice · noticeDirectYn</td></tr>
+      <tr><th>응답</th><td>goodsCode(발번) · result · 검증 메시지[]</td></tr>
+    </table>
+
+    <!-- 예외 / 상태 -->
+    <h3 class="rp-h3">⚠ 예외 / 상태별 처리</h3>
+    <table class="info-table">
+      <tr><th>필수값 미입력</th><td>해당 필드 강조 + "○○은(는) 필수값입니다." 저장 차단</td></tr>
+      <tr><th>텍스트 옵션</th><td>색상·사이즈 외 옵션 시 경고 후 저장 진행</td></tr>
+      <tr><th>할인 부분입력</th><td>할인기간/구분 중 하나만 입력 시 나머지 입력 요구</td></tr>
+      <tr><th>저장 실패</th><td>"저장 중 오류가 발생했습니다." 입력값 유지</td></tr>
+    </table>
+
+    <!-- 정책 -->
+    <h3 class="rp-h3">📜 정책 / 비즈니스 룰</h3>
+    <div class="policy-box"><ul class="policy-list">
+      <li><b>상품ID</b>: 저장 시 자동발번(수정 시 readonly)</li>
+      <li><b>할인 일괄</b>: 할인정보 변경 시 상품옵션 내 할인정보 실시간 일괄 UPDATE</li>
+      <li><b>배송비</b>: 신규등록 시 테넌트 기본배송비 자동(배송 10자리·환불 38자리)</li>
+      <li><b>옵션 기본</b>: 색상·사이즈 권장. 텍스트 옵션은 저장 시 경고</li>
+    </ul></div>
+
+    <!-- ★ 메시지·알림 정의 -->
+    <h3 class="rp-h3">🔔 메시지 · 알림 정의</h3>
+    <table class="msg-tbl">
+      <thead><tr><th style="width:46px">유형</th><th>메시지</th><th style="width:92px">발생 조건</th></tr></thead>
+      <tbody>
+        <tr><td class="mtype m-confirm">확인</td><td>상품을 저장하시겠습니까?</td><td>[저장] 클릭 <span class="src">slide30</span></td></tr>
+        <tr><td class="mtype m-warn">경고</td><td>텍스트 옵션입니다. 옵션의 기본선택은 색상, 사이즈 입니다. 저장시 유의바랍니다.</td><td>텍스트 옵션 저장 <span class="src">slide30#6</span></td></tr>
+        <tr><td class="mtype m-warn">경고</td><td>○○은(는) 필수값입니다.</td><td>필수값 미입력 <span class="src">slide30</span></td></tr>
+        <tr><td class="mtype m-warn">경고</td><td>할인시작일은 할인종료일보다 클 수 없습니다.</td><td>할인기간 역전 <span class="src">slide31</span></td></tr>
+        <tr><td class="mtype m-done">완료</td><td>저장되었습니다. (상품ID 발번)</td><td>저장 성공 <span class="src">slide30</span></td></tr>
+      </tbody>
+    </table>
+    <p style="font-size:9px;color:#9ca3af;margin-top:6px">출처: SSTM_BO_20230828.pptx · slide 30~33 · ScreenSpec 그라운딩</p>
+  </div>
+
+  <div class="panel-toggle-wrap"><button class="panel-toggle-btn" onclick="togglePanel()"><i class="fa-solid fa-chevron-right" id="toggle-icon"></i></button></div>
+</div>
+
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11.6.0/dist/mermaid.esm.min.mjs';
+  mermaid.initialize({
+    startOnLoad: true, securityLevel: 'loose', theme: 'base',
+    themeVariables: { fontSize: '11px', fontFamily: "'Noto Sans KR', sans-serif", primaryColor: '#f3f4f6', primaryBorderColor: '#9ca3af', lineColor: '#6b7280' },
+    flowchart: { htmlLabels: true, curve: 'basis', nodeSpacing: 24, rankSpacing: 28 }
+  });
+</script>
+<script>
+function togglePanel(){var r=document.getElementById('right-panel'),s=document.querySelector('.screen-wrap'),i=document.getElementById('toggle-icon');r.classList.toggle('collapsed');s.classList.toggle('expanded');i.classList.toggle('fa-chevron-right');i.classList.toggle('fa-chevron-left');}
+function setCase(group,value,el){
+  if(el&&el.classList.contains('case-chip')){el.parentElement.querySelectorAll('.case-chip').forEach(function(c){c.classList.remove('active');});el.classList.add('active');}
+  if(group==='btn'){['active','waiting','done'].forEach(function(v){document.querySelectorAll('.case-btn-'+v).forEach(function(e){e.style.display=(v===value)?'flex':'none';});});document.getElementById('mode-label').textContent=(value==='done'?'저장완료':(value==='waiting'?'임시저장':'신규'));return;}
+  if(group==='validate'){document.querySelectorAll('.case-validate-error').forEach(function(e){e.style.display=(value==='error')?'flex':'none';});return;}
+  if(group==='disc'){document.getElementById('disc-area').style.display=(value==='off')?'none':'';return;}
+  if(group==='auth'){var b=document.getElementById('logout-banner'),u=document.getElementById('header-user');if(value==='logout'){b.style.display='';u.style.opacity='0.4';}else{b.style.display='none';u.style.opacity='1';}return;}
+}
+function toggleReq(){var c=document.getElementById('req-ac'),h=document.getElementById('req-ch');var open=c.style.display!=='none';c.style.display=open?'none':'';h.textContent=open?'▶':'▼';}
+</script>
+</body>
+</html>

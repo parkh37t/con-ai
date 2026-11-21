@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<!-- SECTION-CARD: .section-box 표준 (린트 마커) · 와일리 DS · 롯데 프론트 · PD-4247 -->
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>front-home-main 모바일 GNB 개선(PD-4247) — 롯데면세점 화면설계서</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="../_공통/프로토타입_템플릿/lotte-front.css">
+</head>
+<body data-portal="front" data-section="home" data-page="front-home-main"
+      data-page-title="모바일 GNB 개선" data-page-hint="MC(Mobile Web) 메인 GNB — 폰트·컬러·여백 개선으로 메뉴 노출 증가 (PD-4247).">
+<div class="root-shell">
+
+  <!-- ════════ 좌: 실제 화면 ════════ -->
+  <div class="screen-wrap" style="flex:11.5;">
+    <div class="gnb-shop">
+      <span class="logo">LOTTE DUTY FREE<small>면세</small></span>
+      <span class="catmenu"><a class="on">MC 메인</a><a>상품전시</a></span>
+      <span class="util"><span><i class="fa-solid fa-mobile-screen"></i> Mobile Web</span></span>
+    </div>
+    <div class="page-body">
+      <div class="cat-lnb">
+        <div class="h">상품/전시</div>
+        <a class="on">모바일 메인 GNB</a>
+        <a href="front-product-list.html">상품목록</a>
+        <div class="h" style="margin-top:14px">기준 문서</div>
+        <a>요건정의(PD-4247)</a><a>번역표</a>
+      </div>
+      <div class="main-col">
+        <div class="crumb">상품/전시 <i class="fa-solid fa-chevron-right" style="font-size:8px"></i> <span class="here">모바일 메인 GNB 개선</span></div>
+        <div class="main-row">
+          <div id="left-panel" class="left-panel" style="flex:11.5;">
+            <div class="body-area">
+              <h1 class="page-h1">모바일 메인 GNB 개선 <span class="badge b-blue" style="margin-left:4px">PD-4247</span></h1>
+              <p class="page-sub">MC(Mobile Web) 메인 GNB — 폰트·컬러·여백 축소로 한 화면 메뉴 노출 증가. <b>AS-IS / TO-BE 전환은 우측 Case 칩</b>.</p>
+
+              <!-- 영역 1 : GNB 메뉴바 목업 -->
+              <div class="section-box">
+                <div class="ui-marker"><span class="num-badge">1</span></div>
+                <h2 class="section-title-2">GNB 메뉴바 <span style="font-weight:400;font-size:11px;color:#6b7280">— <span class="spec-pill pill-as" id="mode-pill">AS-IS</span> 표시 중</span></h2>
+                <div style="font-size:11px;color:var(--c-muted);margin-bottom:8px">
+                  <span class="field-label"><span class="num-badge-sm">a</span>폰트크기</span> ·
+                  <span class="field-label"><span class="num-badge-sm">b</span>메뉴 컬러</span> ·
+                  <span class="field-label"><span class="num-badge-sm">c</span>메뉴 간 여백</span>
+                </div>
+                <div class="mobile-frame">
+                  <div class="m-statusbar"><span>9:41</span><span><i class="fa-solid fa-signal"></i> <i class="fa-solid fa-wifi"></i> <i class="fa-solid fa-battery-full"></i></span></div>
+                  <div class="m-header"><span class="logo">LOTTE</span><span class="ico"><i class="fa-solid fa-magnifying-glass"></i><i class="fa-regular fa-heart"></i><i class="fa-solid fa-bars"></i></span></div>
+                  <div class="gnb-bar" id="gnb-bar">
+                    <span class="m active">홈</span><span class="m">트렌드</span><span class="m">혜택</span><span class="m">세일</span><span class="m">랭킹</span><span class="m">신상품</span><span class="m">브랜드</span><span class="m">기획전</span>
+                  </div>
+                  <div class="m-body">
+                    <div class="m-banner">시즌 프로모션 배너</div>
+                    <div class="m-cats">
+                      <div class="m-cat"><div class="ci">💄</div>화장품</div>
+                      <div class="m-cat"><div class="ci">👜</div>패션잡화</div>
+                      <div class="m-cat"><div class="ci">🥃</div>주류</div>
+                      <div class="m-cat"><div class="ci">⌚</div>시계</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 영역 2 : 변경 사양·메뉴 구성 -->
+              <div class="section-box">
+                <div class="ui-marker"><span class="num-badge">2</span></div>
+                <h2 class="section-title-2">변경 사양 · 메뉴 구성</h2>
+                <table class="detail-table">
+                  <colgroup><col style="width:130px"><col><col></colgroup>
+                  <tr><th>항목</th><th>AS-IS</th><th>TO-BE</th></tr>
+                  <tr><th><span class="field-label"><span class="num-badge-sm">a</span>폰트 크기</span></th><td>15</td><td><b style="color:var(--lotte)">14</b></td></tr>
+                  <tr><th><span class="field-label"><span class="num-badge-sm">b</span>메뉴 컬러</span></th><td>활성 #000 / 비활성 #888</td><td>활성 #000 / 비활성 <b style="color:var(--lotte)">#000</b> (볼드로 활성 구분 유지)</td></tr>
+                  <tr><th><span class="field-label"><span class="num-badge-sm">c</span>메뉴 간 여백</span></th><td>10</td><td><b style="color:var(--lotte)">5</b></td></tr>
+                  <tr><th><span class="field-label"><span class="num-badge-sm">d</span>메뉴명(다국어)</span></th><td colspan="2">홈·트렌드·혜택·세일·랭킹·신상품 등 (국문/간체/영문/일문 — 우측 데이터매핑 번역표)</td></tr>
+                  <tr><th><span class="field-label"><span class="num-badge-sm">e</span>스와이프</span></th><td colspan="2">메뉴 길이 &gt; 디바이스 폭이면 가로 스와이프. 1번째 좌측 10·최우측 10 여백 유지</td></tr>
+                </table>
+              </div>
+
+              <!-- 영역 3 : 변경 없는 영역 -->
+              <div class="section-box">
+                <div class="ui-marker"><span class="num-badge">3</span></div>
+                <h2 class="section-title-2">유지 영역 (변경 없음)</h2>
+                <p style="margin:0;font-size:12px"><span class="field-label"><span class="num-badge-sm">f</span>배너·카테고리 아이콘·본문 레이아웃</span> — GNB 외 나머지 콘텐츠·레이아웃은 변경하지 않는다.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════ 우: 디스크립션 (8단 + 도식) ════════ -->
+  <div id="right-panel" class="right-panel" style="flex:4.8;">
+    <h2 class="rp-h2">front-home-main</h2>
+    <table class="info-table">
+      <tr><th>화면명</th><td>모바일 메인 GNB 개선</td></tr>
+      <tr><th>화면목적</th><td>MC(Mobile Web) 메인 GNB의 폰트·컬러·여백을 축소해 한 화면에 더 많은 메뉴를 노출하기 위한 UI 개선. 활성/비활성 구분은 볼드로 유지.</td></tr>
+      <tr><th class="acc-th" onclick="toggleReq()">요구사항 <span id="req-ch" style="font-size:10px;color:#6b7280">▼</span></th>
+          <td><div id="req-ac"><span class="req-badge">PD-4247</span> <span class="tag">상품/전시 · MC</span>
+            <div class="req-title">[상품/전시] MC GNB 개선</div>
+            <div class="req-desc">❍ 폰트 15→14, 비활성 컬러 #888→#000, 메뉴 여백 10→5. 국가 한국·시스템 MC·언어 4종. 정책서 변경 없음.</div></div></td></tr>
+      <tr><th class="cover">JIRA</th><td>PD-4247 · 상품/전시 (MC)</td></tr>
+      <tr><th class="cover">작성자</th><td>와일리(Wylie) · 검수 기획자</td></tr>
+      <tr><th class="cover">버전</th><td>v1.0 · 2026-06-26</td></tr>
+    </table>
+
+    <!-- [롯데 전용] 개정 이력 -->
+    <h3 class="rp-h3">🗒 개정 이력</h3>
+    <table class="rev-tbl">
+      <thead><tr><th>일자</th><th class="ver">버전</th><th>변경 내용</th><th>작성</th></tr></thead>
+      <tbody>
+        <tr><td>2026-06-26</td><td class="ver">v1.0</td><td>최초 작성 — MC GNB 폰트·컬러·여백 개선(PD-4247)</td><td>Wylie</td></tr>
+      </tbody>
+    </table>
+
+    <!-- CASE 전환 (핵심 — 좌측 GNB 실제 전환) -->
+    <h3 class="rp-h3">⚙ Case 전환 <span style="font-size:9px;font-weight:400;color:#9ca3af">(칩 클릭 → 좌측 GNB 실제 변경)</span></h3>
+    <div class="case-grp"><div class="case-grp-title">view — AS-IS / TO-BE</div>
+      <span class="case-chip active" onclick="setCase('view','asis',this)">AS-IS (15·#888·10)</span><span class="case-chip" onclick="setCase('view','tobe',this)">TO-BE (14·#000·5)</span></div>
+
+    <!-- 변경 적용 흐름 -->
+    <h3 class="rp-h3">🔀 변경 적용 · 영향</h3>
+    <div class="diagram"><pre class="mermaid">
+flowchart TD
+  R["요건 PD-4247"] --> F["폰트 15→14"]
+  R --> C["비활성 #888→#000"]
+  R --> M["메뉴 여백 10→5"]
+  F --> G["GNB 폭 축소<br/>메뉴 노출 ↑"]:::ok
+  C --> G
+  M --> G
+  G --> S{"스와이프 폭 변화?"}
+  S -->|"확인 필요"| W["진입 노출 메뉴 수·<br/>최대 스크롤 검토"]:::warn
+  classDef ok fill:#dcfce7,stroke:#16a34a,color:#166534;
+  classDef warn fill:#fef3c7,stroke:#d97706,color:#92400e;
+</pre></div>
+    <p class="diagram-cap">3개 값 변경 → GNB 폭 축소 → 메뉴 노출 증가. 폭 변화에 따른 스와이프 영향은 확인 필요(능동 제기).</p>
+
+    <!-- ⑤ 정책 -->
+    <h3 class="rp-h3">📜 정책 / 비즈니스 룰</h3>
+    <div class="policy-box"><ul class="policy-list">
+      <li><b>활성 구분</b>: 활성/비활성 컬러가 #000으로 같아져도 <b>볼드(bold)</b>로 활성 메뉴 식별 유지</li>
+      <li><b>적용 범위</b>: MC(Mobile Web) 메인 GNB 한정. PC·BO·APP 제외</li>
+      <li><b>다국어</b>: 4개국어(국/간/영/일) 메뉴명 동일 규격 적용</li>
+      <li><b>유지</b>: 배너·카테고리·본문 레이아웃 불변(정책서 변경 N)</li>
+    </ul></div>
+
+    <!-- ⑥ 데이터 매핑 (번역표 — 롯데 SB 양식 계승) -->
+    <h3 class="rp-h3">🗂 데이터 매핑 · 메뉴 번역표</h3>
+    <table class="info-table">
+      <thead><tr><th>국문</th><th>간체</th><th>영문</th><th>일문</th></tr></thead>
+      <tbody>
+        <tr><td>홈</td><td>首页</td><td>Home</td><td>ホーム</td></tr>
+        <tr><td>트렌드</td><td>趋势</td><td>Trend</td><td>トレンド</td></tr>
+        <tr><td>혜택</td><td>优惠</td><td>Benefits</td><td>特典</td></tr>
+        <tr><td>세일</td><td>促销</td><td>Sale</td><td>セール</td></tr>
+        <tr><td>랭킹</td><td>排行</td><td>Ranking</td><td>ランキング</td></tr>
+        <tr><td>신상품</td><td>新品</td><td>New</td><td>新商品</td></tr>
+      </tbody>
+    </table>
+    <p style="font-size:9px;color:#9ca3af;margin:4px 0 0">롯데 표준 SB '번역표' 계승 · 🟡 실제 번역은 원본 SB 번역표 확정값 적용</p>
+
+    <!-- ⑦ 필드 사양 매트릭스 -->
+    <h3 class="rp-h3">📋 필드 사양 매트릭스</h3>
+    <p class="diagram-legend">좌측 화면 마커(배지 ↔ 행 No)와 1:1.</p>
+
+    <div class="fs-grp"><span class="num-badge">1</span>GNB 메뉴바</div>
+    <table class="fs-matrix">
+      <colgroup><col style="width:20px"><col style="width:52px"><col style="width:48px"><col><col></colgroup>
+      <thead><tr><th>No</th><th>필드</th><th>타입</th><th>AS-IS → TO-BE</th><th>비고</th></tr></thead>
+      <tbody>
+        <tr><td class="c"><span class="num-badge-sm">a</span></td><td>폰트 크기</td><td class="c">px</td><td>15 → <b>14</b></td><td>메뉴명 텍스트</td></tr>
+        <tr><td class="c"><span class="num-badge-sm">b</span></td><td>메뉴 컬러</td><td class="c">hex</td><td>비활성 #888 → <b>#000</b></td><td>활성 #000 유지·볼드로 구분</td></tr>
+        <tr><td class="c"><span class="num-badge-sm">c</span></td><td>메뉴 여백</td><td class="c">px</td><td>10 → <b>5</b></td><td>메뉴 간 간격</td></tr>
+      </tbody>
+    </table>
+    <div class="fs-grp"><span class="num-badge">2</span>메뉴 구성·번역</div>
+    <table class="fs-matrix">
+      <colgroup><col style="width:20px"><col style="width:52px"><col style="width:48px"><col><col></colgroup>
+      <tbody>
+        <tr><td class="c"><span class="num-badge-sm">d</span></td><td>메뉴명(다국어)</td><td class="c">i18n</td><td>국/간/영/일</td><td>데이터매핑 번역표 참조</td></tr>
+        <tr><td class="c"><span class="num-badge-sm">e</span></td><td>스와이프</td><td class="c">UX</td><td>유지</td><td>메뉴 길이&gt;폭 시 가로 스크롤, 좌/우 10 여백</td></tr>
+      </tbody>
+    </table>
+    <div class="fs-grp"><span class="num-badge">3</span>유지 영역</div>
+    <table class="fs-matrix">
+      <colgroup><col style="width:20px"><col style="width:52px"><col style="width:48px"><col><col></colgroup>
+      <tbody>
+        <tr><td class="c"><span class="num-badge-sm">f</span></td><td>배너·카테고리</td><td class="c">—</td><td>변경 없음</td><td>GNB 외 레이아웃·콘텐츠 불변</td></tr>
+      </tbody>
+    </table>
+
+    <!-- 메시지·알림 정의 -->
+    <h3 class="rp-h3">🔔 메시지 · 알림 정의</h3>
+    <table class="msg-tbl">
+      <thead><tr><th style="width:46px">유형</th><th>메시지</th><th style="width:96px">발생 조건</th></tr></thead>
+      <tbody>
+        <tr><td class="mtype m-info">확인필요</td><td>GNB 폭 축소에 따른 스와이프(진입 노출 메뉴 수·최대 스크롤) 영향 검토 필요</td><td>여백 10→5 적용 <span class="src">claudeSB s5</span></td></tr>
+      </tbody>
+    </table>
+    <p style="font-size:9px;color:#9ca3af;margin-top:6px">원천: PD-4247 요건정의서(폰트15→14·#888→#000·여백10→5) · 롯데 AI 테스트 패키지</p>
+
+    <!-- [롯데 전용] End 마커 -->
+    <div class="doc-end">— END OF SB · front-home-main —</div>
+  </div>
+
+  <div class="panel-toggle-wrap"><button class="panel-toggle-btn" onclick="togglePanel()"><i class="fa-solid fa-chevron-right" id="toggle-icon"></i></button></div>
+</div>
+
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11.6.0/dist/mermaid.esm.min.mjs';
+  mermaid.initialize({ startOnLoad:true, securityLevel:'loose', theme:'base',
+    themeVariables:{ fontSize:'11px', fontFamily:"'Noto Sans KR',sans-serif", primaryColor:'#fff0f2', primaryBorderColor:'#d4002a', lineColor:'#9ca3af' },
+    flowchart:{ htmlLabels:true, curve:'basis', nodeSpacing:24, rankSpacing:28 } });
+</script>
+<script>
+function togglePanel(){var r=document.getElementById('right-panel'),s=document.querySelector('.screen-wrap'),i=document.getElementById('toggle-icon');r.classList.toggle('collapsed');s.classList.toggle('expanded');i.classList.toggle('fa-chevron-right');i.classList.toggle('fa-chevron-left');}
+function setCase(group,value,el){
+  if(el&&el.classList.contains('case-chip')){el.parentElement.querySelectorAll('.case-chip').forEach(function(c){c.classList.remove('active');});el.classList.add('active');}
+  if(group==='view'){var g=document.getElementById('gnb-bar'),p=document.getElementById('mode-pill');
+    if(value==='tobe'){g.classList.add('tobe');p.textContent='TO-BE';p.className='spec-pill pill-to';}
+    else{g.classList.remove('tobe');p.textContent='AS-IS';p.className='spec-pill pill-as';}return;}
+}
+function toggleReq(){var c=document.getElementById('req-ac'),h=document.getElementById('req-ch');var open=c.style.display!=='none';c.style.display=open?'none':'';h.textContent=open?'▶':'▼';}
+</script>
+</body>
+</html>

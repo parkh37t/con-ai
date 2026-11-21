@@ -24,3 +24,11 @@ playwright-report/
 
 # 컨테이너 볼륨(운영 DB·내보내기 산출물). 저장소의 data/(검토 자료)와 섞이지 않게 분리한다.
 /var/
+
+# 화면설계 워크벤치 — 검증 결과 생성물
+scripts/verify_all.json
+scripts/*.out.json
+__pycache__/
+*.pyc
+*.swp
+.claude/settings.local.json

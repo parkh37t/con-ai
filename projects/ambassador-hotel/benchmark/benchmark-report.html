@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>앰배서더 호텔 — 벤치마킹·페인포인트·개선 (benchmark-painpoint)</title>
+<link rel="stylesheet" href="../_assets/research.css">
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>앰배서더 호텔 그룹 — 벤치마킹 · 페인포인트 · 개선 (상세판)</h1>
+    <p><span class="tag">benchmark-painpoint</span> 대상 ambatel.com · 벤치 신라·롯데·조선 · 와일리 OS 리서치 실증</p>
+  </header>
+
+  <div class="warn">
+    ⚠ <b>방법·한계</b>: 대상 사이트가 직접 fetch를 WAF로 차단(HTTP 403)하여 <b>URL 패턴·검색엔진 색인·공식 정보 기반 구조 진단</b>입니다.
+    실제 클릭 워크스루/렌더 휴리스틱은 미수행, 페인포인트는 <b>근거 명시된 구조적 가설</b>입니다. 정량 수치(전환율 등)는 개선 가설의 기대치이며 실측 아님.
+  </div>
+
+  <!-- 1. 벤치마킹 -->
+  <div class="card">
+    <h2>1. 경쟁 벤치마킹</h2>
+    <p class="sub">국내 주요 호텔 그룹의 디지털(사이트) 전략 비교 — 통합도·반응형·예약 동선 중심</p>
+    <table>
+      <thead><tr><th style="width:120px">그룹</th><th>사이트 구조</th><th>통합 예약/멤버십</th><th>반응형</th><th>강점(벤치 포인트)</th></tr></thead>
+      <tbody>
+        <tr><td><b>조선호텔앤리조트</b><br><code>josunhotel.com</code></td><td><span class="ok">단일 통합 도메인</span> — 웨스틴·그래비티·조선팰리스·포포인츠·그랜드조선 전부</td><td>통합 예약 <code>/resve/</code> · 패키지 <code>/package/</code> · 다이닝 예약</td><td>단일</td><td>한 사이트에서 전 브랜드 탐색→예약, 다이닝까지 통합</td></tr>
+        <tr><td><b>신라호텔</b><br><code>shillahotels.com</code></td><td>통합 사이트(서울·제주·신라스테이)</td><td><span class="ok">신라리워즈 통합멤버십</span> · 통합 앱(객실·다이닝·멤버십)</td><td>웹+앱</td><td>멤버십·예약·다이닝 원스톱, 4개국어</td></tr>
+        <tr><td><b>롯데호텔</b><br><code>lottehotel.com</code></td><td>글로벌 통합 <code>/global/ko/</code></td><td><span class="ok">통합 멤버십</span>(LHR)</td><td><span class="ok">JS 반응형</span></td><td>반응형·글로벌 일관 IA, 모던 프런트엔드</td></tr>
+        <tr style="background:#fff7ed"><td><b>앰배서더(대상)</b><br><code>ambatel.com</code></td><td><span class="no">지점별 마이크로사이트 분산</span> <code>/{brand}/{site}/ko/</code> · 약 21개</td><td>클럽 앰버(통합멤버십) <span class="ok">○</span> / <span class="no">통합 예약 허브 약함(추정)</span></td><td><span class="no">PC·모바일 분리</span> <code>m.</code></td><td>국내 최다 네트워크(브랜드 9·지점 21) — 자산은 최대</td></tr>
+      </tbody>
+    </table>
+    <p class="wnote"><b>요지</b>: 4사 모두 통합멤버십은 보유. 그러나 경쟁 3사는 <b>단일 도메인 통합 + (롯데)반응형</b>으로 수렴, 앰배서더만 <b>분산·분리·레거시</b>. 자산(네트워크)은 1위인데 디지털 통합은 후순위 — <b>"최다 네트워크를 한 화면에서 팔지 못하는"</b> 구조적 손실.</p>
+  </div>
+
+  <!-- 2. 페인포인트 상세 -->
+  <div class="card">
+    <h2>2. 페인포인트 (상세)</h2>
+    <p class="sub">NN/G 10 휴리스틱 기준 · 각 항목 현상→재현경로→영향규모→근거→심각도</p>
+
+    <div class="pp h">
+      <div class="top"><span class="pid">PP-1 · 그룹 통합 탐색 부재</span><span class="sev s-h">High</span><span class="heu">#4 일관성·표준</span><span class="heu">#6 인식 우선</span></div>
+      <dl>
+        <dt>현상</dt><dd>21개 지점이 각자 마이크로사이트로 분산 — 그룹 차원에서 "서울+이번주+5성"으로 호텔을 가로 탐색·비교하는 진입점이 약함</dd>
+        <dt>재현 경로</dt><dd>ambatel.com 진입 → 호텔을 고르려면 브랜드/지점을 미리 알아야 개별 사이트(<code>/novotel/gangnam/…</code>)로 이동</dd>
+        <dt>영향 규모</dt><dd>신규·비충성 고객의 초기 호텔 선택 단계에서 이탈 — 교차판매(타 지점 제안) 기회 상실</dd>
+        <dt>근거</dt><dd>URL 분산 구조 + 그룹 통합 검색 미확인. 경쟁 조선 <code>/resve/</code> 대비</dd>
+      </dl>
+    </div>
+
+    <div class="pp h">
+      <div class="top"><span class="pid">PP-2 · PC/모바일 분리 도메인</span><span class="sev s-h">High</span><span class="heu">#7 유연성·효율</span><span class="heu">#4 일관성</span></div>
+      <dl>
+        <dt>현상</dt><dd><code>m.ambatel.com</code> 별도 운영 — 반응형이 아닌 분리형 추정. 기기별 콘텐츠·기능 격차·동기화 부담</dd>
+        <dt>재현 경로</dt><dd>모바일 접속 시 <code>m.</code>으로 분기 → PC 링크 공유 시 레이아웃 깨짐/리다이렉트</dd>
+        <dt>영향 규모</dt><dd>모바일 트래픽(호텔 예약의 다수)에서 UX 저하 + 운영 2벌 유지보수 비용</dd>
+        <dt>근거</dt><dd>검색 결과 다수가 <code>m.ambatel.com</code>. 경쟁 롯데는 단일 반응형</dd>
+      </dl>
+    </div>
+
+    <div class="pp h">
+      <div class="top"><span class="pid">PP-3 · 통합 예약 동선 약함</span><span class="sev s-h">High</span><span class="heu">#7 유연성·효율</span></div>
+      <dl>
+        <dt>현상</dt><dd>지역·날짜·인원으로 전 지점을 한 번에 검색→비교→예약하는 통합 엔진 진입이 약함(지점 진입 후 개별 예약 추정)</dd>
+        <dt>재현 경로</dt><dd>"이번 주말 서울 어디든" 의도 → 지점별로 각각 날짜·요금 확인 필요</dd>
+        <dt>영향 규모</dt><dd>예약 전환율·객단가(업셀)·교차판매 직접 손실</dd>
+        <dt>근거</dt><dd>조선 <code>/resve/</code> 통합예약·신라 통합앱 대비 부재(추정)</dd>
+      </dl>
+    </div>
+
+    <div class="pp m">
+      <div class="top"><span class="pid">PP-4 · 레거시 URL·SEO·접근성</span><span class="sev s-m">Med</span><span class="heu">#7 유연성</span></div>
+      <dl>
+        <dt>현상</dt><dd><code>.do</code>·<code>?*_contents_seq=NN</code> 비의미 URL + 봇 차단(403) → 검색 노출·SNS 공유·딥링크·크롤 접근성 불리</dd>
+        <dt>재현 경로</dt><dd>객실 상세 URL 공유 시 <code>?room_contents_seq=272</code> 형태 → 의미 불명·만료 위험</dd>
+        <dt>영향 규모</dt><dd>오가닉 유입 감소, 메타 OG·구조화데이터 부재 시 공유 카드 빈약</dd>
+        <dt>근거</dt><dd>WAF 403 + 비의미 URL 직접 관측</dd>
+      </dl>
+    </div>
+
+    <div class="pp m">
+      <div class="top"><span class="pid">PP-5 · 브랜드 경험 분절</span><span class="sev s-m">Med</span><span class="heu">#4 일관성·표준</span><span class="heu">#8 심미·미니멀</span></div>
+      <dl>
+        <dt>현상</dt><dd>지점별 독립 템플릿 → 디자인·정보구조 편차, 그룹 브랜드 일관성 약화</dd>
+        <dt>재현 경로</dt><dd>노보텔↔이비스↔페어몬트 사이트 이동 시 내비·레이아웃·컴포넌트 상이</dd>
+        <dt>영향 규모</dt><dd>브랜드 신뢰·재인지 저하, 신규 지점 온보딩 비용 증가</dd>
+        <dt>근거</dt><dd>브랜드별 독립 경로·템플릿 구조</dd>
+      </dl>
+    </div>
+
+    <div class="pp l">
+      <div class="top"><span class="pid">PP-6 · 멤버십 전환 동선 분리</span><span class="sev s-l">Low</span><span class="heu">#6 인식 우선</span></div>
+      <dl>
+        <dt>현상</dt><dd>클럽 앰버(유료)의 가치·가입 동선이 예약/객실 플로우와 떨어져 <code>/ko/utility/</code>에 별도</dd>
+        <dt>재현 경로</dt><dd>객실 예약 중 멤버 혜택·가입 CTA 노출 약함 → 전환 누락</dd>
+        <dt>영향 규모</dt><dd>멤버십 가입·재방문(LTV) 기회 손실</dd>
+        <dt>근거</dt><dd>멤버십이 별도 영역(<code>memberShipAmberInfo</code>)</dd>
+      </dl>
+    </div>
+  </div>
+
+  <!-- 3. 개선 + 실행방안 -->
+  <div class="card">
+    <h2>3. 개선사항 (실행방안 · KPI)</h2>
+    <p class="sub">각 개선안 = 대응 페인포인트 → 구체 실행 → 측정 KPI → 벤치 근거 → 우선순위</p>
+    <table>
+      <thead><tr><th style="width:20px">#</th><th>개선안 · 실행방안</th><th>대응</th><th>KPI</th><th>벤치 근거</th><th>우선순위</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td><b>그룹 통합 예약·탐색 허브</b><br>홈 상단에 [지역·날짜·인원·브랜드·가격] 통합 검색바 → 전 지점 결과 카드(요금·잔여)→ 비교→예약. 지도·필터 제공</td><td>PP-1,3</td><td><span class="kpi">예약전환율</span> <span class="kpi">교차판매율</span></td><td>조선 <code>/resve/</code>, 신라 앱</td><td><span class="pri p-major">Major</span></td></tr>
+        <tr><td>2</td><td><b>반응형 단일화</b><br><code>m.</code> 폐지, 단일 반응형(모바일 퍼스트). 공통 컴포넌트로 PC/모바일 일원화</td><td>PP-2</td><td><span class="kpi">모바일 이탈률</span> <span class="kpi">유지비</span></td><td>롯데 JS 반응형</td><td><span class="pri p-major">Major</span></td></tr>
+        <tr><td>3</td><td><b>통합 디자인시스템</b><br>브랜드 토큰(컬러·타이포·로고) + 지점 공통 템플릿. 브랜드별 테마만 스왑</td><td>PP-5</td><td><span class="kpi">신규지점 온보딩</span> <span class="kpi">일관성 점수</span></td><td>글로벌 체인 DS</td><td><span class="pri p-major">Major</span></td></tr>
+        <tr><td>4</td><td><b>클럽 앰버 전환 동선</b><br>객실·예약 화면 내 멤버 요금 비교 + 가입 CTA + 가입 즉시 할인 적용</td><td>PP-6</td><td><span class="kpi">멤버십 가입수</span> <span class="kpi">재방문율</span></td><td>신라리워즈 예약 연동</td><td><span class="pri p-q">Quick-win</span></td></tr>
+        <tr><td>5</td><td><b>URL 현대화·SEO</b><br>의미형 slug(<code>/seoul/novotel-gangnam/rooms/deluxe</code>), 봇 허용, OG·JSON-LD(Hotel/Offer) 구조화데이터</td><td>PP-4</td><td><span class="kpi">오가닉 유입</span> <span class="kpi">공유 CTR</span></td><td>롯데 모던 구조</td><td><span class="pri p-fill">Fill-in</span></td></tr>
+        <tr><td>6</td><td><b>접근성(WCAG 2.1 AA)</b><br>키보드 내비, 명도대비 4.5:1, 대체텍스트, 폼 라벨</td><td>PP-2,5</td><td><span class="kpi">Lighthouse a11y</span></td><td>업계 표준</td><td><span class="pri p-fill">Fill-in</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 4. 우선순위 매트릭스 (CSS) -->
+  <div class="card">
+    <h2>4. 우선순위 매트릭스 (임팩트 × 노력)</h2>
+    <p class="sub">세로=임팩트(위로 높음), 가로=노력(오른쪽 높음). 점 위치는 상대 평가.</p>
+    <div class="matrix-wrap">
+      <div class="matrix">
+        <span class="qlabel q1">Major · 전략과제</span>
+        <span class="qlabel q2">Quick-win</span>
+        <span class="qlabel q3">Fill-in</span>
+        <span class="qlabel q4">재검토</span>
+        <span class="axis-y">임팩트 (낮음 → 높음)</span>
+        <span class="axis-x">노력 (낮음 → 높음)</span>
+        <div class="pt major" style="left:62%;top:8%"  title="통합 예약 허브">1</div>
+        <div class="pt major" style="left:82%;top:15%" title="반응형 단일화">2</div>
+        <div class="pt major" style="left:85%;top:30%" title="통합 디자인시스템">3</div>
+        <div class="pt quick" style="left:25%;top:38%" title="클럽 앰버 동선">4</div>
+        <div class="pt fill"  style="left:70%;top:55%" title="URL·SEO">5</div>
+        <div class="pt fill"  style="left:40%;top:50%" title="접근성">6</div>
+      </div>
+      <div class="legend">
+        <div><span class="dot" style="background:#2563eb">1</span> 통합 예약 허브 <span class="pri p-major">Major</span></div>
+        <div><span class="dot" style="background:#2563eb">2</span> 반응형 단일화 <span class="pri p-major">Major</span></div>
+        <div><span class="dot" style="background:#2563eb">3</span> 통합 디자인시스템 <span class="pri p-major">Major</span></div>
+        <div><span class="dot" style="background:#16a34a">4</span> 클럽 앰버 동선 <span class="pri p-q">Quick-win</span></div>
+        <div><span class="dot" style="background:#64748b">5</span> URL·SEO <span class="pri p-fill">Fill-in</span></div>
+        <div><span class="dot" style="background:#64748b">6</span> 접근성 <span class="pri p-fill">Fill-in</span></div>
+        <p class="wnote">우상(Major)=임팩트·노력 모두 큼 → 로드맵 핵심 투자. 좌상(Quick-win)=클럽앰버 동선부터 즉시 착수.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. 실행 로드맵 -->
+  <div class="card">
+    <h2>5. 실행 로드맵</h2>
+    <p class="sub">난이도·의존성 기준 3단계. Phase 1로 빠른 성과 → Phase 2 구조 전환 → Phase 3 마감</p>
+    <div class="road">
+      <div class="phase p1">
+        <h4>Phase 1 · Quick-win (0~2개월)</h4>
+        <ul>
+          <li>클럽 앰버 전환 CTA를 객실·예약 화면에 삽입(#4)</li>
+          <li>홈 통합 검색바 프로토타입(지역·날짜) — 결과는 기존 지점 연결</li>
+          <li>핵심 페이지 OG·메타 보강(#5 일부)</li>
+        </ul>
+      </div>
+      <div class="phase p2">
+        <h4>Phase 2 · 구조 전환 (2~8개월)</h4>
+        <ul>
+          <li>통합 예약·탐색 허브 정식 구축(#1)</li>
+          <li>반응형 단일 도메인 전환, <code>m.</code> 단계 폐지(#2)</li>
+          <li>통합 디자인시스템 + 지점 템플릿 표준(#3)</li>
+        </ul>
+      </div>
+      <div class="phase p3">
+        <h4>Phase 3 · 마감·고도화 (8개월~)</h4>
+        <ul>
+          <li>URL 현대화·구조화데이터 전면(#5)</li>
+          <li>WCAG 2.1 AA 접근성 인증(#6)</li>
+          <li>다국어 콘텐츠 동기화·개인화 추천</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. To-Be 핵심 화면 권고 -->
+  <div class="card">
+    <h2>6. To-Be 핵심 화면 — 그룹 통합 예약 허브 (개선 #1)</h2>
+    <p class="sub">페인포인트 PP-1·3을 푸는 핵심 화면의 와이어 스케치 (2단 화면설계서로 상세화 가능)</p>
+    <div class="wire">
+      <div class="wbar">AMBASSADOR HOTEL GROUP · 통합 예약</div>
+      <div class="wsearch">
+        <span class="f">📍 지역 (서울·부산·제주…)</span>
+        <span class="f">📅 체크인 ~ 체크아웃</span>
+        <span class="f">👤 인원·객실</span>
+        <span class="f">🏨 브랜드 (전체·럭셔리·이코노미)</span>
+        <span class="f">💰 가격대</span>
+        <span class="go">전 지점 검색</span>
+      </div>
+      <div class="wcards">
+        <div class="wcard"><div class="img">🏨</div><b>페어몬트 서울</b><br>럭셔리 · 한강뷰<br>₩390,000~ <span style="color:#16a34a">멤버 -5%</span></div>
+        <div class="wcard"><div class="img">🏨</div><b>노보텔 강남</b><br>미드 · 강남<br>₩180,000~ <span style="color:#16a34a">멤버 -5%</span></div>
+        <div class="wcard"><div class="img">🏨</div><b>이비스 명동</b><br>이코노미 · 명동<br>₩95,000~ <span style="color:#16a34a">멤버 -5%</span></div>
+        <div class="wcard"><div class="img">🏨</div><b>머큐어 제주</b><br>미드 · 제주<br>₩150,000~ <span style="color:#16a34a">멤버 -5%</span></div>
+      </div>
+      <p class="wnote">① 한 검색바로 전 지점 동시 검색(PP-1·3 해소) · ② 카드에 멤버 요금 비교 노출(PP-6 클럽앰버 전환) · ③ 반응형 카드 그리드(PP-2) · ④ 브랜드 토큰 일관 컴포넌트(PP-5)</p>
+    </div>
+  </div>
+
+  <!-- 출처 -->
+  <div class="card">
+    <h2>7. 출처</h2>
+    <ul>
+      <li>앰배서더: ambatel.com/ko/about/info.do · /ko/utility/memberShipInfo.do · /ko/offer/offerPkg.do · m.ambatel.com/{brand}/{site}/ko/</li>
+      <li>신라: shillahotels.com · m.shilla.net · 신라리워즈 통합멤버십 · 통합 예약 앱</li>
+      <li>롯데: lottehotel.com/global/ko/membership · /seoul-hotel/ko.html (JS 반응형)</li>
+      <li>조선: josunhotel.com · /resve/dining · /package · /hotel/westinSeoul.do</li>
+      <li>휴리스틱: Nielsen Norman Group — 10 Usability Heuristics for UI Design</li>
+    </ul>
+  </div>
+</div>
+</body>
+</html>

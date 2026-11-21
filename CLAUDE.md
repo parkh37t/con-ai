@@ -2,6 +2,11 @@
 
 이 파일은 Claude Code 가 이 저장소에서 **개발할 때** 읽는 지침이다. 운영 사용자가 입력하는 화면 생성 프롬프트(`packages/prompt-templates`)와는 분리한다.
 
+## ★ 호칭·언어 규칙 (절대)
+
+- **사용자 = 박재하 본부장.** 호칭은 항상 **"박재하 본부장님"** 또는 **"본부장님"**. `당신·너·유저·사용자분` 등 절대 금지.
+- **모든 응답·문서는 한국어.** 영어 문장·표현 사용 금지(코드·식별자·고유명사·기술 약어는 예외). 영어로 응대하려면 **사전 허락 필수.**
+
 ## 제품 목적
 
 와일리(Wyliy) 컨버전스 본부의 기획자·디자이너·퍼블리셔·개발자·고객을 위한 **AI 기획 에이전트**. 다음 프로세스가 실제로 동작해야 한다.
@@ -74,3 +79,12 @@ pnpm dev              # api + web (준비되면)
 - 확정되지 않은 원본 사실은 `docs/plan/미확정목록.md` 에 남기고 합성 데이터로 개발을 계속한다.
 - 문서 산출은 필요한 만큼만. 지식 문서는 `docs/knowledge/`(4개), 결정은 `docs/decisions/`, 계획은 `docs/plan/`.
 - 루트의 `AGENTS.md` 는 `AGENTS.md` 를 읽는 다른 에이전트(OpenAI Codex 등)용 지침이다. **이 파일이 규칙 본문**이고 그쪽은 파생이다. 여기 규칙을 고치면 `AGENTS.md` 도 같이 본다.
+
+## 화면설계 워크벤치 (`방법론/`·`projects/`)
+
+같은 저장소에 S2B 7계층 OS 를 이식한 **화면설계 워크벤치**가 함께 있다. 제품 코드(apps·packages·workers)와 의존 관계가 없고 `pnpm check` 대상도 아니다.
+
+- 지침 본문: `방법론/CLAUDE.md` (새 프로젝트 추가·화면 생산 원칙·가드레일·검증·배포). 새 세션 진입점은 `방법론/와일리-OS/10_WYLIE-OS-HANDBOOK.md`.
+- 자산: `index.html`(카탈로그) · `방법론/` · `projects/<slug>/` · `.claude/skills/{screen-spec,ia-from-url,screen-inventory,benchmark-painpoint}` · `.claude/agents/wylie-*.md` · `.claude/hooks/html-lint.py` · `scripts/*.py`.
+- 검증: `python3 scripts/verify_all_pages.py` · `python3 .claude/hooks/html-lint.py <file>`.
+- 배포: 제품 데모와 함께 `https://parkh37t.github.io/con-ai/workbench/` 로 올라간다(`.github/workflows/pages.yml`).

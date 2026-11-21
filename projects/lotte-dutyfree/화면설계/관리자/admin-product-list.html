@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<!-- SECTION-CARD: .section-box 표준 (린트 마커) · 와일리 DS · 롯데 관리자 -->
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>admin-product-list 상품관리 — 롯데면세점 화면설계서</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="../_공통/프로토타입_템플릿/lotte-front.css">
+</head>
+<body data-portal="admin" data-section="product" data-page="admin-product-list"
+      data-page-title="상품관리" data-page-hint="상품관리 > 상품목록 — 등록 상품을 조회·승인·노출관리한다.">
+<div class="root-shell">
+
+  <!-- ════════ 좌: 실제 화면 ════════ -->
+  <div class="screen-wrap" style="flex:11.5;">
+    <div class="gnb-admin">
+      <span class="brand">LOTTE DUTY FREE<small>ADMIN</small></span><span class="sys">운영 관리 시스템</span>
+      <span class="util"><span>박관리 (Super)</span><span class="bell"><i class="fa-solid fa-bell"></i><span class="dot">5</span></span><span><i class="fa-solid fa-right-from-bracket"></i> 로그아웃</span></span>
+    </div>
+    <div class="page-body">
+      <div class="admin-lnb">
+        <div class="grp">상품관리</div>
+        <a class="on">상품목록</a><a href="../프론트/front-product-list.html" title="고객 노출 화면">상품등록</a><a>카테고리 관리</a><a>브랜드 관리</a>
+        <div class="grp">주문관리</div><a>주문목록</a><a>인도장 예약</a>
+        <div class="grp">프로모션</div><a>기획전 관리</a>
+        <div class="grp">회원관리</div><a>회원목록</a>
+      </div>
+      <div class="main-col">
+        <div class="crumb">상품관리 <i class="fa-solid fa-chevron-right" style="font-size:8px"></i> <span class="here">상품목록</span></div>
+        <div class="main-row">
+          <div id="left-panel" class="left-panel" style="flex:11.5;">
+            <div class="lhead">
+              <span style="font-size:12px;color:#6b7280"><i class="fa-solid fa-box" style="margin-right:5px"></i>admin-product-list</span>
+              <span class="user" id="header-user"><span><i class="fa-solid fa-user-shield" style="margin-right:4px"></i>박관리 · 운영팀</span></span>
+            </div>
+            <div class="body-area">
+              <h1 class="page-h1">상품관리</h1>
+              <p class="page-sub">상품관리 &gt; 상품목록 — 등록 상품을 조회하고 승인·노출·재고를 관리합니다.</p>
+
+              <!-- 영역 1 : 검색조건 (2-A) -->
+              <div class="section-box">
+                <div class="ui-marker"><span class="num-badge">1</span></div>
+                <div class="srch-tbl-wrap">
+                <table class="srch-tbl">
+                  <colgroup><col style="width:92px"><col><col style="width:92px"><col></colgroup>
+                  <tr>
+                    <th><span class="field-label"><span class="num-badge-sm">a</span>카테고리</span></th>
+                    <td><select class="select-field"><option>전체</option><option>화장품·향수</option><option>패션잡화</option><option>주류</option></select></td>
+                    <th><span class="field-label"><span class="num-badge-sm">b</span>브랜드</span></th>
+                    <td><input class="input-field" style="width:88%" placeholder="브랜드명"></td>
+                  </tr>
+                  <tr>
+                    <th><span class="field-label"><span class="num-badge-sm">c</span>상품상태</span></th>
+                    <td><label class="chk"><input type="radio" name="st" checked onclick="setCase('st','all',this)">전체</label><label class="chk"><input type="radio" name="st" onclick="setCase('st','show',this)">노출중</label><label class="chk"><input type="radio" name="st" onclick="setCase('st','wait',this)">승인대기</label><label class="chk"><input type="radio" name="st" onclick="setCase('st','sold',this)">품절</label></td>
+                    <th><span class="field-label"><span class="num-badge-sm">d</span>등록일·키워드</span></th>
+                    <td><input type="date" class="input-field"> <input class="input-field" style="width:38%" placeholder="상품명·번호"></td>
+                  </tr>
+                </table>
+                </div>
+                <div class="srch-actions"><button class="btn btn-primary"><i class="fa-solid fa-magnifying-glass"></i>조회</button></div>
+              </div>
+
+              <!-- 영역 2 : 상품 목록 -->
+              <div class="section-box">
+                <div class="ui-marker"><span class="num-badge">2</span></div>
+                <h2 class="section-title-2">상품 목록</h2>
+                <div class="toolbar">
+                  <span>전체 <b style="color:var(--lotte)">6</b>건</span>
+                  <span class="right">
+                    <button class="btn btn-sm" onclick="toggleBulk()"><i class="fa-solid fa-layer-group"></i><span id="bulk-btn-label">일괄적용 열기</span></button>
+                    <button class="btn btn-sm"><i class="fa-solid fa-file-excel" style="color:#16a34a"></i>엑셀</button>
+                    <button class="btn btn-primary btn-sm"><i class="fa-solid fa-plus"></i>신규</button>
+                  </span>
+                </div>
+                <div id="bulk-area" class="bulk" style="display:none">
+                  <b><span class="num-badge-sm">g</span>일괄적용</b>
+                  <span>선택 상품 →</span>
+                  <button class="btn btn-sm" onclick="confirmBulk('승인')"><i class="fa-solid fa-check"></i>승인</button>
+                  <button class="btn btn-sm" onclick="confirmBulk('노출 ON')"><i class="fa-solid fa-eye"></i>노출 ON</button>
+                  <button class="btn btn-sm" onclick="confirmBulk('노출 OFF')"><i class="fa-solid fa-eye-slash"></i>노출 OFF</button>
+                </div>
+                <table class="data-table">
+                  <thead><tr>
+                    <th style="width:30px"><input type="checkbox"></th><th style="width:34px">No</th>
+                    <th><span class="field-label"><span class="num-badge-sm">e</span>상품번호</span></th>
+                    <th>이미지</th><th>브랜드</th><th>상품명</th><th>카테고리</th>
+                    <th>정상가</th><th>면세가</th><th>재고</th>
+                    <th><span class="field-label"><span class="num-badge-sm">f</span>노출상태</span></th><th>등록일</th><th>관리</th>
+                  </tr></thead>
+                  <tbody>
+                    <tr class="clickable" data-st="show"><td><input type="checkbox"></td><td>1</td><td class="l"><a style="color:var(--c-link);text-decoration:underline">P202602240001</a></td><td>💄</td><td class="l">뷰티드림</td><td class="l">모이스처 글로우 세트</td><td>화장품·향수</td><td class="r">120,000</td><td class="r">96,000</td><td class="r">320</td><td><span class="toggle-pill on"><i class="fa-solid fa-eye"></i>노출중</span></td><td>2026-02-24</td><td><a style="color:var(--lotte)">수정</a></td></tr>
+                    <tr class="clickable" data-st="show"><td><input type="checkbox"></td><td>2</td><td class="l"><a style="color:var(--c-link);text-decoration:underline">P202602240002</a></td><td>🕶️</td><td class="l">어반엣지</td><td class="l">클래식 스퀘어 선글라스</td><td>패션잡화</td><td class="r">350,000</td><td class="r">280,000</td><td class="r">45</td><td><span class="toggle-pill on"><i class="fa-solid fa-eye"></i>노출중</span></td><td>2026-02-24</td><td><a style="color:var(--lotte)">수정</a></td></tr>
+                    <tr class="clickable" data-st="show"><td><input type="checkbox"></td><td>3</td><td class="l"><a style="color:var(--c-link);text-decoration:underline">P202602240003</a></td><td>🥃</td><td class="l">하이랜드</td><td class="l">18년 싱글몰트 위스키 700ml</td><td>주류</td><td class="r">90,000</td><td class="r">72,000</td><td class="r">88</td><td><span class="toggle-pill on"><i class="fa-solid fa-eye"></i>노출중</span></td><td>2026-02-24</td><td><a style="color:var(--lotte)">수정</a></td></tr>
+                    <tr class="clickable" data-st="wait"><td><input type="checkbox"></td><td>4</td><td class="l"><a style="color:var(--c-link);text-decoration:underline">P202602240004</a></td><td>🌸</td><td class="l">메종루즈</td><td class="l">오 드 퍼퓸 50ml</td><td>화장품·향수</td><td class="r">180,000</td><td class="r">144,000</td><td class="r">0</td><td><span class="badge b-yellow">승인대기</span></td><td>2026-02-24</td><td><a style="color:var(--lotte)">검토</a></td></tr>
+                    <tr class="clickable" data-st="sold"><td><input type="checkbox"></td><td>5</td><td class="l"><a style="color:var(--c-link);text-decoration:underline">P202602240005</a></td><td>⌚</td><td class="l">제뉴인</td><td class="l">오토매틱 워치 실버</td><td>시계·주얼리</td><td class="r">1,200,000</td><td class="r">980,000</td><td class="r">0</td><td><span class="badge b-gray">품절</span></td><td>2026-02-24</td><td><a style="color:var(--lotte)">수정</a></td></tr>
+                    <tr class="clickable" data-st="show"><td><input type="checkbox"></td><td>6</td><td class="l"><a style="color:var(--c-link);text-decoration:underline">P202602240006</a></td><td>🍫</td><td class="l">스위트박스</td><td class="l">프리미엄 초콜릿 기프트</td><td>식품</td><td class="r">45,000</td><td class="r">38,000</td><td class="r">510</td><td><span class="toggle-pill on"><i class="fa-solid fa-eye"></i>노출중</span></td><td>2026-02-24</td><td><a style="color:var(--lotte)">수정</a></td></tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- 영역 3 : 페이지네이션 -->
+              <div class="section-box">
+                <div class="ui-marker"><span class="num-badge">3</span></div>
+                <div class="pager">
+                  <button disabled><i class="fa-solid fa-angles-left"></i></button><button disabled><i class="fa-solid fa-chevron-left"></i></button>
+                  <button class="on">1</button><button>2</button><button>3</button>
+                  <button><i class="fa-solid fa-chevron-right"></i></button><button><i class="fa-solid fa-angles-right"></i></button>
+                  <span style="margin-left:8px"><span class="num-badge-sm">h</span></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════ 우: 디스크립션 (8단 + 도식) ════════ -->
+  <div id="right-panel" class="right-panel" style="flex:4.8;">
+    <h2 class="rp-h2">admin-product-list</h2>
+    <table class="info-table">
+      <tr><th>화면명</th><td>상품관리</td></tr>
+      <tr><th>화면목적</th><td>운영자가 등록 상품을 카테고리/브랜드/상태로 조회하고, 승인·노출 ON/OFF·재고를 관리하는 목록 화면. 노출중 상품이 고객 front-product-list에 표시된다.</td></tr>
+      <tr><th class="acc-th" onclick="toggleReq()">요구사항 <span id="req-ch" style="font-size:10px;color:#6b7280">▼</span></th>
+          <td><div id="req-ac"><span class="req-badge">REQ-AD-PRD-001</span>
+            <div class="req-title">상품 승인·노출 관리</div>
+            <div class="req-desc">❍ 승인대기→승인→노출, 노출 ON/OFF 토글(고객 노출 연동), 품절 자동 처리. 승인·노출은 권한 필요.</div></div></td></tr>
+    </table>
+
+    <!-- CASE 전환 -->
+    <h3 class="rp-h3">⚙ Case 전환 <span style="font-size:9px;font-weight:400;color:#9ca3af">(칩 클릭 → 좌측 화면 전환)</span></h3>
+    <div class="case-grp"><div class="case-grp-title">st — 상품상태 필터</div>
+      <span class="case-chip active" onclick="setCase('st','all',this)">전체</span><span class="case-chip" onclick="setCase('st','show',this)">노출중</span><span class="case-chip" onclick="setCase('st','wait',this)">승인대기</span><span class="case-chip" onclick="setCase('st','sold',this)">품절</span></div>
+    <div class="case-grp"><div class="case-grp-title">bulk — 일괄적용 영역</div>
+      <span class="case-chip" onclick="setCase('bulk','open',this)">열기</span><span class="case-chip active" onclick="setCase('bulk','close',this)">닫기</span></div>
+
+    <!-- 화면 전이도 -->
+    <h3 class="rp-h3">🗺️ 화면 전이도</h3>
+    <div class="diagram"><pre class="mermaid">
+flowchart TD
+  L["상품관리 목록<br/>admin-product-list"]:::cur
+  L -->|"상품번호"| D["상품 상세·수정<br/>admin-product-detail"]
+  L -->|"신규"| C["상품 등록<br/>admin-product-create"]
+  L -->|"검토"| AP["승인 처리"]
+  L -. 노출중 상품 .-> FR["front-product-list<br/>(고객 노출)"]
+  classDef cur fill:#d4002a,stroke:#d4002a,color:#fff;
+</pre></div>
+    <p class="diagram-cap">목록↔상세/등록/승인. <b>노출중 상품은 고객 front-product-list에 동기화</b>(관리자↔프론트 쌍).</p>
+
+    <!-- 상품 상태도 -->
+    <h3 class="rp-h3">🔄 상품 상태(라이프사이클)</h3>
+    <div class="diagram"><pre class="mermaid">
+stateDiagram-v2
+  [*] --> 승인대기
+  승인대기 --> 노출중 : 승인
+  승인대기 --> 반려 : 반려
+  노출중 --> 숨김 : 노출 OFF
+  숨김 --> 노출중 : 노출 ON
+  노출중 --> 품절 : 재고 0
+  품절 --> 노출중 : 재입고
+  반려 --> [*]
+</pre></div>
+    <p class="diagram-cap">승인 후 노출중. 재고 0 시 자동 품절, 노출 OFF는 숨김. 고객 노출은 '노출중'만.</p>
+
+    <!-- 처리 흐름 -->
+    <h3 class="rp-h3">🔀 처리 흐름 · 승인/노출</h3>
+    <div class="diagram"><pre class="mermaid">
+flowchart TD
+  A["검색조건 입력"] --> B["조회"]
+  B --> C["상품 목록"]
+  C --> E{"일괄/개별"}
+  E -->|"승인대기 선택"| AP["승인/반려"]
+  E -->|"노출 토글"| TG{"권한 있음?"}
+  TG -->|"예"| OK["노출 ON/OFF · 재조회"]:::ok
+  TG -->|"아니오"| NG["권한 없음 경고"]:::warn
+  classDef ok fill:#dcfce7,stroke:#16a34a,color:#166534;
+  classDef warn fill:#fee2e2,stroke:#dc2626,color:#991b1b;
+</pre></div>
+    <p class="diagram-cap">승인·노출 변경은 권한(MD/Super) 필요. 적용 후 목록 재조회·고객 노출 동기화.</p>
+
+    <!-- 시퀀스 -->
+    <h3 class="rp-h3">🔗 상호작용 시퀀스</h3>
+    <div class="diagram"><pre class="mermaid">
+sequenceDiagram
+  autonumber
+  participant U as 운영자
+  participant S as 화면
+  participant A as 서버
+  U->>S: 상품 선택 + [노출 ON]
+  S->>U: 확인창
+  U->>S: 확인
+  S->>A: POST /admin/product/process
+  A-->>S: 결과(노출 반영)
+  S-->>U: 재조회 · front 노출 동기화
+</pre></div>
+    <p class="diagram-cap">노출/승인은 process 액션. 서버 반영 후 고객 노출이 동기화된다.</p>
+
+    <!-- 필드 사양 매트릭스 -->
+    <h3 class="rp-h3">📋 필드 사양 매트릭스</h3>
+    <p class="diagram-legend">좌측 화면 마커(배지 ↔ 행 No)와 1:1. <span class="fs-req">●</span> 필수 · <span class="fs-opt">○</span> 선택</p>
+
+    <div class="fs-grp"><span class="num-badge">1</span>검색조건</div>
+    <table class="fs-matrix">
+      <colgroup><col style="width:20px"><col style="width:58px"><col style="width:56px"><col><col></colgroup>
+      <thead><tr><th>No</th><th>필드</th><th>타입·필수</th><th>기본·검증</th><th>동작·예외</th></tr></thead>
+      <tbody>
+        <tr><td class="c"><span class="num-badge-sm">a</span></td><td>카테고리</td><td class="c">select <span class="fs-opt">○</span></td><td>전체</td><td>대분류 단위 필터</td></tr>
+        <tr><td class="c"><span class="num-badge-sm">b</span></td><td>브랜드</td><td class="c">text <span class="fs-opt">○</span></td><td>—</td><td>부분일치</td></tr>
+        <tr><td class="c"><span class="num-badge-sm">c</span></td><td>상품상태</td><td class="c">radio <span class="fs-opt">○</span></td><td>전체</td><td>전체/노출중/승인대기/품절</td></tr>
+        <tr><td class="c"><span class="num-badge-sm">d</span></td><td>등록일·키워드</td><td class="c">date+text <span class="fs-opt">○</span></td><td>—</td><td>상품명·상품번호 검색</td></tr>
+      </tbody>
+    </table>
+
+    <div class="fs-grp"><span class="num-badge">2</span>상품 목록</div>
+    <table class="fs-matrix">
+      <colgroup><col style="width:20px"><col style="width:58px"><col style="width:56px"><col><col></colgroup>
+      <tbody>
+        <tr><td class="c"><span class="num-badge-sm">e</span></td><td>상품번호</td><td class="c">link</td><td>P+일자+번호</td><td>클릭 시 상품 상세·수정 이동</td></tr>
+        <tr><td class="c"><span class="num-badge-sm">f</span></td><td>노출상태</td><td class="c">toggle</td><td>서버값</td><td>노출중/승인대기/품절. 토글 시 권한 확인 후 ON/OFF</td></tr>
+        <tr><td class="c"><span class="num-badge-sm">g</span></td><td>일괄적용</td><td class="c">button</td><td>닫힘</td><td>체크 상품 승인/노출ON/노출OFF 일괄. 각 확인창</td></tr>
+      </tbody>
+    </table>
+
+    <div class="fs-grp"><span class="num-badge">3</span>페이지네이션</div>
+    <table class="fs-matrix">
+      <colgroup><col style="width:20px"><col style="width:58px"><col style="width:56px"><col><col></colgroup>
+      <tbody>
+        <tr><td class="c"><span class="num-badge-sm">h</span></td><td>페이징</td><td class="c">button</td><td>1p</td><td>처음/이전/다음/마지막</td></tr>
+      </tbody>
+    </table>
+
+    <!-- 데이터 / API -->
+    <h3 class="rp-h3">🗂 데이터 / 입력값 (API)</h3>
+    <table class="info-table">
+      <tr><th>요청</th><td>categoryCode · brand · status · regDate · keyword · page (action: search) / 노출토글 (action: process)</td></tr>
+      <tr><th>응답</th><td>goodsNo · brand · goodsName · category · listPrice · dutyPrice · stock · displayYn · status · regDate · authYn</td></tr>
+    </table>
+
+    <!-- 예외 / 상태 -->
+    <h3 class="rp-h3">⚠ 예외 / 상태별 처리</h3>
+    <table class="info-table">
+      <tr><th>권한 부족</th><td>"이 작업을 수행할 권한이 없습니다." 승인·노출 변경 차단</td></tr>
+      <tr><th>승인대기</th><td>노출 토글 불가(승인 먼저). 검토 버튼만 활성</td></tr>
+      <tr><th>재고 0</th><td>자동 '품절', 고객 노출에서 담기 비활성</td></tr>
+      <tr><th>결과 없음</th><td>"조회 결과가 없습니다."</td></tr>
+    </table>
+
+    <!-- 정책 -->
+    <h3 class="rp-h3">📜 정책 / 비즈니스 룰</h3>
+    <div class="policy-box"><ul class="policy-list">
+      <li><b>노출 동기화</b>: '노출중' 상품만 고객 front-product-list에 표시</li>
+      <li><b>권한</b>: 승인·노출 변경은 MD/Super 권한(박관리=Super)</li>
+      <li><b>품절</b>: 재고 0 자동 품절. 재입고 시 노출중 복귀</li>
+      <li><b>삭제 금지</b>: 행 삭제 대신 노출 OFF(사용여부=N) — 명명규칙 §5</li>
+    </ul></div>
+
+    <!-- ★ 메시지·알림 정의 -->
+    <h3 class="rp-h3">🔔 메시지 · 알림 정의</h3>
+    <table class="msg-tbl">
+      <thead><tr><th style="width:46px">유형</th><th>메시지</th><th style="width:92px">발생 조건</th></tr></thead>
+      <tbody>
+        <tr><td class="mtype m-confirm">확인</td><td>선택 상품을 승인 처리하시겠습니까?</td><td>[승인] 클릭</td></tr>
+        <tr><td class="mtype m-confirm">확인</td><td>선택 상품을 노출 ON/OFF 하시겠습니까?</td><td>[노출 ON/OFF] 클릭</td></tr>
+        <tr><td class="mtype m-warn">경고</td><td>이 작업을 수행할 권한이 없습니다.</td><td>권한 없는 사용자 변경</td></tr>
+        <tr><td class="mtype m-warn">경고</td><td>승인대기 상품은 노출할 수 없습니다. 먼저 승인하세요.</td><td>승인 전 노출 시도</td></tr>
+        <tr><td class="mtype m-done">완료</td><td>처리되었습니다.</td><td>승인·노출 성공</td></tr>
+      </tbody>
+    </table>
+    <p style="font-size:9px;color:#9ca3af;margin-top:6px">더미: 더미데이터_사전.md 고정 캐스트(박관리·상품 6종) · 🟡 실제 브랜드·규정 PPTX 확정 후</p>
+  </div>
+
+  <div class="panel-toggle-wrap"><button class="panel-toggle-btn" onclick="togglePanel()"><i class="fa-solid fa-chevron-right" id="toggle-icon"></i></button></div>
+</div>
+
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11.6.0/dist/mermaid.esm.min.mjs';
+  mermaid.initialize({ startOnLoad:true, securityLevel:'loose', theme:'base',
+    themeVariables:{ fontSize:'11px', fontFamily:"'Noto Sans KR',sans-serif", primaryColor:'#fff0f2', primaryBorderColor:'#d4002a', lineColor:'#9ca3af' },
+    flowchart:{ htmlLabels:true, curve:'basis', nodeSpacing:24, rankSpacing:28 } });
+</script>
+<script>
+function togglePanel(){var r=document.getElementById('right-panel'),s=document.querySelector('.screen-wrap'),i=document.getElementById('toggle-icon');r.classList.toggle('collapsed');s.classList.toggle('expanded');i.classList.toggle('fa-chevron-right');i.classList.toggle('fa-chevron-left');}
+function openBulk(){document.getElementById('bulk-area').style.display='flex';document.getElementById('bulk-btn-label').textContent='일괄적용 닫기';}
+function closeBulk(){document.getElementById('bulk-area').style.display='none';document.getElementById('bulk-btn-label').textContent='일괄적용 열기';}
+function toggleBulk(){document.getElementById('bulk-area').style.display==='none'?openBulk():closeBulk();}
+function confirmBulk(n){confirm('선택 상품을 '+n+' 처리하시겠습니까?');}
+function setCase(group,value,el){
+  if(el&&el.classList.contains('case-chip')){el.parentElement.querySelectorAll('.case-chip').forEach(function(c){c.classList.remove('active');});el.classList.add('active');}
+  if(group==='st'){document.querySelectorAll('.data-table tbody tr').forEach(function(tr){tr.style.opacity=(value==='all'||tr.dataset.st===value)?'1':'0.28';});return;}
+  if(group==='bulk'){value==='open'?openBulk():closeBulk();return;}
+}
+function toggleReq(){var c=document.getElementById('req-ac'),h=document.getElementById('req-ch');var open=c.style.display!=='none';c.style.display=open?'none':'';h.textContent=open?'▶':'▼';}
+</script>
+</body>
+</html>

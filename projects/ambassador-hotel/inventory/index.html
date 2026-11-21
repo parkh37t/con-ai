@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>앰배서더 호텔 그룹 — 화면 본수 카탈로그 (screen-inventory)</title>
+<link rel="stylesheet" href="../_assets/research.css">
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>앰배서더 호텔 그룹 — 화면 본수 카탈로그</h1>
+    <p><span class="tag">screen-inventory</span> www.ambatel.com · 템플릿 단위 집계 · 와일리 OS 인테이크 실증</p>
+  </header>
+
+  <div class="warn">
+    ⚠ <b>집계 방식</b>: 직접 crawl·sitemap이 WAF로 차단(403)되어 <b>검색엔진 색인 기반 표본 + URL 패턴 추론</b>으로
+    <b>템플릿 단위</b> 집계했습니다. 상세(객실·다이닝 <code>?*_seq=NN</code>) 인스턴스와 다국어(ko·jp·en)·PC/모바일 변형은
+    별도 추정으로 표기하며, <b>전수 실측이 아님</b>을 명시합니다.
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="n">9</div><div class="l">브랜드</div></div>
+    <div class="stat"><div class="n">~21</div><div class="l">지점(마이크로사이트)</div></div>
+    <div class="stat"><div class="n">~138</div><div class="l">고유 템플릿 화면</div></div>
+    <div class="stat"><div class="n">~600+</div><div class="l">상세 인스턴스(추정)</div></div>
+    <div class="stat"><div class="n">×3·×2</div><div class="l">다국어·PC/모바일 변형</div></div>
+  </div>
+
+  <div class="card">
+    <h2>1. 그룹 공통 화면 <span style="font-size:11px;color:#64748b">(/ko/*.do · 약 12)</span></h2>
+    <table>
+      <thead><tr><th>화면ID</th><th>화면명</th><th>유형</th><th>URL 패턴</th></tr></thead>
+      <tbody>
+        <tr><td>AMB-GRP-001</td><td class="l">그룹 메인</td><td>landing</td><td class="l">/ko/main.do</td></tr>
+        <tr><td>AMB-GRP-002</td><td class="l">그룹소개</td><td>detail</td><td class="l">/ko/about/info.do</td></tr>
+        <tr><td>AMB-GRP-003</td><td class="l">CEO 소개</td><td>detail</td><td class="l">/ko/about/ceo.do</td></tr>
+        <tr><td>AMB-GRP-004</td><td class="l">연혁</td><td>detail</td><td class="l">/ko/about/history.do</td></tr>
+        <tr><td>AMB-GRP-005</td><td class="l">호텔뉴스(목록·상세)</td><td>list/detail</td><td class="l">/ko/about/newsView.do</td></tr>
+        <tr><td>AMB-GRP-006</td><td class="l">멤버십 안내</td><td>detail</td><td class="l">/ko/utility/memberShipInfo.do</td></tr>
+        <tr><td>AMB-GRP-007</td><td class="l">클럽 앰버(유료멤버십)</td><td>detail</td><td class="l">/ko/utility/memberShipAmberInfo.do</td></tr>
+        <tr><td>AMB-GRP-008</td><td class="l">스페셜오퍼 - 패키지</td><td>list</td><td class="l">/ko/offer/offerPkg.do</td></tr>
+        <tr><td>AMB-GRP-009</td><td class="l">스페셜오퍼 - 멤버 프로모션</td><td>list</td><td class="l">/ko/offer/offerMemberPromotion.do</td></tr>
+        <tr><td>AMB-GRP-010</td><td class="l">로그인</td><td>form</td><td class="l">/ko/members/login.do</td></tr>
+        <tr><td>AMB-GRP-011</td><td class="l">회원가입·약관</td><td>form</td><td class="l">/ko/members/*</td></tr>
+        <tr><td>AMB-GRP-012</td><td class="l">마이페이지·예약내역</td><td>detail</td><td class="l">(로그인 후·미수집)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>2. 지점 × 메뉴 매트릭스 <span style="font-size:11px;color:#64748b">(지점당 공통 템플릿)</span></h2>
+    <table>
+      <thead><tr><th class="l">지점 (브랜드/사이트)</th><th>등급</th><th>메인</th><th>객실</th><th>다이닝</th><th>시설</th><th>웨딩</th><th>예약</th></tr></thead>
+      <tbody>
+        <tr><td class="l">페어몬트 서울 <code>fairmont/seoul</code></td><td><span class="brandtag b-lux">럭셔리</span></td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td></tr>
+        <tr><td class="l">소피텔 서울 <code>sofitel/seoul</code></td><td><span class="brandtag b-lux">럭셔리</span></td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td></tr>
+        <tr><td class="l">엠갤러리 호텔나루 서울 <code>mgallery/seoul</code></td><td><span class="brandtag b-lux">럭셔리</span></td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td></tr>
+        <tr><td class="l">그랜드머큐어 용산 <code>grandmercure/yongsan</code></td><td><span class="brandtag b-mid">미드</span></td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td></tr>
+        <tr><td class="l">그랜드머큐어 창원 <code>grandmercure/changwon</code></td><td><span class="brandtag b-mid">미드</span></td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td></tr>
+        <tr><td class="l">노보텔 강남 <code>novotel/gangnam</code></td><td><span class="brandtag b-mid">미드</span></td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td></tr>
+        <tr><td class="l">노보텔 용산 <code>novotel/yongsan</code></td><td><span class="brandtag b-mid">미드</span></td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td></tr>
+        <tr><td class="l">노보텔 동대문 <code>novotel/dongdaemun</code></td><td><span class="brandtag b-mid">미드</span></td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td></tr>
+        <tr><td class="l">노보텔 수원 <code>novotel/suwon</code></td><td><span class="brandtag b-mid">미드</span></td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="n0">–</td><td class="y">✓</td></tr>
+        <tr><td class="l">노보텔스위트 용산 <code>novotelsuites/yongsan</code></td><td><span class="brandtag b-mid">미드</span></td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="n0">–</td><td class="y">✓</td></tr>
+        <tr><td class="l">머큐어 홍대 <code>mercure/hongdae</code></td><td><span class="brandtag b-mid">미드</span></td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="n0">–</td><td class="y">✓</td></tr>
+        <tr><td class="l">머큐어 울산 <code>mercure/ulsan</code></td><td><span class="brandtag b-mid">미드</span></td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="n0">–</td><td class="y">✓</td></tr>
+        <tr><td class="l">머큐어 제주 <code>mercure/jeju</code></td><td><span class="brandtag b-mid">미드</span></td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="n0">–</td><td class="y">✓</td></tr>
+        <tr><td class="l">이비스스타일 강남 <code>ibisstyles/gangnam</code></td><td><span class="brandtag b-eco">이코노미</span></td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="n0">–</td><td class="y">✓</td></tr>
+        <tr><td class="l">이비스스타일 명동 <code>ibisstyles/myeongdong</code></td><td><span class="brandtag b-eco">이코노미</span></td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="n0">–</td><td class="y">✓</td></tr>
+        <tr><td class="l">이비스스타일 용산 <code>ibisstyles/yongsan</code></td><td><span class="brandtag b-eco">이코노미</span></td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="n0">–</td><td class="y">✓</td></tr>
+        <tr><td class="l">이비스스타일 인천공항 <code>ibisstyles/Incheonairport</code></td><td><span class="brandtag b-eco">이코노미</span></td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="n0">–</td><td class="y">✓</td></tr>
+        <tr><td class="l">이비스 명동 <code>ibis/myeongdong</code></td><td><span class="brandtag b-eco">이코노미</span></td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="n0">–</td><td class="y">✓</td></tr>
+        <tr><td class="l">이비스 인사동 <code>ibis/insadong</code></td><td><span class="brandtag b-eco">이코노미</span></td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="n0">–</td><td class="y">✓</td></tr>
+        <tr><td class="l">이비스 수원 <code>ibis/suwon</code></td><td><span class="brandtag b-eco">이코노미</span></td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="n0">–</td><td class="y">✓</td></tr>
+        <tr><td class="l">이비스 부산 시티센터 <code>ibis/busan</code></td><td><span class="brandtag b-eco">이코노미</span></td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="n0">–</td><td class="y">✓</td></tr>
+      </tbody>
+    </table>
+    <p class="note">✓ = 검색 색인/패턴으로 확인된 메뉴. – = 해당 등급 통상 미제공(웨딩은 럭셔리·일부 미드만). 객실·다이닝은 상세 <code>roomView/diningView?*_seq=NN</code> 인스턴스가 지점당 다수.</p>
+  </div>
+
+  <div class="card">
+    <h2>3. 본수 집계 (방법론)</h2>
+    <table>
+      <thead><tr><th class="l">구분</th><th>산식</th><th>고유 템플릿</th><th>변형 포함(추정)</th></tr></thead>
+      <tbody>
+        <tr><td class="l">그룹 공통</td><td>고정</td><td>~12</td><td>×3 언어 = ~36</td></tr>
+        <tr><td class="l">지점 템플릿</td><td>21지점 × 메뉴 6</td><td>~126</td><td>×3 언어 ×2(PC/M) = ~756</td></tr>
+        <tr><td class="l">상세 인스턴스</td><td>지점 × (객실 5~10 + 다이닝 3~8)</td><td>—</td><td>~600+ (객실/다이닝 콘텐츠)</td></tr>
+        <tr><td class="l"><b>합계(고유 템플릿)</b></td><td>12 + 126</td><td><b>~138</b></td><td><b>수천(변형·인스턴스 포함)</b></td></tr>
+      </tbody>
+    </table>
+    <p class="note"><b>커버리지·미수집</b>: 로그인 후(마이페이지·예약확정), 실시간 예약엔진(외부 PMS 연동), JS 렌더 일부, 외국어 전체 트리는 미수집. 정확 전수는 sitemap 접근 또는 헤드리스 렌더 크롤 필요(현 WAF 차단).</p>
+  </div>
+</div>
+</body>
+</html>

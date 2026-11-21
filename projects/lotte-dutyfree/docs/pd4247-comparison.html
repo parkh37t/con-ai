@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PD-4247 대조 — 롯데 Claude SB vs 와일리 OS 화면설계서</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="../_assets/research.css">
+<style>
+/* ── 2열 대조 ── */
+.vs{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:stretch}
+.vs-col{border:1px solid var(--line);border-radius:var(--r);background:var(--card);box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column}
+.vs-head{padding:13px 16px;color:#fff;font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.vs-a .vs-head{background:linear-gradient(135deg,#475569,#334155)}
+.vs-b .vs-head{background:linear-gradient(135deg,#b8002a,#8a0020)}
+.vs-head .kind{font-size:10px;font-weight:700;background:rgba(255,255,255,.18);padding:2px 9px;border-radius:9999px;letter-spacing:.3px}
+.vs-body{padding:14px 16px 16px;flex:1}
+.vs-meta{font-size:11px;color:var(--muted);margin:0 0 12px;display:flex;flex-wrap:wrap;gap:5px}
+.vs-meta b{color:var(--ink-3)}
+.bad{color:var(--red);font-weight:700}.good{color:var(--green);font-weight:700}
+
+/* ── Claude SB 슬라이드 더미 ── */
+.deck{display:flex;flex-direction:column;gap:8px}
+.slide{border:1px solid var(--line);border-radius:8px;background:linear-gradient(180deg,#fff,#f8fafc);padding:9px 12px;position:relative;box-shadow:var(--shadow)}
+.slide .sn{position:absolute;right:8px;top:7px;font-size:9px;color:var(--faint);font-weight:700}
+.slide .st{font-size:11.5px;font-weight:800;color:var(--ink);margin-bottom:3px}
+.slide .sd{font-size:10.5px;color:var(--muted);line-height:1.55}
+.slide.flag{border-left:4px solid var(--red)}
+.flagchip{display:inline-block;font-size:9px;font-weight:800;color:var(--red-tx);background:var(--red-bg);border:1px solid #f3c0c0;padding:1px 7px;border-radius:9999px;margin-left:4px}
+
+/* ── 와일리 OS 미니 2단 미리보기 ── */
+.mini{border:1px solid var(--line);border-radius:8px;overflow:hidden;display:grid;grid-template-columns:1.6fr 1fr;box-shadow:var(--shadow);margin-bottom:10px}
+.mini .ml{background:#fff;padding:9px;border-right:1px solid var(--line)}
+.mini .mr{background:#fafbfd;padding:9px}
+.mini .lab{font-size:9px;font-weight:800;letter-spacing:.4px;color:var(--faint);margin-bottom:6px}
+.mini .gnbm{display:flex;gap:3px;flex-wrap:wrap;margin-bottom:7px}
+.mini .gnbm span{font-size:9px;padding:2px 5px;border-radius:4px;background:#f1f5f9;color:#475569}
+.mini .gnbm span.act{background:#fde7ec;color:#8a0020;font-weight:800}
+.mini .ph{height:7px;border-radius:3px;background:#eef2f6;margin:4px 0}
+.mini .ph.w70{width:70%}.mini .ph.w50{width:50%}.mini .ph.w90{width:90%}
+.mini .rrow{font-size:9px;color:#64748b;margin:3px 0;display:flex;gap:4px}
+.mini .rrow i{color:var(--gold);font-style:normal;font-weight:800}
+.feat{font-size:11.5px;line-height:1.7;margin:0 0 4px;padding-left:18px;position:relative}
+.feat::before{content:"✓";position:absolute;left:0;color:var(--green);font-weight:800}
+
+/* ── 평가 매트릭스 ── */
+.score th:first-child{width:160px}
+.score td.c{text-align:center;font-weight:800}
+.yy{color:var(--green)}.nn{color:var(--red)}.mm{color:var(--amber)}
+.score .axis{font-weight:700;color:var(--ink-3)}
+.verdict{display:inline-block;font-size:10px;font-weight:800;padding:2px 9px;border-radius:9999px}
+.v-win{background:var(--green-bg);color:var(--green-tx);border:1px solid #b9e3c8}
+.v-tie{background:var(--blue-bg);color:var(--blue-tx);border:1px solid #c7d7fb}
+
+.openbtn{display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,#b8002a,#8a0020);color:#fff;font-size:11.5px;font-weight:700;padding:8px 16px;border-radius:8px;text-decoration:none;box-shadow:var(--shadow);margin-top:4px}
+.openbtn:hover{filter:brightness(1.08)}
+@media (max-width:900px){.vs{grid-template-columns:1fr}.mini{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <a href="../index.html" class="back" style="color:#e3c878;font-size:12px;text-decoration:none">← 롯데면세점</a>
+    <h1 style="margin-top:8px">PD-4247 동일 요건 — 두 산출물 대조</h1>
+    <p><span class="tag">benchmark</span> 롯데 AI 테스트 <b style="color:#cbd5e1">Claude SB(정적 슬라이드)</b> &nbsp;vs&nbsp; 와일리 OS <b style="color:#fff">2단 화면설계서(인터랙티브·검증)</b></p>
+  </header>
+
+  <div class="warn">
+    ⚠ <b>같은 입력, 다른 산출.</b> 두 산출물은 <b>완전히 동일한 요건</b>(PD-4247 — 폰트 15→14 · 비활성 컬러 #888→#000 · 메뉴 여백 10→5)을 받았습니다.
+    왼쪽은 롯데 AI 테스트의 Claude SB(구조는 분석 메타 기반 재구성), 오른쪽은 우리 와일리 OS 산출물입니다.
+    "더 잘 됐다"의 판단 근거를 <b>한 화면에서 직접</b> 대조하기 위함입니다.
+  </div>
+
+  <!-- 1. 공통 입력 -->
+  <div class="card">
+    <h2>1. 공통 입력 — PD-4247 요건정의</h2>
+    <p class="sub">두 산출물이 받은 동일 요건. 이 입력에서 출발해 산출물이 어떻게 갈라지는지가 핵심.</p>
+    <table class="meta">
+      <tr><th>JIRA</th><td>PD-4247 · [상품/전시] MC GNB 개선</td></tr>
+      <tr><th>변경 1</th><td>메뉴 <b>폰트 15 → 14</b></td></tr>
+      <tr><th>변경 2</th><td>비활성 메뉴 <b>컬러 #888 → #000</b> (활성은 볼드로 구분 유지)</td></tr>
+      <tr><th>변경 3</th><td>메뉴 간 <b>여백 10 → 5</b></td></tr>
+      <tr><th>적용 범위</th><td>MC(Mobile Web) 메인 GNB 한정 · 언어 4종(국/간/영/일) · 정책서 변경 없음</td></tr>
+    </table>
+  </div>
+
+  <!-- 2. 좌우 대조 -->
+  <div class="card">
+    <h2>2. 산출물 대조</h2>
+    <p class="sub">왼쪽: 정적 슬라이드 5장. 오른쪽: 좌(실제 화면)+우(8단 디스크립션) 2단 + 인터랙티브 전환.</p>
+    <div class="vs">
+
+      <!-- ── A. Claude SB ── -->
+      <div class="vs-col vs-a">
+        <div class="vs-head"><span><i class="fa-solid fa-file-powerpoint"></i> 롯데 AI 테스트 — Claude SB</span><span class="kind">PPTX · 정적 5장</span></div>
+        <div class="vs-body">
+          <p class="vs-meta">
+            <span>화면ID <b class="bad">MFPD1</b> <span class="flagchip">임의 부여</span></span>
+            <span>작성자 <b class="bad">기획AI</b> <span class="flagchip">임의 부여</span></span>
+          </p>
+          <div class="deck">
+            <div class="slide"><span class="sn">1/5</span><div class="st">표지 · 변경 개요</div><div class="sd">JIRA PD-4247 / 화면ID MFPD1 / 작성자 기획AI — 자유 4섹션 구성(개정이력·번역표·Description 없음)</div></div>
+            <div class="slide"><span class="sn">2/5</span><div class="st">AS-IS 현황</div><div class="sd">현재 GNB 캡처 + 폰트 15·비활성 #888·여백 10 기술</div></div>
+            <div class="slide"><span class="sn">3/5</span><div class="st">TO-BE 변경 사양</div><div class="sd">폰트 14·비활성 #000·여백 5 — <b>정적 비교표</b>(클릭 전환 없음)</div></div>
+            <div class="slide"><span class="sn">4/5</span><div class="st">변경 효과</div><div class="sd">메뉴 노출 증가 서술</div></div>
+            <div class="slide flag"><span class="sn">5/5</span><div class="st">확인 사항 <span class="flagchip">강점</span></div><div class="sd">스와이프 영향 리스크 능동 제기 — AI의 강점 구간</div></div>
+          </div>
+          <p class="note" style="margin-top:10px"><b class="good">강점</b> 요건 정확·변경 요약·리스크 제기 충실.<br>
+          <b class="bad">갭</b> 롯데 표준 양식(개정이력·JIRA 메타·번역표·Description) 미준수 · 화면ID/작성자 임의 · AS-IS/TO-BE 정적 · 다국어 번역표 없음 · 자동 검증 게이트 없음.</p>
+        </div>
+      </div>
+
+      <!-- ── B. 와일리 OS ── -->
+      <div class="vs-col vs-b">
+        <div class="vs-head"><span><i class="fa-solid fa-window-restore"></i> 와일리 OS — 2단 화면설계서</span><span class="kind">HTML · 인터랙티브</span></div>
+        <div class="vs-body">
+          <p class="vs-meta">
+            <span>화면ID <b class="good">front-home-main</b> <span class="flagchip" style="color:var(--green-tx);background:var(--green-bg);border-color:#b9e3c8">3대 키 일치</span></span>
+          </p>
+          <div class="mini">
+            <div class="ml">
+              <div class="lab">좌 — 실제 화면 (AS-IS↔TO-BE)</div>
+              <div class="gnbm"><span class="act">홈</span><span>트렌드</span><span>혜택</span><span>세일</span><span>랭킹</span><span>신상품</span><span>브랜드</span></div>
+              <div class="ph w90"></div><div class="ph w70"></div><div class="ph w50"></div>
+            </div>
+            <div class="mr">
+              <div class="lab">우 — 8단 디스크립션</div>
+              <div class="rrow"><i>①</i>화면ID</div>
+              <div class="rrow"><i>②</i>info 3행</div>
+              <div class="rrow"><i>③</i>Case 전환</div>
+              <div class="rrow"><i>④</i>flowchart</div>
+              <div class="rrow"><i>⑤</i>필드 매트릭스</div>
+              <div class="rrow"><i>⑥</i>번역표</div>
+              <div class="rrow"><i>⑦</i>정책</div>
+              <div class="rrow"><i>⑧</i>msg-tbl</div>
+            </div>
+          </div>
+          <p class="feat"><b>인터랙티브</b> Case 칩 클릭 → 좌측 GNB가 실제로 폰트 15→14·#888→#000·여백 10→5 전환</p>
+          <p class="feat"><b>번역표 데이터매핑</b> 국/간/영/일 4개국어 메뉴명 매핑(롯데 SB '번역표' 계승)</p>
+          <p class="feat"><b>마커 1:1 미러</b> 좌 num-badge 3 = 우 3, 필드 a~f 좌우 일치</p>
+          <p class="feat"><b>자동 검증 통과</b> html-lint 0 · 마커 audit 0 · verify 0</p>
+          <a class="openbtn" href="../화면설계/프론트/front-home-main.html"><i class="fa-solid fa-arrow-up-right-from-square"></i> 실제 화면설계서 열기</a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 3. 평가 매트릭스 -->
+  <div class="card">
+    <h2>3. 평가 매트릭스 — 8개 축</h2>
+    <p class="sub">○ 충족 · △ 부분 · ✕ 미흡. 같은 요건을 받은 두 산출물의 축별 대조.</p>
+    <table class="score">
+      <thead><tr><th>평가 축</th><th class="c">Claude SB</th><th class="c">와일리 OS</th><th>판정 근거</th></tr></thead>
+      <tbody>
+        <tr><td class="axis">요건 정확도</td><td class="c yy">○</td><td class="c yy">○</td><td>둘 다 3개 변경값 정확 — <b>여기선 동률</b></td></tr>
+        <tr><td class="axis">표준 양식 준수</td><td class="c mm">△</td><td class="c yy">○</td><td>SB=자유 4섹션 / OS=8단 고정 순서</td></tr>
+        <tr><td class="axis">메타 정합(3대 키)</td><td class="c nn">✕</td><td class="c yy">○</td><td>SB=MFPD1·기획AI 임의 / OS=화면ID=파일명=개발목록</td></tr>
+        <tr><td class="axis">AS-IS↔TO-BE</td><td class="c mm">△</td><td class="c yy">○</td><td>SB=정적 비교표 / OS=클릭 전환 인터랙티브</td></tr>
+        <tr><td class="axis">마커 1:1 미러</td><td class="c nn">✕</td><td class="c yy">○</td><td>SB=없음 / OS=좌우 num-badge·필드 일치</td></tr>
+        <tr><td class="axis">다국어 번역표</td><td class="c nn">✕</td><td class="c yy">○</td><td>SB=누락 / OS=4개국어 데이터매핑</td></tr>
+        <tr><td class="axis">자동 검증 게이트</td><td class="c nn">✕</td><td class="c yy">○</td><td>SB=없음 / OS=lint·audit·verify 전수 통과</td></tr>
+        <tr><td class="axis">도메인 실값</td><td class="c yy">○</td><td class="c mm">🟡</td><td>SB=요건값 그대로 / OS=구조 표준·번역 실값은 PPTX 확정 전 가안</td></tr>
+      </tbody>
+    </table>
+    <p class="wnote"><b>읽는 법</b>: 6개 축(양식·메타·AS-IS/TO-BE·마커·다국어·검증)에서 와일리 OS가 명확히 앞섭니다. 단 <b>요건 정확도는 동률</b>이고, <b>도메인 실값(번역 실값·면세 규정)은 우리도 가안(🟡)</b> — 이건 우리 우위가 아니라 PPTX 확정 후 채워야 할 구간입니다.</p>
+  </div>
+
+  <!-- 4. 결론 -->
+  <div class="card">
+    <h2>4. 결론</h2>
+    <p style="font-size:13px;line-height:1.8;margin:0 0 12px">
+      <span class="verdict v-win">방법론·재현성</span> 와일리 OS 우위 — 표준 양식·메타 정합·마커·인터랙티브·자동 검증의 6개 축에서 구조적으로 앞섬.<br>
+      <span class="verdict v-tie">요건 이해·도메인 깊이</span> 동률 — Claude SB도 요건은 정확히 맞히고 리스크를 능동 제기함. 우리 도메인 실값은 아직 가안.
+    </p>
+    <div class="warn" style="margin:0">
+      <b>정직한 한 줄.</b> 이 대조가 보여주는 건 <b>"우리가 AI를 이겼다"가 아니라</b>,
+      <b>"AI의 정확한 요건 이해 위에 와일리 OS가 표준 양식·검증을 강제해 양산 가능한 산출물로 만들었다"</b>는 것입니다.
+      AI의 속도·커버리지 + 우리의 골든·SSOT·검증이 결합될 때 완성됩니다.
+    </div>
+    <p class="note" style="margin-top:12px">관련: <a href="ai-gap-report.html" style="color:#b8002a;font-weight:700">SB·TC 생성 갭 분석(6과제)</a> · 실증 화면 <a href="../화면설계/프론트/front-home-main.html" style="color:#b8002a;font-weight:700">front-home-main</a></p>
+  </div>
+</div>
+</body>
+</html>
